@@ -95,7 +95,7 @@ virtual ~PionHadron();
   TObjArray*                  CloneToCreateTObjArray(AliParticleContainer* tracks)          ;
 
   Bool_t                      FillHistograms()                                              ;
-  void                        FillCorrelation(TLorentzVector vpi0, AliVParticle* track, THnSparse* histo);
+  void                        FillCorrelation(AliVCluster* cluster1, AliVCluster* cluster2, AliVParticle* track, THnSparse* histo);
   Int_t                       CorrelateClusterAndTrack(AliParticleContainer* tracks,TObjArray* bgTracks,Bool_t SameMix, Double_t Weight);
   Bool_t                      AccClusterForAna(AliClusterContainer* clusters, AliVCluster* caloCluster);
   
