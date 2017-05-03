@@ -42,7 +42,6 @@ ClassImp(PionHadron)
 PionHadron::PionHadron():
 AliAnalysisTaskEmcal("PionHadron", kTRUE),
 
-fGammaOrPi0(0),
 fDoMixing(0),
 fDebug(0),
 fSavePool(0),
@@ -50,9 +49,6 @@ fEventCuts(0),
 fHistEffGamma(0x0),
 fHistEffHadron(0x0),
 fRtoD(0),
-fClShapeMin(0),
-fClShapeMax(10),
-fMaxNLM(10),
 fRmvMTrack(0),
 fMixBCent(0),
 fMixBZvtx(),
@@ -67,8 +63,6 @@ fParticleLevel(kFALSE),
 fIsMC(kFALSE),
 fEventCutList(0),
 thisEvent(),
-fHistNoClusPt(0),
-fHistPi0(0),
 h_Pi0(0),
 h_Pi0Track(0),
 h_Pi0Track_Mixed(0)
@@ -88,9 +82,8 @@ h_Pi0Track_Mixed(0)
 
 // -------------------------------------------------------------------------------------
 // Constructor with inputs
-PionHadron::PionHadron(Bool_t InputGammaOrPi0,Bool_t InputDoMixing):
+PionHadron::PionHadron(Bool_t InputDoMixing):
 AliAnalysisTaskEmcal("PionHadron", kTRUE),
-fGammaOrPi0(0),
 fDoMixing(0),
 fDebug(0),
 fSavePool(0),
@@ -98,9 +91,6 @@ fEventCuts(0),
 fHistEffGamma(0x0),
 fHistEffHadron(0x0),
 fRtoD(0),
-fClShapeMin(0),
-fClShapeMax(10),
-fMaxNLM(10),
 fRmvMTrack(0),
 fMixBCent(0),
 fMixBZvtx(),
@@ -115,14 +105,11 @@ fParticleLevel(kFALSE),
 fIsMC(kFALSE),
 fEventCutList(0),
 thisEvent(),
-fHistNoClusPt(0),
-fHistPi0(0),
 h_Pi0(0),
 h_Pi0Track(0),
 h_Pi0Track_Mixed(0)
 {
 	InitArrays();
-	fGammaOrPi0        =InputGammaOrPi0;
 	fDoMixing          =InputDoMixing;
 
 	for(int i=0;i<nMulClass;i++){
@@ -140,7 +127,6 @@ h_Pi0Track_Mixed(0)
 
 void PionHadron::InitArrays()
 {
-	fGammaOrPi0        =0; //= 0 ( Gamma analysis ), 1 (pi0 analysis)
 	fDoMixing          =0; //= 0 (do only same event analyis with correct triggers), =1 (do event mixing)
 	fMCorData          =0; // 0->MC, 1->Data
 	fDebug             =0; //set only 1 for debugging
@@ -203,19 +189,7 @@ void PionHadron::UserCreateOutputObjects()
     
    
     //Initializing the histograms to be saved. For the moment, only pT of clusters and Mgammagamma.
-    
-    fHistNoClusPt = new TH1F(Form("fHistNoClusPt_Id%0d",1),Form("fHistNoClusPt_Id%0d",1), 31,0, 31);
-	fHistNoClusPt->GetXaxis()->SetTitle("p_{T}^{Calo Cluster}");
-	fHistNoClusPt->GetYaxis()->SetTitle(Form("No. of Clusters [counts/%0.1f GeV/c]",fHistNoClusPt->GetBinWidth(0)));
-	fOutput->Add(fHistNoClusPt);
-    
-    
-    fHistPi0 = new TH1F(Form("fHistPi0_%0d",1),Form("fHistPi0_%0d",1), 500, 0, 0.5);
-	fHistPi0->GetXaxis()->SetTitle("M_{#gamma#gamma}");
-	fHistPi0->GetYaxis()->SetTitle("Entries");
-    //fOutput->Add(fHistPi0);
-	//fOutput->Add(fHistPi0);    
-    int nbins_Mass = 50;
+    int nbins_Mass = 20;
     int nbins_Pt   = 50;
     int nbins_E    = 50;
     int nbins_dphi     = 18;
@@ -614,24 +588,20 @@ Int_t PionHadron::CorrelateClusterAndTrack(AliParticleContainer* tracks,TObjArra
 	AliVParticle* track=0;
     Weight=InputWeight; //..for mixed events normalize per events in pool
 	Int_t GammaCounter=0;
-    
-    //std::cout << " NoOfClustersInEvent" << NoOfClustersInEvent << std::endl;
-    
+
 	for(Int_t NoCluster1 = 0; NoCluster1 < NoOfClustersInEvent; NoCluster1++ ) // Loop over clusters
 	{   
-		cluster=(AliVCluster*) clusters->GetCluster(NoCluster1); // //it was GetAcceptCluster->GetCluster(NoCluster1);
+		cluster=(AliVCluster*) clusters->GetAcceptCluster(NoCluster1); // //it was GetAcceptCluster->GetCluster(NoCluster1);
      	if(!cluster) continue;
-        fHistNoClusPt->Fill(cluster->E());
         if(!AccClusterForAna(clusters,cluster))continue ; 
         
         for( Int_t NoCluster2 = NoCluster1+1; NoCluster2 < NoOfClustersInEvent; NoCluster2++ )
         {
-            //std::cout << " Pion loop " << std::endl;
             cluster2=(AliVCluster*) clusters->GetCluster(NoCluster2);
 			if(!cluster2) continue;
             if(!AccClusterForAna(clusters,cluster2))continue ; 
 			
-            FillPionHisto(cluster, cluster2, h_Pi0);
+            FillPionHisto(cluster, cluster2, h_Pi0); //filling variables
             if(SameMix==0){
 		        for(Int_t ibg=0; ibg<bgTracksArray->GetEntries(); ibg++){
 	    	        AliPicoTrack* track = static_cast<AliPicoTrack*>(bgTracksArray->At(ibg));
@@ -770,18 +740,14 @@ void PionHadron::AddMixEventPi0(const Int_t MulClass, const Int_t vtxClass, cons
 
 Bool_t PionHadron::AccClusterForAna(AliClusterContainer* clusters, AliVCluster* caloCluster)
 {
-
-    //Require at least 2 GeV of energy:
+    if(caloCluster->IsEMCAL()) return kFALSE;
     if(caloCluster->E()<0.50) return kFALSE;
 	//..at least 2 cells in cluster
 	if(caloCluster->GetNCells()<2) return kFALSE;
-	//..number of local maxima should be 1 or 0 (for cluster splitting this has to be changed)
-	//if(caloCluster->GetNExMax()>fMaxNLM) return kFALSE;
-	//..cut on the cluster shape
-	//if(fClShapeMin>0 && fClShapeMax>0   && (caloCluster->GetM02()<fClShapeMin || caloCluster->GetM02()>fClShapeMax)) return kFALSE;
+	if(caloCluster->GetNExMax() > 1) return kFALSE; //local maxima should be 0 or 1
 	if(caloCluster->GetM02()<0.1) return kFALSE;
     //..remove clusters with a matched track
-	//if(fRmvMTrack==1 && caloCluster->GetNTracksMatched()!=0) return kFALSE;
+	//if(fRmvMTrack==1 && caloCluster->GetNTracksMatched(s)!=0) return kFALSE;
 	return kTRUE;
 }
 

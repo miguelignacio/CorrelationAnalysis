@@ -61,7 +61,7 @@ public:
 class PionHadron : public AliAnalysisTaskEmcal {
  public:
 	PionHadron();
-	PionHadron(Bool_t InputGammaOrPi0,Bool_t InputSameEventAnalysis);
+	PionHadron(Bool_t InputSameEventAnalysis);
 virtual ~PionHadron();
 
   void SetEffHistGamma(THnF *h)                              { fHistEffGamma    = h      ; }
@@ -69,8 +69,6 @@ virtual ~PionHadron();
   void SetSavePool(Bool_t input)                             { fSavePool        = input  ; }
   void SetEvtTriggerType(UInt_t input)                       { fTriggerType     = input  ; }
   void SetEvtMixType(UInt_t input)                           { fMixingEventType = input  ; }
-  void SetNLM(Int_t input)                                   { fMaxNLM = input;}
-  void SetM02(Double_t inputMin,Double_t inputMax)           { fClShapeMin = inputMin; fClShapeMax = inputMax;}
   void SetRmvMatchedTrack(Bool_t input)                      { fRmvMTrack  = input;}
   void SetUseManualEvtCuts(Bool_t input)                     { fUseManualEventCuts = input;}
 
@@ -111,7 +109,6 @@ virtual ~PionHadron();
   Double_t                    DeltaPhi(AliTLorentzVector ClusterVec,AliVParticle* TrackVec) ;
   Double_t                    GetEff(AliTLorentzVector ParticleVec)                         ;
 
-  Bool_t                      fGammaOrPi0;               ///< This tells me whether the correltation and the filling of histograms is done for gamma or pi0
   Bool_t                      fDoMixing;                 ///< This option enables mixed events being used in the analysi
   Bool_t                      fMCorData;                 //<Are we looking at simulations or at the real thing
   Bool_t                      fDebug;			        ///< Can be set for debugging
@@ -137,10 +134,7 @@ virtual ~PionHadron();
   Double_t                    fArray_XI_Bins[9];         ///< 9=kNoXiBins+1
   Double_t                    fArrayNVertBins[21];       ///< 21=kNvertBins+1
 
-  //..cuts
-  Double_t                    fClShapeMin;               ///< Minimum cluster shape
-  Double_t                    fClShapeMax;               ///< Maximum cluster shape
-  Int_t                       fMaxNLM;                   ///< Maximum number of local maxima
+
   Bool_t                      fRmvMTrack;                ///< Switch to enable removing clusters with a matched track
   //..Event pool variables
   TAxis                      *fMixBCent;                 ///< Number of centrality bins for the mixed event
@@ -159,9 +153,7 @@ virtual ~PionHadron();
   Bool_t                      fIsMC;                     ///< Trigger, MC analysis
   UInt_t                      fAODfilterBits[2];         ///< AOD track filter bit map
   
-   // Histograms -
-  TH1  					    *fHistNoClusPt;            //!<! ?No of calorimeter Clusters as a function of p_T ///this is the only histogram that I 
-  TH1                       *fHistPi0;                  //!<! Mass for pi0
+   // THnSparse
   THnSparse                 *h_Pi0;                 //!<!
   THnSparse                 *h_Pi0Track;                 //!<! THnSparse with info on pi0 and track.
   THnSparse                 *h_Pi0Track_Mixed;                 //!<!
