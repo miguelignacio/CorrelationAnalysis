@@ -95,6 +95,8 @@ virtual ~PionHadron();
   TObjArray*                  CloneToCreateTObjArray(AliParticleContainer* tracks)          ;
 
   Bool_t                      FillHistograms()                                              ;
+  
+  void                        FillPionHisto(AliVCluster* cluster1, AliVCluster* cluster2, THnSparse* histo);
   void                        FillCorrelation(AliVCluster* cluster1, AliVCluster* cluster2, AliVParticle* track, THnSparse* histo);
   Int_t                       CorrelateClusterAndTrack(AliParticleContainer* tracks,TObjArray* bgTracks,Bool_t SameMix, Double_t Weight);
   Bool_t                      AccClusterForAna(AliClusterContainer* clusters, AliVCluster* caloCluster);
@@ -160,6 +162,7 @@ virtual ~PionHadron();
    // Histograms -
   TH1  					    *fHistNoClusPt;            //!<! ?No of calorimeter Clusters as a function of p_T ///this is the only histogram that I 
   TH1                       *fHistPi0;                  //!<! Mass for pi0
+  THnSparse                 *h_Pi0;                 //!<!
   THnSparse                 *h_Pi0Track;                 //!<! THnSparse with info on pi0 and track.
   THnSparse                 *h_Pi0Track_Mixed;                 //!<!
   // Other stuff

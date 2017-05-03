@@ -1,10 +1,10 @@
 // $Id$
 PionHadron* AddTask(
   Bool_t      InputGammaOrPi0        = 0,                 //..gamma analysis=0, pi0 analyis=1
-  Bool_t      InputDoMixing          = 0,                 //..same event=0 mixed event =1 (currenlty used to init the pool=1, throw out events without clusters=0)
-  UInt_t      evtTriggerType         = AliVEvent::kEMCEGA,//..use this type of events to combine gammas(trigger) with hadrons
+  Bool_t      InputDoMixing          = 1,                 //..same event=0 mixed event =1 (currenlty used to init the pool=1, throw out events without clusters=0)
+  UInt_t      evtTriggerType         = AliVEvent::kEMCEGA, //AliVEvent::kAnyINT,// AliVEvent::kEMCEGA,//..use this type of events to combine gammas(trigger) with hadrons
   UInt_t      evtMixingType          = AliVEvent::kAnyINT,//..use only this type of events to fill your mixed event pool with tracks
-  Double_t    trackptcut             = 0.15,              //..
+  Double_t    trackptcut             = 0.0,              //..
   Double_t    clusptcut              = 0.30,              //..
   Bool_t      SavePool               = 0,                 //..saves a mixed event pool to the output event
   const char *trackName              = "usedefault",
@@ -120,12 +120,13 @@ PionHadron* AddTask(
   AnalysisTask->SetSavePool(SavePool);
   AnalysisTask->SetEvtTriggerType(evtTriggerType);   //..Trigger to be used for filling same event histograms
   AnalysisTask->SetEvtMixType(evtMixingType);        //..Trigger to be used to fill tracks into the pool (no GA trigger!!)
-  AnalysisTask->SetNLM(1);                           //..Maximum of number of local maxima
-  if(InputGammaOrPi0==0)
-  {
-	  AnalysisTask->SetM02(0.1,0.4);                 //..Ranges of allowed cluster shapes in the analysis
-	  AnalysisTask->SetRmvMatchedTrack(1);           //..Removes all clusters that have a matched track
-  }
+ 
+  //AnalysisTask->SetNLM(1);                           //..Maximum of number of local maxima
+ // if(InputGammaOrPi0==0)
+  //{
+//	  AnalysisTask->SetM02(0.1,0.4);                 //..Ranges of allowed cluster shapes in the analysis
+//	  AnalysisTask->SetRmvMatchedTrack(1);           //..Removes all clusters that have a matched track
+ // }
   //for later AnalysisTask->SetEffHistGamma(THnF *h);
   //for later AnalysisTask->SetEffHistHadron(THnF *h);
   //-------------------------------------------------------

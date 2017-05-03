@@ -69,6 +69,7 @@ fEventCutList(0),
 thisEvent(),
 fHistNoClusPt(0),
 fHistPi0(0),
+h_Pi0(0),
 h_Pi0Track(0),
 h_Pi0Track_Mixed(0)
 {
@@ -116,6 +117,7 @@ fEventCutList(0),
 thisEvent(),
 fHistNoClusPt(0),
 fHistPi0(0),
+h_Pi0(0),
 h_Pi0Track(0),
 h_Pi0Track_Mixed(0)
 {
@@ -167,10 +169,7 @@ PionHadron::~PionHadron()
 
 void PionHadron::UserCreateOutputObjects()
 {
-    //OutputList= new TList();
-    //OutputList->SetOwner();
-    //OutputList->SetName("NewOutput");
-
+    AliWarning("Entering UserCreateOutPutObjects");   
 	AliAnalysisTaskEmcal::UserCreateOutputObjects();
     fEventCutList = new TList();
 	fEventCutList ->SetOwner();
@@ -197,8 +196,10 @@ void PionHadron::UserCreateOutputObjects()
     //initializing event mixer:
     if(fDoMixing==1 || fPoolMgr) //do this for either a mixed event analysis or when an external pool is given
 	{
+        AliWarning("Initializing Event Mixer");
 		InitEventMixer();
 	}
+    else{  AliWarning("Did not initialize Event Mixer"); }
     
    
     //Initializing the histograms to be saved. For the moment, only pT of clusters and Mgammagamma.
@@ -214,7 +215,7 @@ void PionHadron::UserCreateOutputObjects()
 	fHistPi0->GetYaxis()->SetTitle("Entries");
     //fOutput->Add(fHistPi0);
 	//fOutput->Add(fHistPi0);    
-    int nbins_Mass = 500;
+    int nbins_Mass = 50;
     int nbins_Pt   = 50;
     int nbins_E    = 50;
     int nbins_dphi     = 18;
@@ -259,12 +260,21 @@ void PionHadron::UserCreateOutputObjects()
                         max_Pt, max_Pt, max_eta, max_eta, max_phi, max_phi, max_M02, max_M02};
 
     TString axisNames = "Pion-Track THnSparse; #pion Mass; #pionpT; #pion Eta; #pion phi; #pion E; track_pT; track Eta; track Phi; #Dphi ; #Deta; #|Deta|; Zt; Xi";
-    axisNames = axisNames + "; ph1_pT; ph2_pT; ph1_eta; ph2_eta; ph1_phi; ph2_phi";
+    axisNames = axisNames + "; ph1_pT; ph2_pT; ph1_eta; ph2_eta; ph1_phi; ph2_phi; ph1_M02; ph2_M02";
 
     h_Pi0Track = new THnSparseD("h_Pi0Track", axisNames, 21, bins, xmin,xmax);
     fOutput->Add(h_Pi0Track);
     h_Pi0Track_Mixed = new THnSparseD("h_Pi0Track_Mixed", axisNames, 21, bins, xmin,xmax);
     fOutput->Add(h_Pi0Track_Mixed);
+    
+    axisNames = "Pion THnSparse; #pion Mass; #pionpT; #pion Eta; #pion phi; #pion E; ph1_pT; ph2_pT; ph1_eta; ph2_eta; ph1_phi; ph2_phi; ph1_M02; ph2_M02";
+    Int_t binsPi0[13] =             {nbins_Mass, nbins_Pt, nbins_eta, nbins_phi, nbins_E, nbins_Pt, nbins_Pt, nbins_eta, nbins_eta, nbins_phi, nbins_phi, nbins_M02, nbins_M02};
+    
+    Double_t xminPi0[13] = {min_Mass, min_Pt, min_eta, min_phi , min_E, min_Pt, min_Pt, min_eta, min_eta, min_phi, min_phi, min_M02, min_M02};
+    Double_t xmaxPi0[13] = {max_Mass, max_Pt, max_eta , max_phi , max_E,max_Pt, max_Pt, max_eta, max_eta, max_phi, max_phi, max_M02, max_M02};
+    h_Pi0= new THnSparseD("h_Pi0", axisNames, 13, binsPi0, xminPi0,xmaxPi0);
+    fOutput->Add(h_Pi0);
+    
 	PostData(1, fOutput); // Post data for ALL output slots >0 here, to get at least an empty histogram
 }
 
@@ -469,14 +479,19 @@ Bool_t PionHadron::FillHistograms()
 			AliWarning(Form("No pool found. Centrality %f, ZVertex %f",fCent, zVertex));
 			return kFALSE;
 		}
-
-    //..Start combining triggers (from fTriggerType events)
+        
+        AliWarning(Form("Pool found. Centrality %f, ZVertex %f, number of events in pool %d",fCent, zVertex, pool->GetCurrentNEvents()));
+        std::cout << "Pool " << pool->GetCurrentNEvents() << std::endl;
+        if(pool->IsReady()) AliWarning(Form("Pool ready"));
+        //if (fCurrentEventTrigger & fTriggerType) AliWarning(Form("Current Trigger type equal trygger type"));
+        //if (fCurrentEventTrigger & fMixingEventType) AliWarning(Form("Current Trigger type equal mixing type"));
+        //..Start combining triggers (from fTriggerType events)
 		//..with a pool filled with tracks (from fMixingEventType)
 		if(pool->IsReady() && (fCurrentEventTrigger & fTriggerType))
 		{
 			//..get number of current events in pool
 			Int_t nMix = pool->GetCurrentNEvents();
-			//cout<<"number of events in pool: "<<nMix<<endl;
+			cout<<"number of events in pool: "<<nMix<<endl;
 			for(Int_t jMix=0; jMix<nMix; jMix++)
 			{
 				TObjArray* bgTracks=0x0;
@@ -486,17 +501,19 @@ Bool_t PionHadron::FillHistograms()
 					cout<<"could not retrieve TObjArray from EventPool!"<<endl;
 				}
 				//..Loop over clusters and fill histograms
+                //std::cout << " Correlated Cluster and Track, MIXED EVENTS " << std::endl;
 				CorrelateClusterAndTrack(0,bgTracks,0,1.0/nMix);//correlate with mixed event
 			}
 		}
-        if((fCurrentEventTrigger & fMixingEventType) && ((fCurrentEventTrigger & 1000000000000000)==0))
+        if((fCurrentEventTrigger & fMixingEventType) )//&& ((fCurrentEventTrigger & 1000000000000000)==0))
 		{
-			TObjArray* tracksClone=0x0;
+            TObjArray* tracksClone=0x0;
 			tracksClone = CloneToCreateTObjArray(tracks);
 			//..if there is no track object or the pool is locked do not update
 			if(tracksClone && !pool->GetLockFlag())
 			{
-				pool->UpdatePool(tracksClone);
+				AliWarning("Updating Pool");
+                pool->UpdatePool(tracksClone);
 			}
 		}
 	} //end of if DoMixing
@@ -504,6 +521,7 @@ Bool_t PionHadron::FillHistograms()
      if(fCurrentEventTrigger & fTriggerType)
 	{
     //Now do same-event analysis:
+    std::cout << " Correlated Cluster and Track " << std::endl;
     CorrelateClusterAndTrack(tracks,0,1,1);//correlate with same event
     }
     //Get all EMCAL clusters in the event
@@ -596,18 +614,24 @@ Int_t PionHadron::CorrelateClusterAndTrack(AliParticleContainer* tracks,TObjArra
 	AliVParticle* track=0;
     Weight=InputWeight; //..for mixed events normalize per events in pool
 	Int_t GammaCounter=0;
+    
+    //std::cout << " NoOfClustersInEvent" << NoOfClustersInEvent << std::endl;
+    
 	for(Int_t NoCluster1 = 0; NoCluster1 < NoOfClustersInEvent; NoCluster1++ ) // Loop over clusters
-	{   //std::cout << " Photon loop " << std::endl;
-		cluster=(AliVCluster*) clusters->GetAcceptCluster(NoCluster1); //->GetCluster(NoCluster1);
-     	if(!cluster || !AccClusterForAna(clusters,cluster))continue ; 
+	{   
+		cluster=(AliVCluster*) clusters->GetCluster(NoCluster1); // //it was GetAcceptCluster->GetCluster(NoCluster1);
+     	if(!cluster) continue;
+        fHistNoClusPt->Fill(cluster->E());
+        if(!AccClusterForAna(clusters,cluster))continue ; 
         
         for( Int_t NoCluster2 = NoCluster1+1; NoCluster2 < NoOfClustersInEvent; NoCluster2++ )
         {
             //std::cout << " Pion loop " << std::endl;
-            cluster2=(AliVCluster*) clusters->GetAcceptCluster(NoCluster2);
-			if(!cluster2 || !AccClusterForAna(clusters,cluster2))continue ; 
-			            
-            //fHistPi0->Fill(vpi0.M()); //filling diphoton invariant mass distribution
+            cluster2=(AliVCluster*) clusters->GetCluster(NoCluster2);
+			if(!cluster2) continue;
+            if(!AccClusterForAna(clusters,cluster2))continue ; 
+			
+            FillPionHisto(cluster, cluster2, h_Pi0);
             if(SameMix==0){
 		        for(Int_t ibg=0; ibg<bgTracksArray->GetEntries(); ibg++){
 	    	        AliPicoTrack* track = static_cast<AliPicoTrack*>(bgTracksArray->At(ibg));
@@ -646,6 +670,23 @@ void  PionHadron::FillCorrelation(AliVCluster* cluster1, AliVCluster* cluster2, 
     double  Xi  = -999; 
     if(Zt>0) Xi = TMath::Log(1.0/Zt);
     double entries[21] = {pi0.M(), pi0.Pt(), pi0.Eta(), pi0.Phi(), pi0.E(), track->Pt(), track->Eta(), trackphi, dphi, deta, abs(deta), Zt, Xi,
+                          ph_1.Pt(), ph_2.Pt(), ph_1.Eta(), ph_2.Eta(), ph_1.Phi(), ph_2.Phi() , cluster1->GetM02(), cluster2->GetM02()};                
+    //std::cout<<"About to fill histogram with entries";
+    histo->Fill(entries);
+    
+    return;
+}
+
+void  PionHadron::FillPionHisto(AliVCluster* cluster1, AliVCluster* cluster2, THnSparse* histo){
+    
+    AliClusterContainer* clusters  = GetClusterContainer(0);
+    TLorentzVector ph_1, ph_2, pi0; 
+    //std::cout << " getting momentum";
+	clusters->GetMomentum(ph_1, cluster1);
+    clusters->GetMomentum(ph_2, cluster2);
+	pi0= ph_1+ph_2;
+       
+    double entries[13] = {pi0.M(), pi0.Pt(), pi0.Eta(), pi0.Phi(), pi0.E(), 
                           ph_1.Pt(), ph_2.Pt(), ph_1.Eta(), ph_2.Eta(), ph_1.Phi(), ph_2.Phi() , cluster1->GetM02(), cluster2->GetM02()};                
     //std::cout<<"About to fill histogram with entries";
     histo->Fill(entries);
@@ -729,25 +770,19 @@ void PionHadron::AddMixEventPi0(const Int_t MulClass, const Int_t vtxClass, cons
 
 Bool_t PionHadron::AccClusterForAna(AliClusterContainer* clusters, AliVCluster* caloCluster)
 {
-	TLorentzVector caloClusterVec;
-	clusters->GetMomentum(caloClusterVec,caloCluster);
-	Double_t deltaPhi=2;   //..phi away from detector edges.
-	Double_t deltaEta=0.0; //..eta away from detector edges.
-    //!!!! eventually transform to AliTLorentzvector
-	//..Accepts clusters if certain conditions are fulfilled
-	Bool_t Accepted=1; //..By default accepted
-	//-----------------------------
+
     //Require at least 2 GeV of energy:
-    //if(caloCluster->E()<0.50) return 0;
+    if(caloCluster->E()<0.50) return kFALSE;
 	//..at least 2 cells in cluster
-	if(caloCluster->GetNCells()<2)		return 0;
+	if(caloCluster->GetNCells()<2) return kFALSE;
 	//..number of local maxima should be 1 or 0 (for cluster splitting this has to be changed)
-	if(caloCluster->GetNExMax()>fMaxNLM) return 0;
+	//if(caloCluster->GetNExMax()>fMaxNLM) return kFALSE;
 	//..cut on the cluster shape
-	if(fClShapeMin>0 && fClShapeMax>0   && (caloCluster->GetM02()<fClShapeMin || caloCluster->GetM02()>fClShapeMax)) return 0;
-	//..remove clusters with a matched track
-	if(fRmvMTrack==1 && caloCluster->GetNTracksMatched()!=0) return 0;
-	return Accepted;
+	//if(fClShapeMin>0 && fClShapeMax>0   && (caloCluster->GetM02()<fClShapeMin || caloCluster->GetM02()>fClShapeMax)) return kFALSE;
+	if(caloCluster->GetM02()<0.1) return kFALSE;
+    //..remove clusters with a matched track
+	//if(fRmvMTrack==1 && caloCluster->GetNTracksMatched()!=0) return kFALSE;
+	return kTRUE;
 }
 
 Double_t PionHadron::DeltaPhi(AliTLorentzVector ClusterVec,AliVParticle* TrackVec)

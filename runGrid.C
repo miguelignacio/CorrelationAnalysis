@@ -28,7 +28,9 @@ void runGrid()
  
   if(isLocal){ 
     TChain *chain = new TChain("aodTree");
-    chain->Add("AliAOD.root");
+    //chain->Add("AliAOD.root");
+    chain->Add("MC_AliAOD_EMCAL.root");
+    //chain->Add("MC_MinBias.root");
   //star the analysis locally
     std::cout << "Running locally on AOD tree, Chain has " << chain->GetEntries() << " events " << std::endl;
      mgr->StartAnalysis("local",chain);
@@ -54,12 +56,7 @@ ude -I$ALICE_PHYSICS/include");
   plugin->SetGridDataDir("/alice/data/2015/LHC15o");
   plugin->SetDataPattern("*/pass1/*/*AOD.root");
   plugin->SetRunPrefix("000");
-  plugin->AddRunNumber(246928);
-  // plugin->AddRunNumber(259886);
-  //plugin->AddRunNumber(259860);
-  //plugin->AddRunNumber(259711);
-  //plugin->AddRunNumber(259697);
-  //plugin->AddRunNumber(259668);
+  plugin->AddRunNumber(246113);
 
   plugin->SetSplitMaxInputFileNumber(40);
   plugin->SetExecutable("myTask.sh");
@@ -72,7 +69,7 @@ ude -I$ALICE_PHYSICS/include");
   plugin->SetMaxMergeStages(1);
   plugin->SetMergeViaJDL(kTRUE);
   plugin->SetGridWorkingDir("workdir");
-  plugin->SetGridOutputDir("4-24-17");
+  plugin->SetGridOutputDir("5-3-17");
   //connect the alien plugin to the manager
   mgr->SetGridHandler(plugin);
 
@@ -90,10 +87,10 @@ ude -I$ALICE_PHYSICS/include");
 alien_close_se, file, alien_close_se));
   }
 
-  Bool_t isTesting = kFALSE;
+  Bool_t isTesting = kTRUE;
   if(isTesting){
     std::cout<< "Running Grid Test " << std::endl;
-    plugin->SetNtestFiles(1);
+    plugin->SetNtestFiles(4);
     plugin->SetRunMode("test"); // 
   }
   else{
