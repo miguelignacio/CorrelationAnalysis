@@ -164,9 +164,10 @@ void PionHadron::UserCreateOutputObjects()
     
     if(fUseManualEventCuts==1)
 	{  
+    AliWarning("Entering UserCreateOutPutObjects");   
     fEventCuts.SetManualMode();
     
-    fEventCuts.fCentralityFramework=2; //..only for Run1!!
+    fEventCuts.fCentralityFramework=1; //..only for Run1!!
 	fEventCuts.fTriggerMask = fOffTrigger;
 	fEventCuts.fMinVtz = fMinVz;
 	fEventCuts.fMaxVtz = fMaxVz;
@@ -329,82 +330,26 @@ Bool_t PionHadron::IsEventSelected()
 	if (!fEventCuts.AcceptEvent(InputEvent()))
 	{
 		PostData(1, fOutput);
+        //AliWarning("Did not pass selection ");
 		return kFALSE;
 	}
+    //std::cout << " Centrality " << fEventCuts.GetCentrality() << std::endl;
     
-    //..Start of copy part from AliAnalysisTaskEmcal
-	if (!fTrigClass.IsNull())
-	{
-		TString fired;
-		const AliAODEvent *aev = dynamic_cast<const AliAODEvent*>(InputEvent());
-		if (aev){ fired = aev->GetFiredTriggerClasses(); }
-		else cout<<"Error analysis only for AODs"<<endl;
-		if (!fired.Contains("-B-")) 
-		{
-			if (fGeneralHistograms) fHistEventRejection->Fill("trigger",1);
-			return kFALSE;
-		}
-		std::unique_ptr<TObjArray> arr(fTrigClass.Tokenize("|"));
-		if (!arr)
-		{
-			if (fGeneralHistograms) fHistEventRejection->Fill("trigger",1);
-			return kFALSE;
-		}
-		Bool_t match = 0;
-		for (Int_t i=0;i<arr->GetEntriesFast();++i)
-		{
-			TObject *obj = arr->At(i);
-			if (!obj)
-				continue;
-			//Check if requested trigger was fired
-			TString objStr = obj->GetName();
-			if(fEMCalTriggerMode == kOverlapWithLowThreshold &&
-					(objStr.Contains("J1") || objStr.Contains("J2") || objStr.Contains("G1") || objStr.Contains("G2"))) {
-				// This is relevant for EMCal triggers with 2 thresholds
-				// If the kOverlapWithLowThreshold was requested than the overlap between the two triggers goes with the lower threshold trigger
-				TString trigType1 = "J1";
-				TString trigType2 = "J2";
-				if(objStr.Contains("G"))
-				{
-					trigType1 = "G1";
-					trigType2 = "G2";
-				}
-				if(objStr.Contains(trigType2) && fired.Contains(trigType2.Data()))
-				{ //requesting low threshold + overlap
-					match = 1;
-					break;
-				}
-				else if(objStr.Contains(trigType1) && fired.Contains(trigType1.Data()) && !fired.Contains(trigType2.Data())) { //high threshold only
-					match = 1;
-					break;
-				}
-			}
-			else
-			{
-				// If this is not an EMCal trigger, or no particular treatment of EMCal triggers was requested,
-				// simply check that the trigger was fired
-				if (fired.Contains(obj->GetName()))
-				{
-					match = 1;
-					break;
-				}
-			}
-		}
-		if (!match)
-		{
-			if (fGeneralHistograms) fHistEventRejection->Fill("trigger",1);
-			return kFALSE;
-		}
-	}
-	if (fTriggerTypeSel != kND)
-	{
-		if (!HasTriggerType(fTriggerTypeSel))
-		{
-			if (fGeneralHistograms) fHistEventRejection->Fill("trigTypeSel",1);
-			return kFALSE;
-		}
-	}
+    TString Trigger;
+    Trigger = fInputEvent->GetFiredTriggerClasses();
+    bool PassedGammaTrigger = kFALSE;
+    bool PassedMinBiasTrigger = kFALSE;
+    
+    if(Trigger.Contains("EG1") ||Trigger.Contains("EG2") || Trigger.Contains("DG1") || Trigger.Contains("DG2")) PassedGammaTrigger = kTRUE;
+    if(Trigger.Contains("INT7")) PassedMinBiasTrigger = kTRUE;
+    
+    if(PassedGammaTrigger) AliWarning("Passed Gamma Trigger ");
+    if(PassedMinBiasTrigger) AliWarning("Passed MinBias Trigger ");
+    //std::cout << Trigger << std::endl;
+    if(!PassedGammaTrigger && !PassedMinBiasTrigger) return kFALSE;
 //..should be DELETED!!! later
+   
+
 	AliAnalysisTaskEmcal::IsEventSelected();
 	return kTRUE;
 }
@@ -415,10 +360,10 @@ Bool_t PionHadron::Run()
     //std::cout<< " Run function " << std::endl;
 	//..This function is called in AliAnalysisTaskEmcal::UserExec.
 	//..Determine the trigger for the current event
-	fCurrentEventTrigger = ((AliInputEventHandler*)(AliAnalysisManager::GetAnalysisManager()->GetInputEventHandler()))->IsEventSelected();
+	//fCurrentEventTrigger = ((AliInputEventHandler*)(AliAnalysisManager::GetAnalysisManager()->GetInputEventHandler()))->IsEventSelected();
 	//..check here some basic properties of the event
-	if (fDoMixing==0 && !fCaloClusters)                         return kFALSE;
-	if (fDoMixing==0 && !(fCurrentEventTrigger & fTriggerType)) return kFALSE;
+	//if (fDoMixing==0 && !fCaloClusters)                         return kFALSE;
+	//if (fDoMixing==0 && !(fCurrentEventTrigger & fTriggerType)) return kFALSE;
 	return kTRUE;
 }
 
@@ -440,12 +385,31 @@ Bool_t PionHadron::FillHistograms()
 	//    of 1./nMix can be applied.
 
     //..Get pool containing tracks from other events like this one
+    
+    //AliWarning("Filling Histograms");
+    TString Trigger;
+    Trigger = fInputEvent->GetFiredTriggerClasses();
+    bool PassedGammaTrigger = kFALSE;
+    bool PassedMinBiasTrigger = kFALSE;
+    
+    if(Trigger.Contains("EG1") ||Trigger.Contains("EG2") || Trigger.Contains("DG1") || Trigger.Contains("DG2")) PassedGammaTrigger = kTRUE;
+    if(Trigger.Contains("INT7")) PassedMinBiasTrigger = kTRUE;
+    
+
 	Double_t zVertex = fVertex[2];
+    //AliWarning(Form("Centrality %f, ZVertex %f, FEventCuts centrality %f",fCent, zVertex,fEventCuts.GetCentrality() ));
 	AliParticleContainer* tracks =0x0;
 	tracks   = GetParticleContainer(0);
 
-    if(fDoMixing==1)
-	{
+    fCent = fEventCuts.GetCentrality();
+    AliWarning(Form("Centrality %f, ZVertex %f, FEventCuts centrality %f",fCent, zVertex,fEventCuts.GetCentrality() ));
+    //const AliVEvent *event = dynamic_cast<const AliVEvent*>(InputEvent());
+    //AliCentrality *aliCent = InputEvent()->GetCentrality();
+    //if (aliCent) {
+        //fCent = aliCent->GetCentralityPercentile(fCentEst.Data());
+     //   std::cout << aliCent->GetCentralityPercentile("V0A") << std::endl;
+   // }
+    //else AliWarning("problem finding centrality");
 		AliEventPool* pool = 0x0;
 		pool = fPoolMgr->GetEventPool(fCent, zVertex);
 		if (!pool)
@@ -453,17 +417,9 @@ Bool_t PionHadron::FillHistograms()
 			AliWarning(Form("No pool found. Centrality %f, ZVertex %f",fCent, zVertex));
 			return kFALSE;
 		}
-        
-        AliWarning(Form("Pool found. Centrality %f, ZVertex %f, number of events in pool %d",fCent, zVertex, pool->GetCurrentNEvents()));
-        std::cout << "Pool " << pool->GetCurrentNEvents() << std::endl;
-        if(pool->IsReady()) AliWarning(Form("Pool ready"));
-        //if (fCurrentEventTrigger & fTriggerType) AliWarning(Form("Current Trigger type equal trygger type"));
-        //if (fCurrentEventTrigger & fMixingEventType) AliWarning(Form("Current Trigger type equal mixing type"));
-        //..Start combining triggers (from fTriggerType events)
-		//..with a pool filled with tracks (from fMixingEventType)
-		if(pool->IsReady() && (fCurrentEventTrigger & fTriggerType))
+		if(pool->IsReady() && PassedGammaTrigger)
 		{
-			//..get number of current events in pool
+			AliWarning(Form("Pool ready. Centrality %f, ZVertex %f",fCent, zVertex));
 			Int_t nMix = pool->GetCurrentNEvents();
 			cout<<"number of events in pool: "<<nMix<<endl;
 			for(Int_t jMix=0; jMix<nMix; jMix++)
@@ -475,29 +431,33 @@ Bool_t PionHadron::FillHistograms()
 					cout<<"could not retrieve TObjArray from EventPool!"<<endl;
 				}
 				//..Loop over clusters and fill histograms
-                //std::cout << " Correlated Cluster and Track, MIXED EVENTS " << std::endl;
+                std::cout << " Correlated Cluster and Track, MIXED EVENTS " << std::endl;
 				CorrelateClusterAndTrack(0,bgTracks,0,1.0/nMix);//correlate with mixed event
 			}
 		}
-        if((fCurrentEventTrigger & fMixingEventType) )//&& ((fCurrentEventTrigger & 1000000000000000)==0))
+        if(PassedMinBiasTrigger && !PassedGammaTrigger )//&& ((fCurrentEventTrigger & 1000000000000000)==0))
 		{
             TObjArray* tracksClone=0x0;
 			tracksClone = CloneToCreateTObjArray(tracks);
 			//..if there is no track object or the pool is locked do not update
 			if(tracksClone && !pool->GetLockFlag())
 			{
-				AliWarning("Updating Pool");
+                AliWarning(Form("Updating pool. Centrality %f, ZVertex %f",fCent, zVertex));
+				//AliWarning("Updating Pool");
                 pool->UpdatePool(tracksClone);
 			}
 		}
-	} //end of if DoMixing
+
     
-     if(fCurrentEventTrigger & fTriggerType)
+     if(PassedGammaTrigger)
 	{
     //Now do same-event analysis:
     std::cout << " Correlated Cluster and Track " << std::endl;
     CorrelateClusterAndTrack(tracks,0,1,1);//correlate with same event
     }
+    
+    
+    /*
     //Get all EMCAL clusters in the event
     AliVCluster* cluster = 0;
     AliClusterContainer* clusters  = GetClusterContainer(0); 
@@ -508,7 +468,7 @@ Bool_t PionHadron::FillHistograms()
 	Int_t NAccClus=0;
 	Float_t Max_Phi=0;
 	Float_t Max_Eta=0;
-
+ AliWarning("beyond");
     //Loop over clusters in the event and apply selection
     for(Int_t NoCluster0 = 0; NoCluster0 < NoOfClustersInEvent; NoCluster0++ )
 	  {
@@ -517,7 +477,7 @@ Bool_t PionHadron::FillHistograms()
 	    NAccClus++;
 	  }
 	thisEvent.SetGlobalInfo(NAccClus,Max_Phi,Max_Eta);
-    
+     AliWarning("beyond");
     //Loop over clusters in the event again  (?) ,Get the number of accepted clusters and put it in thisEvent (???)
     Int_t AccClus=0;
 	for(Int_t NoCluster1 = 0; NoCluster1 < NoOfClustersInEvent; NoCluster1++ )
@@ -534,20 +494,21 @@ Bool_t PionHadron::FillHistograms()
 	      thisEvent.hit[AccClus-1].CellRay.push_back(cluster->GetCellsAbsId()[c]); 
 	     }
        }
-
+ AliWarning("beyond");
     Int_t nclusthis = thisEvent.nHits;
 	Int_t vtxClass = 1;
 	Int_t MulClass = 4;
 	GetMulClassPi0(MulClass);
 	GetZVtxClassPi0(vtxClass);
-    
+     AliWarning("beyond");
     Float_t phitrig = 0;
 	Float_t thetatrig = 0;
 	Double_t pt_max = 0;
 	Int_t ptClass = 0;
-    
+     AliWarning("beyond");
     AddMixEventPi0(MulClass, vtxClass, ptClass, iEvt[MulClass][vtxClass][ptClass], Max_Phi, Max_Eta);
 	return kTRUE;
+    */
 }
 
 
@@ -580,6 +541,7 @@ Int_t PionHadron::CorrelateClusterAndTrack(AliParticleContainer* tracks,TObjArra
 	AliClusterContainer* clusters  = GetClusterContainer(0);  //how do I know which cells are selected
 	if (!clusters) return 0;
 	Int_t NoOfClustersInEvent =clusters->GetNClusters();
+    std::cout << " Number of clusters " <<  NoOfClustersInEvent << std::endl;
 	Double_t EffWeight_Gamma;
 	Double_t EffWeight_Hadron;
 	Double_t Weight=1;    //weight to normalize mixed and same event distributions individually
@@ -588,15 +550,19 @@ Int_t PionHadron::CorrelateClusterAndTrack(AliParticleContainer* tracks,TObjArra
 	AliVParticle* track=0;
     Weight=InputWeight; //..for mixed events normalize per events in pool
 	Int_t GammaCounter=0;
+    
+    //AliWarning(Form("Number of Clusters %d",NoOfClustersInEvent));
 
 	for(Int_t NoCluster1 = 0; NoCluster1 < NoOfClustersInEvent; NoCluster1++ ) // Loop over clusters
 	{   
-		cluster=(AliVCluster*) clusters->GetAcceptCluster(NoCluster1); // //it was GetAcceptCluster->GetCluster(NoCluster1);
+		 std::cout <<NoCluster1 << std::endl;
+        cluster=(AliVCluster*) clusters->GetCluster(NoCluster1); // //it was GetAcceptCluster->GetCluster(NoCluster1);
      	if(!cluster) continue;
         if(!AccClusterForAna(clusters,cluster))continue ; 
         
         for( Int_t NoCluster2 = NoCluster1+1; NoCluster2 < NoOfClustersInEvent; NoCluster2++ )
         {
+            // std::cout <<NoCluster2 << std::endl;
             cluster2=(AliVCluster*) clusters->GetCluster(NoCluster2);
 			if(!cluster2) continue;
             if(!AccClusterForAna(clusters,cluster2))continue ; 
@@ -686,14 +652,14 @@ TObjArray* PionHadron::CloneClustersTObjArray(AliClusterContainer* clusters)
  void PionHadron::GetMulClassPi0(Int_t& imcl) //What exacly is the use of this??
  {
    Int_t nclus = 0;
-AliClusterContainer* clustersCont  = GetClusterContainer(0);
- if (!clustersCont) return;
-TObjArray* clustersClone=0x0;
-clustersClone = CloneClustersTObjArray(clustersCont);
- TObjArray *clusters =clustersClone;// fEsdClusters;
- // if (!clusters)   clusters = fAodClusters;
+   AliClusterContainer* clustersCont  = GetClusterContainer(0);
+   if (!clustersCont) return;
+   TObjArray* clustersClone=0x0;
+   clustersClone = CloneClustersTObjArray(clustersCont);
+   TObjArray *clusters =clustersClone;// fEsdClusters;
+   // if (!clusters)   clusters = fAodClusters;
    if (clusters)
-    nclus = clusters->GetEntries();
+   nclus = clusters->GetEntries();
    const int MultCut[nMulClass] = {5, 12, 20 ,50, 100, 250, 500, 9999};
    imcl=0;
    for (imcl=0; imcl<nMulClass; imcl++) {
@@ -740,8 +706,8 @@ void PionHadron::AddMixEventPi0(const Int_t MulClass, const Int_t vtxClass, cons
 
 Bool_t PionHadron::AccClusterForAna(AliClusterContainer* clusters, AliVCluster* caloCluster)
 {
-    if(caloCluster->IsEMCAL()) return kFALSE;
-    if(caloCluster->E()<0.50) return kFALSE;
+    if(!caloCluster->IsEMCAL()) return kFALSE;
+    if(caloCluster->E()<1.50) return kFALSE;
 	//..at least 2 cells in cluster
 	if(caloCluster->GetNCells()<2) return kFALSE;
 	if(caloCluster->GetNExMax() > 1) return kFALSE; //local maxima should be 0 or 1

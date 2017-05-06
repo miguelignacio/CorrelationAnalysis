@@ -28,11 +28,7 @@ PionHadron* AddTask(
     ::Error("AddTask", "This task requires an input event handler");
     return 0;
   }
-  if (handler->InheritsFrom("AliESDInputHandler"))
-  {
-	  ::Error("AddTask", "We have never taken care if this works for ESDs");
-	  return 0;
-   }
+ 
   //..in case of AOD the default names are:
   if(trackName=="usedefault")trackName = "tracks";
   if(clusName =="usedefault")clusName  = "caloClusters";
@@ -91,6 +87,14 @@ PionHadron* AddTask(
   //-------------------------------------------------------
   AnalysisTask->SetOffTrigger(evtTriggerType|evtMixingType); //..select only evets of type evtTriggerType and evtMixingType
   
+    //..for Run1 pPb
+  //AnalysisTask->SetUseManualEvtCuts(kTRUE);
+  //AnalysisTask->SetUseAliAnaUtils(kTRUE);
+  //AnalysisTask->SetVzRange(-10,10);
+  //AnalysisTask->SetCentRange(0.0,100.0);
+  //..new task for run2
+  AnalysisTask->SetNCentBins(5);
+  AnalysisTask->SetUseNewCentralityEstimation(kTRUE); //maybe this is what is required
   if(AnalysisTask->GetTrackContainer(trackName))
   {
 	  AnalysisTask->GetTrackContainer(trackName)->SetParticlePtCut(trackptcut);
@@ -104,7 +108,7 @@ PionHadron* AddTask(
 	  AnalysisTask->GetClusterContainer(clusName)->SetClusUserDefEnergyCut(AliVCluster::kHadCorr,0);
 	  AnalysisTask->GetClusterContainer(clusName)->SetDefaultClusterEnergy(AliVCluster::kHadCorr);
 //    AnalysisTask->GetClusterContainer(clusName)->SetClusTimeCut(,);
-//	  AnalysisTask->GetClusterContainer(clusName)->SetEtaLimits(-clusterEta,clusterEta);
+	 // AnalysisTask->GetClusterContainer(clusName)->SetEtaLimits(-0.9,0.9);
 //	  AnalysisTask->GetClusterContainer(clusName)->SetPhiLimits(68*phiToR,174*phiToR);
   }
   //..some additional input for the analysis
