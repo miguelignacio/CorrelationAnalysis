@@ -105,6 +105,7 @@ fParticleLevel(kFALSE),
 fIsMC(kFALSE),
 fEventCutList(0),
 thisEvent(),
+h_Cluster(0),
 h_Pi0(0),
 h_Pi0Track(0),
 h_Pi0Track_Mixed(0)
@@ -249,6 +250,13 @@ void PionHadron::UserCreateOutputObjects()
     Double_t xmaxPi0[13] = {max_Mass, max_Pt, max_eta , max_phi , max_E,max_Pt, max_Pt, max_eta, max_eta, max_phi, max_phi, max_M02, max_M02};
     h_Pi0= new THnSparseD("h_Pi0", axisNames, 13, binsPi0, xminPi0,xmaxPi0);
     fOutput->Add(h_Pi0);
+    
+    axisNames = "Cluster THnSparse; #Cluster E; Cluster Pt; Cluster Eta; Cluster Phi; Cluster M02";
+    Int_t binsCluster[5] = {nbins_E, nbins_Pt, nbins_eta, nbins_phi, nbins_M02};
+    Double_t xminCluster[5] = {min_E, min_Pt, min_eta, min_phi, min_M02};
+    Double_t xmaxCluster[5] = {max_E, max_Pt, max_eta, max_phi, max_M02};
+    h_Cluster = new THnSparseD("h_Cluster", axisNames, 5, binsCluster, xminCluster, xmaxCluster);
+    fOutput->Add(h_Cluster);
     
 	PostData(1, fOutput); // Post data for ALL output slots >0 here, to get at least an empty histogram
 }
@@ -403,112 +411,50 @@ Bool_t PionHadron::FillHistograms()
 
     fCent = fEventCuts.GetCentrality();
     AliWarning(Form("Centrality %f, ZVertex %f, FEventCuts centrality %f",fCent, zVertex,fEventCuts.GetCentrality() ));
-    //const AliVEvent *event = dynamic_cast<const AliVEvent*>(InputEvent());
-    //AliCentrality *aliCent = InputEvent()->GetCentrality();
-    //if (aliCent) {
-        //fCent = aliCent->GetCentralityPercentile(fCentEst.Data());
-     //   std::cout << aliCent->GetCentralityPercentile("V0A") << std::endl;
-   // }
-    //else AliWarning("problem finding centrality");
-		AliEventPool* pool = 0x0;
-		pool = fPoolMgr->GetEventPool(fCent, zVertex);
-		if (!pool)
+	AliEventPool* pool = 0x0;
+	pool = fPoolMgr->GetEventPool(fCent, zVertex);
+	if (!pool)
+	{
+    	AliWarning(Form("No pool found. Centrality %f, ZVertex %f",fCent, zVertex));
+		return kFALSE;
+	}
+	if(pool->IsReady() && PassedGammaTrigger)
+	{
+		AliWarning(Form("Pool ready. Centrality %f, ZVertex %f",fCent, zVertex));
+		Int_t nMix = pool->GetCurrentNEvents();
+		cout<<"number of events in pool: "<<nMix<<endl;
+		for(Int_t jMix=0; jMix<nMix; jMix++)
 		{
-			AliWarning(Form("No pool found. Centrality %f, ZVertex %f",fCent, zVertex));
-			return kFALSE;
-		}
-		if(pool->IsReady() && PassedGammaTrigger)
-		{
-			AliWarning(Form("Pool ready. Centrality %f, ZVertex %f",fCent, zVertex));
-			Int_t nMix = pool->GetCurrentNEvents();
-			cout<<"number of events in pool: "<<nMix<<endl;
-			for(Int_t jMix=0; jMix<nMix; jMix++)
+			TObjArray* bgTracks=0x0;
+			bgTracks = pool->GetEvent(jMix);
+			if(!bgTracks)
 			{
-				TObjArray* bgTracks=0x0;
-				bgTracks = pool->GetEvent(jMix);
-				if(!bgTracks)
-				{
-					cout<<"could not retrieve TObjArray from EventPool!"<<endl;
-				}
-				//..Loop over clusters and fill histograms
-                std::cout << " Correlated Cluster and Track, MIXED EVENTS " << std::endl;
-				CorrelateClusterAndTrack(0,bgTracks,0,1.0/nMix);//correlate with mixed event
+				cout<<"could not retrieve TObjArray from EventPool!"<<endl;
 			}
+	    	//..Loop over clusters and fill histograms
+            std::cout << " Correlated Cluster and Track, MIXED EVENTS " << std::endl;
+			CorrelateClusterAndTrack(0,bgTracks,0,1.0/nMix);//correlate with mixed event
 		}
-        if(PassedMinBiasTrigger && !PassedGammaTrigger )//&& ((fCurrentEventTrigger & 1000000000000000)==0))
+	}
+    if(PassedMinBiasTrigger && !PassedGammaTrigger )//&& ((fCurrentEventTrigger & 1000000000000000)==0))
+	{
+        TObjArray* tracksClone=0x0;
+		tracksClone = CloneToCreateTObjArray(tracks);
+		//..if there is no track object or the pool is locked do not update
+		if(tracksClone && !pool->GetLockFlag())
 		{
-            TObjArray* tracksClone=0x0;
-			tracksClone = CloneToCreateTObjArray(tracks);
-			//..if there is no track object or the pool is locked do not update
-			if(tracksClone && !pool->GetLockFlag())
-			{
-                AliWarning(Form("Updating pool. Centrality %f, ZVertex %f",fCent, zVertex));
-				//AliWarning("Updating Pool");
-                pool->UpdatePool(tracksClone);
-			}
+          //AliWarning(Form("Updating pool. Centrality %f, ZVertex %f",fCent, zVertex));
+		  //AliWarning("Updating Pool");
+          pool->UpdatePool(tracksClone);
 		}
-
-    
+	}
+   
      if(PassedGammaTrigger)
 	{
     //Now do same-event analysis:
-    std::cout << " Correlated Cluster and Track " << std::endl;
-    CorrelateClusterAndTrack(tracks,0,1,1);//correlate with same event
+        std::cout << " Correlated Cluster and Track " << std::endl;
+        CorrelateClusterAndTrack(tracks,0,1,1);//correlate with same event
     }
-    
-    
-    /*
-    //Get all EMCAL clusters in the event
-    AliVCluster* cluster = 0;
-    AliClusterContainer* clusters  = GetClusterContainer(0); 
-    if (!clusters) return 0;
-    Int_t NoOfClustersInEvent = clusters->GetNClusters();
-    
-    thisEvent.Reset();
-	Int_t NAccClus=0;
-	Float_t Max_Phi=0;
-	Float_t Max_Eta=0;
- AliWarning("beyond");
-    //Loop over clusters in the event and apply selection
-    for(Int_t NoCluster0 = 0; NoCluster0 < NoOfClustersInEvent; NoCluster0++ )
-	  {
-	    cluster=(AliVCluster*) clusters->GetAcceptCluster(NoCluster0); //->GetCluster(NoCluster1);
-	    if(!cluster || !AccClusterForAna(clusters,cluster) || cluster->E()<=2)continue; //check if the cluster is a good cluster
-	    NAccClus++;
-	  }
-	thisEvent.SetGlobalInfo(NAccClus,Max_Phi,Max_Eta);
-     AliWarning("beyond");
-    //Loop over clusters in the event again  (?) ,Get the number of accepted clusters and put it in thisEvent (???)
-    Int_t AccClus=0;
-	for(Int_t NoCluster1 = 0; NoCluster1 < NoOfClustersInEvent; NoCluster1++ )
-	  {
-	  cluster=(AliVCluster*) clusters->GetAcceptCluster(NoCluster1); //->GetCluster(NoCluster1);
-	  if(!cluster || !AccClusterForAna(clusters,cluster) || cluster->E()<=2)continue; //check if the cluster is a good cluster
-	  AccClus++;
-	    TLorentzVector CaloClusterVec;
-	    clusters->GetMomentum(CaloClusterVec, cluster);
-	    thisEvent.hit[AccClus-1].thishit=CaloClusterVec;
-	    thisEvent.hit[AccClus-1].NCells=cluster->GetNCells();
-        //Loop over the cells within a cluster
-	    for(Int_t c = 0; c<cluster->GetNCells(); c++){
-	      thisEvent.hit[AccClus-1].CellRay.push_back(cluster->GetCellsAbsId()[c]); 
-	     }
-       }
- AliWarning("beyond");
-    Int_t nclusthis = thisEvent.nHits;
-	Int_t vtxClass = 1;
-	Int_t MulClass = 4;
-	GetMulClassPi0(MulClass);
-	GetZVtxClassPi0(vtxClass);
-     AliWarning("beyond");
-    Float_t phitrig = 0;
-	Float_t thetatrig = 0;
-	Double_t pt_max = 0;
-	Int_t ptClass = 0;
-     AliWarning("beyond");
-    AddMixEventPi0(MulClass, vtxClass, ptClass, iEvt[MulClass][vtxClass][ptClass], Max_Phi, Max_Eta);
-	return kTRUE;
-    */
 }
 
 
@@ -555,10 +501,11 @@ Int_t PionHadron::CorrelateClusterAndTrack(AliParticleContainer* tracks,TObjArra
 
 	for(Int_t NoCluster1 = 0; NoCluster1 < NoOfClustersInEvent; NoCluster1++ ) // Loop over clusters
 	{   
-		 std::cout <<NoCluster1 << std::endl;
+		std::cout <<NoCluster1;
         cluster=(AliVCluster*) clusters->GetCluster(NoCluster1); // //it was GetAcceptCluster->GetCluster(NoCluster1);
      	if(!cluster) continue;
         if(!AccClusterForAna(clusters,cluster))continue ; 
+        FillClusterHisto(cluster, h_Cluster);
         
         for( Int_t NoCluster2 = NoCluster1+1; NoCluster2 < NoOfClustersInEvent; NoCluster2++ )
         {
@@ -610,6 +557,7 @@ void  PionHadron::FillCorrelation(AliVCluster* cluster1, AliVCluster* cluster2, 
     //std::cout<<"About to fill histogram with entries";
     histo->Fill(entries);
     
+    //delete clusters;
     return;
 }
 
@@ -624,9 +572,22 @@ void  PionHadron::FillPionHisto(AliVCluster* cluster1, AliVCluster* cluster2, TH
        
     double entries[13] = {pi0.M(), pi0.Pt(), pi0.Eta(), pi0.Phi(), pi0.E(), 
                           ph_1.Pt(), ph_2.Pt(), ph_1.Eta(), ph_2.Eta(), ph_1.Phi(), ph_2.Phi() , cluster1->GetM02(), cluster2->GetM02()};                
-    //std::cout<<"About to fill histogram with entries";
     histo->Fill(entries);
     
+    //delete clusters;
+    return;
+}
+
+void PionHadron::FillClusterHisto(AliVCluster* cluster, THnSparse* histo){
+    
+    AliClusterContainer* clusters  = GetClusterContainer(0);
+    TLorentzVector ph;
+    clusters->GetMomentum(ph, cluster);
+    
+    double entries[5] = {ph.E(), ph.Pt(), ph.Eta(), ph.Phi(), cluster->GetM02()};                
+    histo->Fill(entries);
+    
+    //delete clusters;
     return;
 }
 
@@ -707,7 +668,7 @@ void PionHadron::AddMixEventPi0(const Int_t MulClass, const Int_t vtxClass, cons
 Bool_t PionHadron::AccClusterForAna(AliClusterContainer* clusters, AliVCluster* caloCluster)
 {
     if(!caloCluster->IsEMCAL()) return kFALSE;
-    if(caloCluster->E()<1.50) return kFALSE;
+    if(caloCluster->E()<1.0) return kFALSE;
 	//..at least 2 cells in cluster
 	if(caloCluster->GetNCells()<2) return kFALSE;
 	if(caloCluster->GetNExMax() > 1) return kFALSE; //local maxima should be 0 or 1

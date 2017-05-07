@@ -94,6 +94,7 @@ virtual ~PionHadron();
 
   Bool_t                      FillHistograms()                                              ;
   
+  void                        FillClusterHisto(AliVCluster* cluster, THnSparse* histo);
   void                        FillPionHisto(AliVCluster* cluster1, AliVCluster* cluster2, THnSparse* histo);
   void                        FillCorrelation(AliVCluster* cluster1, AliVCluster* cluster2, AliVParticle* track, THnSparse* histo);
   Int_t                       CorrelateClusterAndTrack(AliParticleContainer* tracks,TObjArray* bgTracks,Bool_t SameMix, Double_t Weight);
@@ -154,6 +155,7 @@ virtual ~PionHadron();
   UInt_t                      fAODfilterBits[2];         ///< AOD track filter bit map
   
    // THnSparse
+  THnSparse                 *h_Cluster;                 //!<!
   THnSparse                 *h_Pi0;                 //!<!
   THnSparse                 *h_Pi0Track;                 //!<! THnSparse with info on pi0 and track.
   THnSparse                 *h_Pi0Track_Mixed;                 //!<!
