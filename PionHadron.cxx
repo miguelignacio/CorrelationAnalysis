@@ -49,7 +49,6 @@ fEventCuts(0),
 fHistEffGamma(0x0),
 fHistEffHadron(0x0),
 fRtoD(0),
-fRmvMTrack(0),
 fMixBCent(0),
 fMixBZvtx(),
 fPoolMgr(0x0),
@@ -91,7 +90,6 @@ fEventCuts(0),
 fHistEffGamma(0x0),
 fHistEffHadron(0x0),
 fRtoD(0),
-fRmvMTrack(0),
 fMixBCent(0),
 fMixBZvtx(),
 fPoolMgr(0x0),
@@ -188,8 +186,6 @@ void PionHadron::UserCreateOutputObjects()
 		InitEventMixer();
 	}
     else{  AliWarning("Did not initialize Event Mixer"); }
-    
-   
     //Initializing the histograms to be saved. For the moment, only pT of clusters and Mgammagamma.
     int nbins_Mass = 20;
     int nbins_Pt   = 50;
@@ -201,18 +197,18 @@ void PionHadron::UserCreateOutputObjects()
     int nbins_zt      = 50;
     int nbins_xi      = 50;
     int nbins_M02     = 50;
+    int nbins_Ncells  = 20;
+    int nbins_Centrality = 5;
     
     double min_Mass = 0;
     double max_Mass = 0.5;
     double min_Pt = 0;
     double max_Pt = 10.0;
-       
     double min_dphi = -0.5; // rads
-    double max_dphi = 1.5; // rads
-     
+    double max_dphi = 1.5; // rads 
     double min_phi = -1.0*TMath::Pi();
     double max_phi = TMath::Pi();
-    
+
     double max_deta = 2.0;
     double max_eta =  1.0;
     double min_deta = -max_deta;
@@ -227,35 +223,43 @@ void PionHadron::UserCreateOutputObjects()
     double max_E =10;
     double min_M02 = 0.0;
     double max_M02 = 1.0;
+    
+    double min_Ncells = -0.5;
+    double max_Ncells = 19.5;
      
-    Int_t bins[21]    = {nbins_Mass, nbins_Pt,  nbins_eta, nbins_phi, nbins_E, nbins_Pt,  nbins_eta, nbins_phi, nbins_dphi, nbins_deta, nbins_deta/2, nbins_zt, nbins_xi,
+    double min_Centrality = 0;
+    double max_Centrality = 100;
+    Int_t bins[22]    = {nbins_Centrality, nbins_Mass, nbins_Pt,  nbins_eta, nbins_phi, nbins_E, nbins_Pt,  nbins_eta, nbins_phi, nbins_dphi, nbins_deta, nbins_deta/2, nbins_zt, nbins_xi,
                         nbins_Pt, nbins_Pt, nbins_eta, nbins_eta, nbins_phi, nbins_phi, nbins_M02, nbins_M02}; //these are for the photons from pion decays
-    Double_t xmin[21] = {min_Mass,   min_Pt  , min_eta    , min_phi , min_E, min_Pt, min_eta, min_phi    , min_dphi   , min_deta   , 0.0, min_zt, min_xi,
+    Double_t xmin[22] = {min_Centrality, min_Mass,   min_Pt  , min_eta    , min_phi , min_E, min_Pt, min_eta, min_phi    , min_dphi   , min_deta   , 0.0, min_zt, min_xi,
                         min_Pt, min_Pt, min_eta, min_eta, min_phi, min_phi, min_M02, min_M02};
-    Double_t xmax[21] = {max_Mass,   max_Pt  , max_eta    , max_phi , max_E, max_Pt, max_eta,  max_phi   , max_dphi,   max_deta, max_deta, max_zt, max_xi,
+    Double_t xmax[22] = {max_Centrality, max_Mass,   max_Pt  , max_eta    , max_phi , max_E, max_Pt, max_eta,  max_phi   , max_dphi,   max_deta, max_deta, max_zt, max_xi,
                         max_Pt, max_Pt, max_eta, max_eta, max_phi, max_phi, max_M02, max_M02};
 
-    TString axisNames = "Pion-Track THnSparse; #pion Mass; #pionpT; #pion Eta; #pion phi; #pion E; track_pT; track Eta; track Phi; #Dphi ; #Deta; #|Deta|; Zt; Xi";
+    TString axisNames = "Pion-Track THnSparse; Centrality; #pion Mass; #pionpT; #pion Eta; #pion phi; #pion E";
+    axisNames = axisNames + "; track_pT; track Eta; track Phi; #Dphi ; #Deta; #|Deta|; Zt; Xi";
     axisNames = axisNames + "; ph1_pT; ph2_pT; ph1_eta; ph2_eta; ph1_phi; ph2_phi; ph1_M02; ph2_M02";
 
-    h_Pi0Track = new THnSparseD("h_Pi0Track", axisNames, 21, bins, xmin,xmax);
+    h_Pi0Track = new THnSparseD("h_Pi0Track", axisNames, 22, bins, xmin,xmax);
     fOutput->Add(h_Pi0Track);
     h_Pi0Track_Mixed = new THnSparseD("h_Pi0Track_Mixed", axisNames, 21, bins, xmin,xmax);
     fOutput->Add(h_Pi0Track_Mixed);
     
-    axisNames = "Pion THnSparse; #pion Mass; #pionpT; #pion Eta; #pion phi; #pion E; ph1_pT; ph2_pT; ph1_eta; ph2_eta; ph1_phi; ph2_phi; ph1_M02; ph2_M02";
-    Int_t binsPi0[13] =             {nbins_Mass, nbins_Pt, nbins_eta, nbins_phi, nbins_E, nbins_Pt, nbins_Pt, nbins_eta, nbins_eta, nbins_phi, nbins_phi, nbins_M02, nbins_M02};
+    axisNames = "Pion THnSparse; Centrality; #pion Mass; #pionpT; #pion Eta; #pion phi; #pion E";
+    axisNames = axisNames + "; ph1_pT; ph2_pT; ph1_eta; ph2_eta; ph1_phi; ph2_phi; ph1_M02; ph2_M02";
+    Int_t binsPi0[14] = {nbins_Centrality, nbins_Mass, nbins_Pt, nbins_eta, nbins_phi, nbins_E, 
+                         nbins_Pt, nbins_Pt, nbins_eta, nbins_eta, nbins_phi, nbins_phi, nbins_M02, nbins_M02};
     
-    Double_t xminPi0[13] = {min_Mass, min_Pt, min_eta, min_phi , min_E, min_Pt, min_Pt, min_eta, min_eta, min_phi, min_phi, min_M02, min_M02};
-    Double_t xmaxPi0[13] = {max_Mass, max_Pt, max_eta , max_phi , max_E,max_Pt, max_Pt, max_eta, max_eta, max_phi, max_phi, max_M02, max_M02};
-    h_Pi0= new THnSparseD("h_Pi0", axisNames, 13, binsPi0, xminPi0,xmaxPi0);
+    Double_t xminPi0[14] = {min_Centrality, min_Mass, min_Pt, min_eta, min_phi , min_E, min_Pt, min_Pt, min_eta, min_eta, min_phi, min_phi, min_M02, min_M02};
+    Double_t xmaxPi0[14] = {max_Centrality, max_Mass, max_Pt, max_eta , max_phi , max_E,max_Pt, max_Pt, max_eta, max_eta, max_phi, max_phi, max_M02, max_M02};
+    h_Pi0= new THnSparseD("h_Pi0", axisNames, 14, binsPi0, xminPi0, xmaxPi0);
     fOutput->Add(h_Pi0);
     
-    axisNames = "Cluster THnSparse; #Cluster E; Cluster Pt; Cluster Eta; Cluster Phi; Cluster M02";
-    Int_t binsCluster[5] = {nbins_E, nbins_Pt, nbins_eta, nbins_phi, nbins_M02};
-    Double_t xminCluster[5] = {min_E, min_Pt, min_eta, min_phi, min_M02};
-    Double_t xmaxCluster[5] = {max_E, max_Pt, max_eta, max_phi, max_M02};
-    h_Cluster = new THnSparseD("h_Cluster", axisNames, 5, binsCluster, xminCluster, xmaxCluster);
+    axisNames = "Cluster THnSparse; Centrality; Cluster E; Cluster Pt; Cluster Eta; Cluster Phi; Cluster M02; Cluster NCells";
+    Int_t binsCluster[7] = {nbins_Centrality, nbins_E, nbins_Pt, nbins_eta, nbins_phi, nbins_M02, nbins_Ncells};
+    Double_t xminCluster[7] = {min_Centrality, min_E, min_Pt, min_eta, min_phi, min_M02, min_Ncells};
+    Double_t xmaxCluster[7] = {max_Centrality, max_E, max_Pt, max_eta, max_phi, max_M02, max_Ncells};
+    h_Cluster = new THnSparseD("h_Cluster", axisNames, 7, binsCluster, xminCluster, xmaxCluster);
     fOutput->Add(h_Cluster);
     
 	PostData(1, fOutput); // Post data for ALL output slots >0 here, to get at least an empty histogram
@@ -584,7 +588,7 @@ void PionHadron::FillClusterHisto(AliVCluster* cluster, THnSparse* histo){
     TLorentzVector ph;
     clusters->GetMomentum(ph, cluster);
     
-    double entries[5] = {ph.E(), ph.Pt(), ph.Eta(), ph.Phi(), cluster->GetM02()};                
+    double entries[7] = {fCent, ph.E(), ph.Pt(), ph.Eta(), ph.Phi(), cluster->GetM02(), cluster->GetNCells()};                
     histo->Fill(entries);
     
     //delete clusters;

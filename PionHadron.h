@@ -69,7 +69,6 @@ virtual ~PionHadron();
   void SetSavePool(Bool_t input)                             { fSavePool        = input  ; }
   void SetEvtTriggerType(UInt_t input)                       { fTriggerType     = input  ; }
   void SetEvtMixType(UInt_t input)                           { fMixingEventType = input  ; }
-  void SetRmvMatchedTrack(Bool_t input)                      { fRmvMTrack  = input;}
   void SetUseManualEvtCuts(Bool_t input)                     { fUseManualEventCuts = input;}
 
   //Functions for mixed event purposes
@@ -135,8 +134,6 @@ virtual ~PionHadron();
   Double_t                    fArray_XI_Bins[9];         ///< 9=kNoXiBins+1
   Double_t                    fArrayNVertBins[21];       ///< 21=kNvertBins+1
 
-
-  Bool_t                      fRmvMTrack;                ///< Switch to enable removing clusters with a matched track
   //..Event pool variables
   TAxis                      *fMixBCent;                 ///< Number of centrality bins for the mixed event
   TAxis                      *fMixBZvtx;                 ///< Number of vertex bins for the mixed event
