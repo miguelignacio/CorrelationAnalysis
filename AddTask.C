@@ -71,7 +71,7 @@ PionHadron* AddTask(
   AnalysisTask->SetUseManualEvtCuts(kTRUE);
   AnalysisTask->SetUseAliAnaUtils(kTRUE); //this does automatically some vertex selection and pileup suppression
   AnalysisTask->SetVzRange(-10,10);
-  AnalysisTask->SetCentRange(0.0,100.0);
+  AnalysisTask->SetCentRange(-10,100.0);
   //..new task for run2
   //AnalysisTask->SetNCentBins(5);
   AnalysisTask->SetUseNewCentralityEstimation(kFALSE); //maybe this is what is required
@@ -93,6 +93,7 @@ PionHadron* AddTask(
   AnalysisTask->SetEvtTriggerType(evtTriggerType);   //..Trigger to be used for filling same event histograms
   AnalysisTask->SetEvtMixType(evtMixingType);        //..Trigger to be used to fill tracks into the pool (no GA trigger!!)
 
+  
   mgr->AddTask(AnalysisTask);
   
   // Create containers for input/output

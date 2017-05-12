@@ -58,6 +58,7 @@ virtual ~PionHadron();
   void                        FillCorrelation(AliVCluster* cluster1, AliVCluster* cluster2, AliVParticle* track, THnSparse* histo);
   Int_t                       CorrelateClusterAndTrack(AliParticleContainer* tracks,TObjArray* bgTracks,Bool_t SameMix, Double_t Weight);
   Bool_t                      AccClusterForAna(AliClusterContainer* clusters, AliVCluster* caloCluster);
+  double                      GetIsolation_Track(AliVCluster* cluster);
   
    //<<<<<><<<<<<<<<><<<<<<<<<<><<<<<<<<<<<<><<<<<<<<<<<<<<><<<<<<<<<<<<<<<<<<<<<>
     TObjArray*                  CloneClustersTObjArray(AliClusterContainer* clusters)          ;

@@ -31,6 +31,8 @@
 #include "AliESDUtils.h"
 #include "AliEventPoolManager.h"
 #include "AliMCEvent.h"
+#include "AliEMCALGeometry.h"
+#include "AliEMCALGeoParams.h"
 
 #include <memory>
 using std::cout;
@@ -127,18 +129,18 @@ void PionHadron::UserCreateOutputObjects()
     
     if(fUseManualEventCuts==1)
 	{  
-    AliWarning("Entering UserCreateOutPutObjects");   
-    fEventCuts.SetManualMode();
+    AliWarning("Setting Manual Event Cuts"); 
     
+    fEventCuts.SetManualMode();
     fEventCuts.fCentralityFramework=1; //..only for Run1!!
-	fEventCuts.fTriggerMask = fOffTrigger;
-	fEventCuts.fMinVtz = fMinVz;
-	fEventCuts.fMaxVtz = fMaxVz;
-	fEventCuts.fRequireTrackVertex = true;
-	fEventCuts.fMaxDeltaSpdTrackAbsolute=fZvertexDiff;
-	fEventCuts.fTrackletBGcut = fTklVsClusSPDCut; //(false by default for 15o)
-	fEventCuts.fMinCentrality = fMinCent;
-	fEventCuts.fMaxCentrality = fMaxCent;
+    fEventCuts.fTriggerMask = fOffTrigger;
+    fEventCuts.fMinVtz = fMinVz;
+    fEventCuts.fMaxVtz = fMaxVz;
+    fEventCuts.fRequireTrackVertex = true;
+    fEventCuts.fMaxDeltaSpdTrackAbsolute=fZvertexDiff;
+    fEventCuts.fTrackletBGcut = fTklVsClusSPDCut; //(false by default for 15o)
+    fEventCuts.fMinCentrality = fMinCent;
+    fEventCuts.fMaxCentrality = fMaxCent;
     }
     fEventCuts.AddQAplotsToList(fEventCutList);
 	fOutput->Add(fEventCutList);
@@ -318,14 +320,14 @@ Bool_t PionHadron::IsEventSelected()
     if(Trigger.Contains("EG1") ||Trigger.Contains("EG2") || Trigger.Contains("DG1") || Trigger.Contains("DG2")) PassedGammaTrigger = kTRUE;
     if(Trigger.Contains("INT7")) PassedMinBiasTrigger = kTRUE;
     
-    //if(PassedGammaTrigger) AliWarning("Passed Gamma Trigger ");
-    //if(PassedMinBiasTrigger) AliWarning("Passed MinBias Trigger ");
+    if(PassedGammaTrigger) AliWarning("Passed Gamma Trigger ");
+    if(PassedMinBiasTrigger) AliWarning("Passed MinBias Trigger ");
     if(!PassedGammaTrigger && !PassedMinBiasTrigger) return kFALSE;
 
     bool isSelected = AliAnalysisTaskEmcal::IsEventSelected();
-	//if(AliAnalysisTaskEmcal::IsEventSelected()){
-    //    AliWarning("Event passed selection");
-    //}
+	if(isSelected){
+          AliWarning("Event passed selection");
+    }
     //else{
     //    AliWarning("DID NOT PASS Selection");
     //}
@@ -336,7 +338,12 @@ Bool_t PionHadron::IsEventSelected()
 Bool_t PionHadron::Run()
 {
     //AliWarning("Running");
-	//fCurrentEventTrigger = ((AliInputEventHandler*)(AliAnalysisManager::GetAnalysisManager()->GetInputEventHandler()))->IsEventSelected();
+	fCurrentEventTrigger = ((AliInputEventHandler*)(AliAnalysisManager::GetAnalysisManager()->GetInputEventHandler()))->IsEventSelected();
+    //all that is in here I am not sure whether it should be here.
+    
+    const AliCentrality *centP = InputEvent()->GetCentrality();
+    Double_t cent = centP->GetCentralityPercentile(fCentEst.Data());
+    std::cout << "My centrality es " << cent << std::endl;
 	return kTRUE;
 }
 
@@ -367,7 +374,7 @@ Bool_t PionHadron::FillHistograms()
     
 
 	Double_t zVertex = fVertex[2];
-    //AliWarning(Form("Centrality %f, ZVertex %f, FEventCuts centrality %f",fCent, zVertex,fEventCuts.GetCentrality() ));
+    AliWarning(Form("Centrality %f, ZVertex %f, FEventCuts centrality %f",fCent, zVertex,fEventCuts.GetCentrality() ));
 	AliParticleContainer* tracks =0x0;
 	tracks   = GetParticleContainer(0);
 
@@ -487,9 +494,11 @@ Int_t PionHadron::CorrelateClusterAndTrack(AliParticleContainer* tracks,TObjArra
 	return GammaCounter; //return number of accepted gammas
 }
 
-/*
-Double_t PionHadron::GetIsolation_Track(AliVCluster* cluster)
+
+double PionHadron::GetIsolation_Track(AliVCluster* cluster)
 {
+/*
+  AliClusterContainer* clusters  = GetClusterContainer(0);
   TLorentzVector ph; 
   clusters->GetMomentum(ph, cluster);
   double pT = ph.Pt();
@@ -498,24 +507,26 @@ Double_t PionHadron::GetIsolation_Track(AliVCluster* cluster)
 
   double sumpT = 0;
   AliTrackContainer tracks = *GetTrackContainer(0);
-  
-  for(Int_t i(0); i<b_nTracks; i++){
-    AliVTrack *track_iter= (AliVTrack*)event->GetTrack(i);
-    if(!TrackCuts->IsSelected(track_iter)) continue;   
-    Double_t pT_iter = track_iter->Pt();
-    if(pT_iter<0.3) continue;
-    Double_t Eta_iter = track_iter->Eta();
-    Double_t Phi_iter = track_iter->Phi();
+  int ntracks = tracks->GetNParticles();
+  AliVParticle* track = 0x0;
+    
+  double pT_iter, Eta_iter, Phi_iter;
+  double dR, dPhi, dEta
+  for(Int_t i = 0; i<ntracks; i++){ 
+    track = (AliVParticle*)tracks->GetAcceptParticle(i);
+    if(!track) continue;
+    pT_iter = track->Pt();
+    Eta_iter = track->Eta();
+    Phi_iter = track->Phi();
      
-    Double_t dPhi = Phi-Phi_iter;
-    Double_t dEta = Eta-Eta_iter;
-    Double_t dR = TMath::Sqrt(dPhi*dPhi+dEta*dEta);
+    dPhi = Phi-Phi_iter;
+    dEta = Eta-Eta_iter;
+    dR = TMath::Sqrt(dPhi*dPhi+dEta*dEta);
     if (dR<0.2 and dR>0) sumpT = sumpT+pT_iter;
   }
-   
-  return sumpT/pT; 
+  */ 
+  //return sumpT/pT; 
 }
-*/
 
 void  PionHadron::FillCorrelation(AliVCluster* cluster1, AliVCluster* cluster2, AliVParticle* track, THnSparse* histo){
     AliClusterContainer* clusters  = GetClusterContainer(0);
@@ -537,10 +548,10 @@ void  PionHadron::FillCorrelation(AliVCluster* cluster1, AliVCluster* cluster2, 
     
     double asym = abs(ph_1.E()-ph_2.E())/(ph_1.E()+ph_2.E());
     //Some cuts for the pairs that are entering the correlation
-    if(pi0.M() >0.3) return;
-    if(asym > 0.7) return;
-    if(cluster1->GetM02()>0.4) return;
-    if(cluster2->GetM02()>0.4) return;
+    //if(pi0.M() >0.3) return;
+    //if(asym > 0.7) return;
+    //if(cluster1->GetM02()>0.4) return;
+    //if(cluster2->GetM02()>0.4) return;
     histo->Fill(entries);
     //delete clusters;
     return;
