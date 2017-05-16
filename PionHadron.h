@@ -57,14 +57,11 @@ virtual ~PionHadron();
   void                        FillPionHisto(AliVCluster* cluster1, AliVCluster* cluster2, THnSparse* histo);
   void                        FillCorrelation(AliVCluster* cluster1, AliVCluster* cluster2, AliVParticle* track, THnSparse* histo);
   Int_t                       CorrelateClusterAndTrack(AliParticleContainer* tracks,TObjArray* bgTracks,Bool_t SameMix, Double_t Weight);
-  Bool_t                      AccClusterForAna(AliClusterContainer* clusters, AliVCluster* caloCluster);
+  Bool_t                      PassedCuts(AliVCluster* caloCluster);
   double                      GetIsolation_Track(AliVCluster* cluster);
   
    //<<<<<><<<<<<<<<><<<<<<<<<<><<<<<<<<<<<<><<<<<<<<<<<<<<><<<<<<<<<<<<<<<<<<<<<>
-    TObjArray*                  CloneClustersTObjArray(AliClusterContainer* clusters)          ;
-    void GetMulClassPi0(Int_t&);
-    void GetZVtxClassPi0(Int_t&);
-  
+  TObjArray*                  CloneClustersTObjArray(AliClusterContainer* clusters)          ;
   Double_t                    GetEff(AliTLorentzVector ParticleVec)                         ;
 
   Bool_t                      fSavePool;                 ///< Defines whether to save output pools in a root file
@@ -74,16 +71,9 @@ virtual ~PionHadron();
   THnF                       *fHistEffGamma;             ///< ??input efficiency for trigger particles
   THnF                       *fHistEffHadron;            ///< ??input efficiency for associate particles
 
-  //..Constants
-  static const Int_t          kNIdentifier=3;            ///< number of different versions of the same histogram type, can later be used for centrality or mixed event eg.
+  //..Constant
   static const Int_t          kNvertBins=20;             ///< vertex bins in which the ME are mixed
   static const Int_t          kNcentBins=8;              ///< centrality bins in which the ME are mixed
-  static const Int_t          kNoGammaBins=9;            ///< Bins in gamma pT
-  static const Int_t          kNoZtBins=7;               ///< Bins in Zt
-  static const Int_t          kNoXiBins=8;               ///< Bins in Xi
-  Double_t                    fArray_G_Bins[10];         ///< 10=kNoGammaBins+1
-  Double_t                    fArray_ZT_Bins[8];         ///< 8=kNoZtBins+1
-  Double_t                    fArray_XI_Bins[9];         ///< 9=kNoXiBins+1
   Double_t                    fArrayNVertBins[21];       ///< 21=kNvertBins+1
 
   //..Event pool variables
@@ -98,11 +88,6 @@ virtual ~PionHadron();
   UInt_t                      fMixingEventType;          ///<  Event types that are used for the tracks in the mixed event
   UInt_t                      fCurrentEventTrigger;      //!<! Trigger of the current event
 
-  // MC stuff
-  Bool_t                      fParticleLevel;            ///< Set particle level analysis
-  Bool_t                      fIsMC;                     ///< Trigger, MC analysis
-  UInt_t                      fAODfilterBits[2];         ///< AOD track filter bit map
-  
    // THnSparse
   THnSparse                 *h_Cluster;                 //!<!
   THnSparse                 *h_Pi0;                 //!<!
@@ -112,10 +97,6 @@ virtual ~PionHadron();
   TList                      *fEventCutList;           //!<! Output list for event cut histograms
   TList                      *OutputList;            //!<! Output list
   
-  const static int nMulClass =   8;  // <<<<<><<<<<<<<<><<<<<<<<<<><<<<<<<<<<<<><<<<<<<<<<<<<<><<<<<<<<<<<<<<<<<<<<<>
-  const static int nZClass   =   6;
-  const static int nPtClass = 1;
-  int iEvt[nMulClass][nZClass][nPtClass];
   const static int nEvt      =   10;//30; // mixing "depth"
 
   private:

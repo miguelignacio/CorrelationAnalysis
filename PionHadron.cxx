@@ -108,7 +108,7 @@ void PionHadron::InitArrays()
 	fMixBZvtx = new TAxis(kNvertBins,zvtxmix);
     fTrackDepth     = 50000;    //Raymonds/Megans value
     fPoolSize       = 1; 
-    SetMakeGeneralHistograms(kTRUE); //from aliEMCAL TASK
+    SetMakeGeneralHistograms(kTRUE); 
 } //end of function init arrays
 
 
@@ -125,6 +125,11 @@ void PionHadron::UserCreateOutputObjects()
     fEventCutList = new TList();
 	fEventCutList ->SetOwner();
 	fEventCutList ->SetName("EventCutOutput");
+    
+    
+    
+    //Setting fEventCuts
+    
 	fEventCuts.OverrideAutomaticTriggerSelection(fOffTrigger);
     
     if(fUseManualEventCuts==1)
@@ -132,7 +137,7 @@ void PionHadron::UserCreateOutputObjects()
     AliWarning("Setting Manual Event Cuts"); 
     
     fEventCuts.SetManualMode();
-    fEventCuts.fCentralityFramework=1; //..only for Run1!!
+    fEventCuts.fCentralityFramework=2; //..only for Run1!!
     fEventCuts.fTriggerMask = fOffTrigger;
     fEventCuts.fMinVtz = fMinVz;
     fEventCuts.fMaxVtz = fMaxVz;
@@ -161,6 +166,7 @@ void PionHadron::UserCreateOutputObjects()
     int nbins_M02     = 50;
     int nbins_Ncells  = 30;
     int nbins_Centrality = 10;
+    int nbins_zvertex = 20;
     int nbins_Asymmetry = 20;
     
     double min_Mass = 0;
@@ -172,6 +178,8 @@ void PionHadron::UserCreateOutputObjects()
     double min_phi = -1.0*TMath::Pi();
     double max_phi = TMath::Pi();
 
+    double min_zvertex = -10;
+    double max_zvertex = +10;
     double max_deta = 2.0;
     double max_eta =  1.0;
     double min_deta = -max_deta;
@@ -197,41 +205,41 @@ void PionHadron::UserCreateOutputObjects()
     double max_Asymmetry = 1.0;
     
     //Pion-hadron correlations
-    Int_t bins[22]    = {nbins_Centrality, nbins_Mass, nbins_Pt,  nbins_eta, nbins_phi, nbins_E, nbins_Pt,  nbins_eta, nbins_phi, nbins_dphi, nbins_deta, nbins_deta/2, nbins_zt, nbins_xi,
+    Int_t bins[23]    = {nbins_Centrality, nbins_zvertex, nbins_Mass, nbins_Pt,  nbins_eta, nbins_phi, nbins_E, nbins_Pt,  nbins_eta, nbins_phi, nbins_dphi, nbins_deta, nbins_deta/2, nbins_zt, nbins_xi,
                         nbins_Pt, nbins_Pt, nbins_eta, nbins_eta, nbins_phi, nbins_phi, nbins_M02, nbins_M02}; //these are for the photons from pion decays
-    Double_t xmin[22] = {min_Centrality, min_Mass,   min_Pt  , min_eta    , min_phi , min_E, min_Pt, min_eta, min_phi    , min_dphi   , min_deta   , 0.0, min_zt, min_xi,
+    Double_t xmin[23] = {min_Centrality, min_zvertex, min_Mass,   min_Pt  , min_eta    , min_phi , min_E, min_Pt, min_eta, min_phi    , min_dphi   , min_deta   , 0.0, min_zt, min_xi,
                         min_Pt, min_Pt, min_eta, min_eta, min_phi, min_phi, min_M02, min_M02};
-    Double_t xmax[22] = {max_Centrality, max_Mass,   max_Pt  , max_eta    , max_phi , max_E, max_Pt, max_eta,  max_phi   , max_dphi,   max_deta, max_deta, max_zt, max_xi,
+    Double_t xmax[23] = {max_Centrality, max_zvertex, max_Mass,   max_Pt  , max_eta    , max_phi , max_E, max_Pt, max_eta,  max_phi   , max_dphi,   max_deta, max_deta, max_zt, max_xi,
                         max_Pt, max_Pt, max_eta, max_eta, max_phi, max_phi, max_M02, max_M02};
 
-    TString axisNames = "Pion-Track THnSparse; Centrality; #pion Mass; #pionpT; #pion Eta; #pion phi; #pion E";
+    TString axisNames = "Pion-Track THnSparse; Centrality; Z vertex;  #pion Mass; #pionpT; #pion Eta; #pion phi; #pion E";
     axisNames = axisNames + "; track_pT; track Eta; track Phi; #Dphi ; #Deta; #|Deta|; Zt; Xi";
     axisNames = axisNames + "; ph1_pT; ph2_pT; ph1_eta; ph2_eta; ph1_phi; ph2_phi; ph1_M02; ph2_M02";
 
-    h_Pi0Track = new THnSparseD("h_Pi0Track", axisNames, 22, bins, xmin,xmax);
+    h_Pi0Track = new THnSparseD("h_Pi0Track", axisNames, 23, bins, xmin,xmax);
     fOutput->Add(h_Pi0Track);
-    h_Pi0Track_Mixed = new THnSparseD("h_Pi0Track_Mixed", axisNames, 22, bins, xmin,xmax);
+    h_Pi0Track_Mixed = new THnSparseD("h_Pi0Track_Mixed", axisNames, 23, bins, xmin,xmax);
     fOutput->Add(h_Pi0Track_Mixed);
     
     //Pion0
-    axisNames = "Pion THnSparse; Centrality; #pion Mass; #pionpT; #pion Eta; #pion phi; #pion E";
+    axisNames = "Pion THnSparse; Centrality; Z vertex ;#pion Mass; #pionpT; #pion Eta; #pion phi; #pion E";
     axisNames = axisNames + "; ph1_E; ph2_E; Asymmetry; ph1_pT; ph2_pT; ph1_eta; ph2_eta; ph1_phi; ph2_phi; ph1_M02; ph2_M02;";
-    Int_t binsPi0[17] = {nbins_Centrality, nbins_Mass, nbins_Pt, nbins_eta, nbins_phi, nbins_E, 
+    Int_t binsPi0[18] = {nbins_Centrality, nbins_zvertex, nbins_Mass, nbins_Pt, nbins_eta, nbins_phi, nbins_E, 
                          nbins_E, nbins_E, nbins_Asymmetry, nbins_Pt, nbins_Pt, nbins_eta, nbins_eta, nbins_phi, nbins_phi, nbins_M02, nbins_M02};
     
-    Double_t xminPi0[17] = {min_Centrality, min_Mass, min_Pt, min_eta, min_phi , min_E,
+    Double_t xminPi0[18] = {min_Centrality, min_zvertex, min_Mass, min_Pt, min_eta, min_phi , min_E,
                             min_E, min_E, min_Asymmetry, min_Pt, min_Pt, min_eta, min_eta, min_phi, min_phi, min_M02, min_M02};
-    Double_t xmaxPi0[17] = {max_Centrality, max_Mass, max_Pt, max_eta , max_phi , max_E,
+    Double_t xmaxPi0[18] = {max_Centrality, max_zvertex, max_Mass, max_Pt, max_eta , max_phi , max_E,
                             max_E, max_E, max_Asymmetry, max_Pt, max_Pt, max_eta, max_eta, max_phi, max_phi, max_M02, max_M02};
-    h_Pi0= new THnSparseD("h_Pi0", axisNames, 17, binsPi0, xminPi0, xmaxPi0);
+    h_Pi0= new THnSparseD("h_Pi0", axisNames, 18, binsPi0, xminPi0, xmaxPi0);
     fOutput->Add(h_Pi0);
     
     //Clusters
-    axisNames = "Cluster THnSparse; Centrality; Cluster E; Cluster Pt; Cluster Eta; Cluster Phi; Cluster M02; Cluster NCells";
-    Int_t binsCluster[7] = {nbins_Centrality, nbins_E, nbins_Pt, nbins_eta, nbins_phi, nbins_M02, nbins_Ncells};
-    Double_t xminCluster[7] = {min_Centrality, min_E, min_Pt, min_eta, min_phi, min_M02, min_Ncells};
-    Double_t xmaxCluster[7] = {max_Centrality, max_E, max_Pt, max_eta, max_phi, max_M02, max_Ncells};
-    h_Cluster = new THnSparseD("h_Cluster", axisNames, 7, binsCluster, xminCluster, xmaxCluster);
+    axisNames = "Cluster THnSparse; Centrality; Z vertex; Cluster E; Cluster Pt; Cluster Eta; Cluster Phi; Cluster M02; Cluster NCells";
+    Int_t binsCluster[8] = {nbins_Centrality, nbins_zvertex, nbins_E, nbins_Pt, nbins_eta, nbins_phi, nbins_M02, nbins_Ncells};
+    Double_t xminCluster[8] = {min_Centrality, min_zvertex, min_E, min_Pt, min_eta, min_phi, min_M02, min_Ncells};
+    Double_t xmaxCluster[8] = {max_Centrality, max_zvertex, max_E, max_Pt, max_eta, max_phi, max_M02, max_Ncells};
+    h_Cluster = new THnSparseD("h_Cluster", axisNames, 8, binsCluster, xminCluster, xmaxCluster);
     fOutput->Add(h_Cluster);
     
 	PostData(1, fOutput); // Post data for ALL output slots >0 here, to get at least an empty histogram
@@ -262,14 +270,12 @@ void PionHadron::InitEventMixer()
 		cout<<"....  Pool Manager Created ...."<<endl;
 		fPoolMgr = new AliEventPoolManager(fPoolSize, fTrackDepth, nCentBins, centBins, nZvtxBins, zvtxbin);
 		fPoolMgr->SetTargetValues(fTrackDepth, 0.1, 5);  //pool is ready at 0.1*fTrackDepth = 5000 or events =5
-		//save this pool by default
 	}
 	else
 	{
 		fPoolMgr->ClearPools();
 		cout<<"....  Pool Manager Provided From File ...."<<endl;
 	}
-	//..Check binning of pool manager (basic dimensional check for the time being) to see whether external pool fits the here desired one??
 	if( (fPoolMgr->GetNumberOfMultBins() != nCentBins) || (fPoolMgr->GetNumberOfZVtxBins() != nZvtxBins) )
 	{
 		AliFatal("Binning of given pool manager not compatible with binning of correlation task!");
@@ -281,6 +287,7 @@ void PionHadron::InitEventMixer()
 	fOutput->Add(fPoolMgr);
 	}
 	//..Basic checks and printing of pool properties
+    std::cout << "Ending InitEventMixer" << std::endl;
 	fPoolMgr->Validate();
 }
 
@@ -305,12 +312,12 @@ void PionHadron::ExecOnce()
 
 Bool_t PionHadron::IsEventSelected()
 {
-	//if (!fEventCuts.AcceptEvent(InputEvent()))
-	//{
-	//	PostData(1, fOutput);
-    //    AliWarning("Did not pass selection ");
-	//	return kFALSE;
-	//}
+    if (!fEventCuts.AcceptEvent(InputEvent()))
+	{
+	  PostData(1, fOutput);
+      //AliWarning("Did not pass selection ");
+	  return kFALSE;
+	}
     
     TString Trigger;
     Trigger = fInputEvent->GetFiredTriggerClasses();
@@ -320,30 +327,20 @@ Bool_t PionHadron::IsEventSelected()
     if(Trigger.Contains("EG1") ||Trigger.Contains("EG2") || Trigger.Contains("DG1") || Trigger.Contains("DG2")) PassedGammaTrigger = kTRUE;
     if(Trigger.Contains("INT7")) PassedMinBiasTrigger = kTRUE;
     
-    if(PassedGammaTrigger) AliWarning("Passed Gamma Trigger ");
-    if(PassedMinBiasTrigger) AliWarning("Passed MinBias Trigger ");
+    //if(PassedGammaTrigger) AliWarning("Passed Gamma Trigger ");
+    //if(PassedMinBiasTrigger) AliWarning("Passed MinBias Trigger ");
     if(!PassedGammaTrigger && !PassedMinBiasTrigger) return kFALSE;
 
     bool isSelected = AliAnalysisTaskEmcal::IsEventSelected();
-	if(isSelected){
-          AliWarning("Event passed selection");
-    }
-    //else{
-    //    AliWarning("DID NOT PASS Selection");
-    //}
-	return isSelected;
+
+    return kTRUE;
+	//return isSelected;
 }
 
 
 Bool_t PionHadron::Run()
 {
     //AliWarning("Running");
-	fCurrentEventTrigger = ((AliInputEventHandler*)(AliAnalysisManager::GetAnalysisManager()->GetInputEventHandler()))->IsEventSelected();
-    //all that is in here I am not sure whether it should be here.
-    
-    const AliCentrality *centP = InputEvent()->GetCentrality();
-    Double_t cent = centP->GetCentralityPercentile(fCentEst.Data());
-    std::cout << "My centrality es " << cent << std::endl;
 	return kTRUE;
 }
 
@@ -372,9 +369,8 @@ Bool_t PionHadron::FillHistograms()
     if(Trigger.Contains("EG1") ||Trigger.Contains("EG2") || Trigger.Contains("DG1") || Trigger.Contains("DG2")) PassedGammaTrigger = kTRUE;
     if(Trigger.Contains("INT7")) PassedMinBiasTrigger = kTRUE;
     
-
 	Double_t zVertex = fVertex[2];
-    AliWarning(Form("Centrality %f, ZVertex %f, FEventCuts centrality %f",fCent, zVertex,fEventCuts.GetCentrality() ));
+    //AliWarning(Form("Centrality %f, ZVertex %f, FEventCuts centrality %f",fCent, zVertex,fEventCuts.GetCentrality() ));
 	AliParticleContainer* tracks =0x0;
 	tracks   = GetParticleContainer(0);
 
@@ -388,7 +384,7 @@ Bool_t PionHadron::FillHistograms()
 	pool = fPoolMgr->GetEventPool(fCent, zVertex);
 	if (!pool)
 	{
-    	AliWarning(Form("No pool found. Centrality %f, ZVertex %f",fCent, zVertex));
+    	//AliWarning(Form("No pool found. Centrality %f, ZVertex %f",fCent, zVertex));
 		return kFALSE;
 	}
 	if(pool->IsReady() && PassedGammaTrigger)
@@ -409,7 +405,7 @@ Bool_t PionHadron::FillHistograms()
 			CorrelateClusterAndTrack(0,bgTracks,0,1.0/nMix);//correlate with mixed event
 		}
 	}
-    if(PassedMinBiasTrigger && !PassedGammaTrigger )//&& ((fCurrentEventTrigger & 1000000000000000)==0))
+    if(PassedMinBiasTrigger && !PassedGammaTrigger )
 	{
         TObjArray* tracksClone=0x0;
 		tracksClone = CloneToCreateTObjArray(tracks);
@@ -417,7 +413,6 @@ Bool_t PionHadron::FillHistograms()
 		if(pool && tracksClone && !pool->GetLockFlag())
 		{
           //AliWarning(Form("Updating pool. Centrality %f, ZVertex %f",fCent, zVertex));
-		  //AliWarning("Updating Pool");
           pool->UpdatePool(tracksClone);
 		}
 	}
@@ -464,7 +459,7 @@ Int_t PionHadron::CorrelateClusterAndTrack(AliParticleContainer* tracks,TObjArra
 		//std::cout <<NoCluster1 << " ";
         cluster=(AliVCluster*) clusters->GetCluster(NoCluster1); // //it was GetAcceptCluster->GetCluster(NoCluster1);
      	if(!cluster) continue;
-        if(!AccClusterForAna(clusters,cluster))continue ; 
+        if(!PassedCuts(cluster))continue ; 
         FillClusterHisto(cluster, h_Cluster);
         
         for( Int_t NoCluster2 = NoCluster1+1; NoCluster2 < NoOfClustersInEvent; NoCluster2++ )
@@ -472,7 +467,7 @@ Int_t PionHadron::CorrelateClusterAndTrack(AliParticleContainer* tracks,TObjArra
             // std::cout <<NoCluster2 << std::endl;
             cluster2=(AliVCluster*) clusters->GetCluster(NoCluster2);
 			if(!cluster2) continue;
-            if(!AccClusterForAna(clusters,cluster2))continue ; 
+            if(!PassedCuts(cluster2))continue ; 
 			
             FillPionHisto(cluster, cluster2, h_Pi0); //filling variables
             if(SameMix==0){
@@ -542,7 +537,7 @@ void  PionHadron::FillCorrelation(AliVCluster* cluster1, AliVCluster* cluster2, 
     double  Zt  = track->Pt()/pi0.Pt();
     double  Xi  = -999; 
     if(Zt>0) Xi = TMath::Log(1.0/Zt);
-    double entries[22] = {fCent, pi0.M(), pi0.Pt(), pi0.Eta(), pi0.Phi(), pi0.E(), track->Pt(), track->Eta(), trackphi, dphi, deta, abs(deta), Zt, Xi,
+    double entries[23] = {fCent, fVertex[2], pi0.M(), pi0.Pt(), pi0.Eta(), pi0.Phi(), pi0.E(), track->Pt(), track->Eta(), trackphi, dphi, deta, abs(deta), Zt, Xi,
                           ph_1.Pt(), ph_2.Pt(), ph_1.Eta(), ph_2.Eta(), ph_1.Phi(), ph_2.Phi() , cluster1->GetM02(), cluster2->GetM02()};                
     //std::cout<<"About to fill histogram with entries";
     
@@ -566,7 +561,7 @@ void  PionHadron::FillPionHisto(AliVCluster* cluster1, AliVCluster* cluster2, TH
 	pi0= ph_1+ph_2;
     
     double asym = abs(ph_1.E()-ph_2.E())/(ph_1.E()+ph_2.E());
-    double entries[17] = {fCent, pi0.M(), pi0.Pt(), pi0.Eta(), pi0.Phi(), pi0.E(), 
+    double entries[18] = {fCent, fVertex[2], pi0.M(), pi0.Pt(), pi0.Eta(), pi0.Phi(), pi0.E(), 
                           ph_1.E(), ph_2.E(), asym, ph_1.Pt(), ph_2.Pt(), ph_1.Eta(), ph_2.Eta(), ph_1.Phi(), ph_2.Phi() , cluster1->GetM02(), cluster2->GetM02()};                
     histo->Fill(entries);
     //delete clusters;
@@ -579,7 +574,7 @@ void PionHadron::FillClusterHisto(AliVCluster* cluster, THnSparse* histo){
     TLorentzVector ph;
     clusters->GetMomentum(ph, cluster);
     
-    double entries[7] = {fCent, ph.E(), ph.Pt(), ph.Eta(), ph.Phi(), cluster->GetM02(), cluster->GetNCells()};                
+    double entries[8] = {fCent, fVertex[2], ph.E(), ph.Pt(), ph.Eta(), ph.Phi(), cluster->GetM02(), cluster->GetNCells()};                
     histo->Fill(entries);
     
     //delete clusters;
@@ -604,43 +599,14 @@ TObjArray* PionHadron::CloneClustersTObjArray(AliClusterContainer* clusters)
 	return clustersCloneI;
 }
 
- void PionHadron::GetMulClassPi0(Int_t& imcl) //What exacly is the use of this??
- {
-   Int_t nclus = 0;
-   AliClusterContainer* clustersCont  = GetClusterContainer(0);
-   if (!clustersCont) return;
-   TObjArray* clustersClone=0x0;
-   clustersClone = CloneClustersTObjArray(clustersCont);
-   TObjArray *clusters =clustersClone;// fEsdClusters;
-   // if (!clusters)   clusters = fAodClusters;
-   if (clusters)
-   nclus = clusters->GetEntries();
-   const int MultCut[nMulClass] = {5, 12, 20 ,50, 100, 250, 500, 9999};
-   imcl=0;
-   for (imcl=0; imcl<nMulClass; imcl++) {
-     if (nclus < MultCut[imcl]) break;
-   }
- }
- 
-  void PionHadron::GetZVtxClassPi0(Int_t& ivcl)
- {
-   Double_t ZvTx=fEventCuts.GetPrimaryVertex()->GetZ();
-   if (!ZvTx) return;
-   const Double_t VtxCut[nZClass] = {-20, -5, -1.5, 2.5, 6, 20};
-   ivcl=0;
-   for (ivcl=0; ivcl<nMulClass; ivcl++) {
-     if (ZvTx < VtxCut[ivcl]) break;
-   }
- }
 
-
-Bool_t PionHadron::AccClusterForAna(AliClusterContainer* clusters, AliVCluster* caloCluster)
+Bool_t PionHadron::PassedCuts(AliVCluster* cluster)
 {
-    if(!caloCluster->IsEMCAL()) return kFALSE;
-    if(caloCluster->E()<1.0) return kFALSE;
-	if(caloCluster->GetNCells()<2) return kFALSE;
-	if(caloCluster->GetNExMax() > 1) return kFALSE; //local maxima should be 0 or 1
-	if(caloCluster->GetM02()<0.1) return kFALSE;
+    if(!cluster->IsEMCAL()) return kFALSE;
+    if(cluster->E()<1.0) return kFALSE;
+	if(cluster->GetNCells()<2) return kFALSE;
+	if(cluster->GetNExMax() > 1) return kFALSE; //local maxima should be 0 or 1
+	if(cluster->GetM02()<0.1) return kFALSE;
 	//if(fRmvMTrack==1 && caloCluster->GetNTracksMatched(s)!=0) return kFALSE;
 	return kTRUE;
 }
