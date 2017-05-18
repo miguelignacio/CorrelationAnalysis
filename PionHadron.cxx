@@ -155,8 +155,8 @@ void PionHadron::UserCreateOutputObjects()
 	
     //Initializing the histograms to be saved. For the moment, only pT of clusters and Mgammagamma.
     int nbins_Mass = 50;
-    int nbins_Pt   = 50;
-    int nbins_E    = 50;
+    int nbins_Pt   = 100;
+    int nbins_E    = 100;
     int nbins_dphi     = 18;
     int nbins_deta     = 20;
     int nbins_phi     = 36;
@@ -172,7 +172,7 @@ void PionHadron::UserCreateOutputObjects()
     double min_Mass = 0;
     double max_Mass = 0.5;
     double min_Pt = 0;
-    double max_Pt = 10.0;
+    double max_Pt = 20.0;
     double min_dphi = -0.5; // rads
     double max_dphi = 1.5; // rads 
     double min_phi = -1.0*TMath::Pi();
@@ -188,10 +188,10 @@ void PionHadron::UserCreateOutputObjects()
     double min_zt = 0;
     double min_xi = 0;
     double max_zt = 2.0;
-    double max_xi = 2.0;
+    double max_xi = 5.0;
     
     double min_E =0;
-    double max_E =10;
+    double max_E =20;
     double min_M02 = 0.0;
     double max_M02 = 1.0;
     

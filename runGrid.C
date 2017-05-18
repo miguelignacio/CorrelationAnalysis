@@ -10,9 +10,10 @@ class AliAnalysisGrid;
 void runGrid()
 {
 
+  Bool_t isLocal = kFALSE;
   //Setting track cuts
   Printf("Default track cut period set to: %s", AliTrackContainer::GetDefTrackCutsPeriod().Data());
-  AliTrackContainer::SetDefTrackCutsPeriod("lhc13d"); //this was not here
+  AliTrackContainer::SetDefTrackCutsPeriod("lhc13d"); 
   //since we will compile a class, tell root where to look for headers
   std::cout << "command to ignore warnings" << std::endl;
   gROOT->ProcessLine( "gErrorIgnoreLevel = 2001;") ;
@@ -22,12 +23,8 @@ void runGrid()
   gROOT->ProcessLine(".include $ALICE_PHYSICS/include");
   //create the analysis manager
   AliAnalysisManager *mgr = new AliAnalysisManager();
-  //For AODs:  
-  //gROOT->LoadMacro("$ALICE_ROOT/ANALYSIS/macros/train/AddAODHandler.C");
   std::cout << "---***--- Adding ESDHandler" << std::endl;
   gROOT->LoadMacro("$ALICE_ROOT/ANALYSIS/macros/train/AddESDHandler.C");
-  //AliAODInputHandler *inputHandler = new AliAODInputHandler();
-  //AliESDInputHandler *inputHandler = new AliESDInputHandler();
   AliESDInputHandler* pESDHandler = AddESDHandler();
   //  inputHandler->SetReadFriends(kFALSE);
   //mgr->SetInputEventHandler(inputHandler);
@@ -47,8 +44,7 @@ void runGrid()
   AliTaskCDBconnect *taskCDB = AddTaskCDBconnect();
   taskCDB->SetFallBackToRaw(kTRUE);
   
-  
-  /*////EmcalCorrection/////////////////////////////////////////////////
+  ////EmcalCorrection/////////////////////////////////////////////////
   std::cout <<" Loading AddTaskEmcalCorrectionTask.C" << std::endl;
   gROOT->LoadMacro("$ALICE_PHYSICS/PWG/EMCAL/macros/AddTaskEmcalCorrectionTask.C");
   const UInt_t  kPhysSel       = AliVEvent::kEMCEGA + AliVEvent::kAnyINT;
@@ -59,16 +55,13 @@ void runGrid()
   correctionTask->SetUserConfigurationFilename("userGH_Analysis_LHC13.yaml");
   correctionTask->Initialize();
   //////////////////////////////////////////////////////////////////
-  */
+  
   //compile the class (locally)
   gROOT->LoadMacro("PionHadron.cxx++g");
   //load the addtask macro
   gROOT->LoadMacro("AddTask.C");
   //create an instance of your analysis task
   PionHadron *ptr = AddTask();
-
-
-
 
   Printf("About to set Force Beam Type");
   AliAnalysisTaskEmcal::BeamType iBeamType = AliAnalysisTaskEmcal::kpA;
@@ -103,7 +96,7 @@ void runGrid()
   mgr->PrintStatus();
   //mgr->SetUserProgressBar(1,25);
 
-  Bool_t isLocal = kFALSE;
+
   //if you want to run locally, we need to define some input
   if(isLocal){ 
     TChain *chain = new TChain("esdTree");
@@ -126,7 +119,7 @@ void runGrid()
   plugin->AddRunNumber(195783);
   
   plugin->SetGridWorkingDir("workdir");
-  plugin->SetGridOutputDir("output");
+  plugin->SetGridOutputDir("output_win3");
   
   //also specify the include (header) paths on grid
   plugin->AddIncludePath ("-I. -I$ROOTSYS/include -I$ALICE_ROOT -I$ALICE_ROOT/include -I$ALICE_PHYSICS/include");
@@ -148,13 +141,13 @@ void runGrid()
   plugin->SetOutputToRunNo(kTRUE);
   plugin->SetKeepLogs(kTRUE);
   plugin->SetMaxMergeStages(1);
-  plugin->SetMergeViaJDL(kTRUE);
+  plugin->SetMergeViaJDL(kFALSE);
 
   mgr->SetGridHandler(plugin);
 
   const char *alien_close_se = gSystem->Getenv("alien_CLOSE_SE");
 
-  if (alien_close_se != NULL) {
+  /*if (alien_close_se != NULL) {
     const char *file = mgr->GetCommonFileName();
 
     plugin->SetDefaultOutputs(kFALSE);
@@ -164,16 +157,16 @@ void runGrid()
 "log_archive.zip:stdout,stderr@%s "
 "root_archive.zip:%s,*.stat@%s",
 alien_close_se, file, alien_close_se));
-  }
+  }*/
 
-  Bool_t isTesting = kFALSE;
+  Bool_t isTesting = kTRUE;
   if(isTesting){
     std::cout<< "Running Grid Test " << std::endl;
     plugin->SetNtestFiles(1);
     plugin->SetRunMode("test"); // 
   }
   else{
-    plugin->SetRunMode("full"); //full, merge, terminate
+    plugin->SetRunMode("terminate"); //full, merge, terminate
   }
   
   mgr->StartAnalysis("grid");
