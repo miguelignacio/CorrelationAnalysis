@@ -256,7 +256,7 @@ void PionHadron::InitEventMixer()
 	{
 		centBins[i] = fMixBCent->GetBinUpEdge(i);
 	}
-	//..Z-vertex pools
+
 	Int_t nZvtxBins=fMixBZvtx->GetNbins();
 	Double_t zvtxbin[nZvtxBins+1];
 	zvtxbin[0] = fMixBZvtx->GetBinLowEdge(1);
@@ -264,7 +264,6 @@ void PionHadron::InitEventMixer()
 	{
 		zvtxbin[i] = fMixBZvtx->GetBinUpEdge(i);
 	}
-	//..in case no external pool is provided create one here
 	if(!fPoolMgr)
 	{
 		cout<<"....  Pool Manager Created ...."<<endl;
@@ -286,14 +285,12 @@ void PionHadron::InitEventMixer()
 	fPoolMgr->SetSaveFlag(-1, 10000, -10000, 100000, 0, 0, -1, 10000000);
 	fOutput->Add(fPoolMgr);
 	}
-	//..Basic checks and printing of pool properties
     std::cout << "Ending InitEventMixer" << std::endl;
 	fPoolMgr->Validate();
 }
 
 void PionHadron::AddEventPoolsToOutput(Double_t minCent, Double_t maxCent,  Double_t minZvtx, Double_t maxZvtx, Double_t minPt, Double_t maxPt)
 {
-	//..This allows you to add only specific pools and not the full pool manager to the output file
 	std::vector<Double_t> binVec;
 	binVec.push_back(minCent);
 	binVec.push_back(maxCent);
@@ -309,34 +306,25 @@ void PionHadron::ExecOnce()
     AliAnalysisTaskEmcal::ExecOnce();
 }
 
-
 Bool_t PionHadron::IsEventSelected()
 {
     if (!fEventCuts.AcceptEvent(InputEvent()))
 	{
 	  PostData(1, fOutput);
-      //AliWarning("Did not pass selection ");
 	  return kFALSE;
 	}
-    
     TString Trigger;
     Trigger = fInputEvent->GetFiredTriggerClasses();
     bool PassedGammaTrigger = kFALSE;
     bool PassedMinBiasTrigger = kFALSE;
-    
     if(Trigger.Contains("EG1") ||Trigger.Contains("EG2") || Trigger.Contains("DG1") || Trigger.Contains("DG2")) PassedGammaTrigger = kTRUE;
     if(Trigger.Contains("INT7")) PassedMinBiasTrigger = kTRUE;
-    
-    //if(PassedGammaTrigger) AliWarning("Passed Gamma Trigger ");
-    //if(PassedMinBiasTrigger) AliWarning("Passed MinBias Trigger ");
     if(!PassedGammaTrigger && !PassedMinBiasTrigger) return kFALSE;
 
     bool isSelected = AliAnalysisTaskEmcal::IsEventSelected();
-
     return kTRUE;
 	//return isSelected;
 }
-
 
 Bool_t PionHadron::Run()
 {
@@ -369,7 +357,7 @@ Bool_t PionHadron::FillHistograms()
     if(Trigger.Contains("EG1") ||Trigger.Contains("EG2") || Trigger.Contains("DG1") || Trigger.Contains("DG2")) PassedGammaTrigger = kTRUE;
     if(Trigger.Contains("INT7")) PassedMinBiasTrigger = kTRUE;
     
-	Double_t zVertex = fVertex[2];
+	double zVertex = fVertex[2];
     //AliWarning(Form("Centrality %f, ZVertex %f, FEventCuts centrality %f",fCent, zVertex,fEventCuts.GetCentrality() ));
 	AliParticleContainer* tracks =0x0;
 	tracks   = GetParticleContainer(0);
@@ -426,7 +414,7 @@ TObjArray* PionHadron::CloneToCreateTObjArray(AliParticleContainer* tracks)
 	if(tracks->GetNAcceptedParticles()==0) return 0;
 	TObjArray* tracksClone = new TObjArray;
 	tracksClone->SetOwner(kTRUE);
-	Int_t NoOfTracksInEvent =tracks->GetNParticles();
+	int NoOfTracksInEvent =tracks->GetNParticles();
 	AliVParticle* track=0;
 	for(Int_t NoTrack = 0; NoTrack < NoOfTracksInEvent; NoTrack++)
 	{
@@ -444,14 +432,14 @@ Int_t PionHadron::CorrelateClusterAndTrack(AliParticleContainer* tracks,TObjArra
 	if (!clusters) return 0;
 	Int_t NoOfClustersInEvent =clusters->GetNClusters();
     //std::cout << " Number of clusters " <<  NoOfClustersInEvent << std::endl;
-	Double_t EffWeight_Gamma;
-	Double_t EffWeight_Hadron;
-	Double_t Weight=1;    //weight to normalize mixed and same event distributions individually
+	double EffWeight_Gamma;
+	double EffWeight_Hadron;
+	double Weight=1.0;    //weight to normalize mixed and same event distributions individually
 	AliVCluster* cluster = 0;
 	AliVCluster* cluster2= 0;
 	AliVParticle* track=0;
     Weight=InputWeight; //..for mixed events normalize per events in pool
-	Int_t GammaCounter=0;
+	int GammaCounter=0;
     
     //AliWarning(Form("Number of Clusters %d",NoOfClustersInEvent));
 	for(Int_t NoCluster1 = 0; NoCluster1 < NoOfClustersInEvent; NoCluster1++ ) // Loop over clusters
@@ -460,28 +448,26 @@ Int_t PionHadron::CorrelateClusterAndTrack(AliParticleContainer* tracks,TObjArra
         cluster=(AliVCluster*) clusters->GetCluster(NoCluster1); // //it was GetAcceptCluster->GetCluster(NoCluster1);
      	if(!cluster) continue;
         if(!PassedCuts(cluster))continue ; 
-        FillClusterHisto(cluster, h_Cluster);
+        FillClusterHisto(cluster, h_Cluster); //filling photon histogram
         
         for( Int_t NoCluster2 = NoCluster1+1; NoCluster2 < NoOfClustersInEvent; NoCluster2++ )
         {
-            // std::cout <<NoCluster2 << std::endl;
             cluster2=(AliVCluster*) clusters->GetCluster(NoCluster2);
 			if(!cluster2) continue;
             if(!PassedCuts(cluster2))continue ; 
-			
-            FillPionHisto(cluster, cluster2, h_Pi0); //filling variables
+            FillPionHisto(cluster, cluster2, h_Pi0); //filling Pion histogram
             if(SameMix==0){
 		        for(Int_t ibg=0; ibg<bgTracksArray->GetEntries(); ibg++){
 	    	        AliPicoTrack* track = static_cast<AliPicoTrack*>(bgTracksArray->At(ibg));
 		            if(!track) continue;
-                    FillCorrelation(cluster, cluster2, track, h_Pi0Track_Mixed);
+                    FillCorrelation(cluster, cluster2, track, h_Pi0Track_Mixed, Weight);
                 }
             }
             else{
                 for(Int_t NoTrack = 0; NoTrack < tracks->GetNParticles(); NoTrack++){ //correlate pion with tracks
 				    track = (AliVParticle*)tracks->GetAcceptParticle(NoTrack);
                     if(!track) continue;
-                    FillCorrelation(cluster, cluster2, track, h_Pi0Track);
+                    FillCorrelation(cluster, cluster2, track, h_Pi0Track, Weight);
                     }
             }
         } //end 2 loop over clusters
@@ -523,7 +509,7 @@ double PionHadron::GetIsolation_Track(AliVCluster* cluster)
   //return sumpT/pT; 
 }
 
-void  PionHadron::FillCorrelation(AliVCluster* cluster1, AliVCluster* cluster2, AliVParticle* track, THnSparse* histo){
+void  PionHadron::FillCorrelation(AliVCluster* cluster1, AliVCluster* cluster2, AliVParticle* track, THnSparse* histo, double weight){
     AliClusterContainer* clusters  = GetClusterContainer(0);
     TLorentzVector ph_1, ph_2, pi0; 
 	clusters->GetMomentum(ph_1, cluster1);
@@ -547,7 +533,7 @@ void  PionHadron::FillCorrelation(AliVCluster* cluster1, AliVCluster* cluster2, 
     //if(asym > 0.7) return;
     //if(cluster1->GetM02()>0.4) return;
     //if(cluster2->GetM02()>0.4) return;
-    histo->Fill(entries);
+    histo->Fill(entries, weight);
     //delete clusters;
     return;
 }

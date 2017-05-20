@@ -21,19 +21,18 @@ void runGrid()
   gROOT->ProcessLine(".include $ROOTSYS/include");
   gROOT->ProcessLine(".include $ALICE_ROOT/include");
   gROOT->ProcessLine(".include $ALICE_PHYSICS/include");
-  //create the analysis manager
+  
+  ///Create the analysis manager
   AliAnalysisManager *mgr = new AliAnalysisManager();
   std::cout << "---***--- Adding ESDHandler" << std::endl;
   gROOT->LoadMacro("$ALICE_ROOT/ANALYSIS/macros/train/AddESDHandler.C");
   AliESDInputHandler* pESDHandler = AddESDHandler();
-  //  inputHandler->SetReadFriends(kFALSE);
-  //mgr->SetInputEventHandler(inputHandler);
-  
+    
+  //////Physics selection
   std::cout << "---***--- Adding AliPhysicsSelection" << std::endl;
   gROOT->LoadMacro("$ALICE_PHYSICS/OADB/macros/AddTaskPhysicsSelection.C");
   AliPhysicsSelectionTask *pPhysSelTask = AddTaskPhysicsSelection();  
   ////Centrality (only works on ESD)
-  
   std::cout << "---***--- Adding Centrality" << std::endl;
   gROOT->LoadMacro("$ALICE_PHYSICS/OADB/macros/AddTaskCentrality.C");
   AliCentralitySelectionTask *pCentralityTask = AddTaskCentrality(kTRUE);
@@ -43,16 +42,15 @@ void runGrid()
   gROOT->LoadMacro("$ALICE_PHYSICS/PWGPP/PilotTrain/AddTaskCDBconnect.C");
   AliTaskCDBconnect *taskCDB = AddTaskCDBconnect();
   taskCDB->SetFallBackToRaw(kTRUE);
-  
-  ////EmcalCorrection/////////////////////////////////////////////////
+
+  const UInt_t  kPhysSel       = AliVEvent::kEMCEGA + AliVEvent::kAnyINT;
   std::cout <<" Loading AddTaskEmcalCorrectionTask.C" << std::endl;
   gROOT->LoadMacro("$ALICE_PHYSICS/PWG/EMCAL/macros/AddTaskEmcalCorrectionTask.C");
-  const UInt_t  kPhysSel       = AliVEvent::kEMCEGA + AliVEvent::kAnyINT;
-  AliEmcalCorrectionTask * correctionTask = AddTaskEmcalCorrectionTask();
+  AliEmcalCorrectionTask * correctionTask = AliEmcalCorrectionTask::AddTaskEmcalCorrectionTask();
   correctionTask->SelectCollisionCandidates(kPhysSel);
-  correctionTask->SetRunPeriod(""); //it was "lhc13d"
   correctionTask->SetForceBeamType(AliAnalysisTaskEmcal::kpA);
-  correctionTask->SetUserConfigurationFilename("userGH_Analysis_LHC13.yaml");
+  //correctionTask->SetUserConfigurationFilename("$ALICE_PHYSICS/PWG/EMCAL/config/EMCalSampleConfig.yaml");
+  correctionTask->SetUserConfigurationFilename("EMCalConfig.yaml");
   correctionTask->Initialize();
   //////////////////////////////////////////////////////////////////
   
@@ -70,7 +68,6 @@ void runGrid()
   TObjArray *pTopTasks = mgr->GetTasks();
   for (Int_t i = 0; i < pTopTasks->GetEntries(); ++i)
 	{
-
 		AliAnalysisTaskSE *pTask = dynamic_cast<AliAnalysisTaskSE*>(pTopTasks->At(i));
 		if (!pTask) continue;
         if (pTask->InheritsFrom("AliAnalysisTaskEmcal"))
@@ -94,15 +91,11 @@ void runGrid()
   if(!mgr->InitAnalysis()) return;
   //mgr->SetDebugLevel(2);
   mgr->PrintStatus();
-  //mgr->SetUserProgressBar(1,25);
-
-
-  //if you want to run locally, we need to define some input
+  
   if(isLocal){ 
     TChain *chain = new TChain("esdTree");
     chain->Add("LHC13d_ESD1.root");
     chain->Add("LHC13d_ESD2.root");
-    //chain->Add("LHC13d.root");f
     std::cout << "Running locally on tree, Chain has " << chain->GetEntries() << " events " << std::endl;
      mgr->StartAnalysis("local",chain);
      return;
@@ -111,15 +104,16 @@ void runGrid()
     
   AliAnalysisAlien *plugin = new AliAnalysisAlien()
   plugin->SetOverwriteMode();
-  plugin->SetAliPhysicsVersion("vAN-20170510-1");
+  //  plugin->SetAliPhysicsVersion("vAN-20170510-1");
   //plugin->SetAliPhysicsVersion("vAN-20160203-1");
+  plugin->SetAliPhysicsVersion("vAN-20170519-1");
   plugin->SetGridDataDir("/alice/data/2013/LHC13d");
   plugin->SetDataPattern("*/pass4/*/*ESDs.root");
   plugin->SetRunPrefix("000");
   plugin->AddRunNumber(195783);
-  
+
   plugin->SetGridWorkingDir("workdir");
-  plugin->SetGridOutputDir("output_win3");
+  plugin->SetGridOutputDir("output_tur3");
   
   //also specify the include (header) paths on grid
   plugin->AddIncludePath ("-I. -I$ROOTSYS/include -I$ALICE_ROOT -I$ALICE_ROOT/include -I$ALICE_PHYSICS/include");
@@ -127,48 +121,27 @@ void runGrid()
   plugin->SetAdditionalLibs("PionHadron.cxx PionHadron.h");
   plugin->SetAnalysisSource("PionHadron.cxx");  
   
-  ///alice/data/2013/LHC13d/000195682/pass4/AOD/
-  //Run 2 pp simulation Dijet
-  ///alice/sim/2016/LHC16h3/11/244617
-  //plugin->SetGridDataDir("/alice/sim/2016/LHC16h3/1");
-
   plugin->SetSplitMaxInputFileNumber(40);
   plugin->SetExecutable("myTask.sh");
-  //specify how many seconds your job may take
   plugin->SetTTL(10000);
-  plugin->SetJDLName("PionHadron.jdl");
-  
+  plugin->SetJDLName("PionHadron.jdl");  
   plugin->SetOutputToRunNo(kTRUE);
   plugin->SetKeepLogs(kTRUE);
   plugin->SetMaxMergeStages(1);
-  plugin->SetMergeViaJDL(kFALSE);
+  plugin->SetMergeViaJDL(kTRUE);
 
   mgr->SetGridHandler(plugin);
-
   const char *alien_close_se = gSystem->Getenv("alien_CLOSE_SE");
 
-  /*if (alien_close_se != NULL) {
-    const char *file = mgr->GetCommonFileName();
-
-    plugin->SetDefaultOutputs(kFALSE);
-    plugin->SetOutputFiles(Form(
-				"%s@%s", file, alien_close_se));
-    plugin->SetOutputArchive(Form(
-"log_archive.zip:stdout,stderr@%s "
-"root_archive.zip:%s,*.stat@%s",
-alien_close_se, file, alien_close_se));
-  }*/
-
-  Bool_t isTesting = kTRUE;
+  Bool_t isTesting = kFALSE;
   if(isTesting){
     std::cout<< "Running Grid Test " << std::endl;
     plugin->SetNtestFiles(1);
     plugin->SetRunMode("test"); // 
   }
   else{
-    plugin->SetRunMode("terminate"); //full, merge, terminate
-  }
-  
+    plugin->SetRunMode("full"); //full, merge, terminate
+  }  
   mgr->StartAnalysis("grid");
   return;
 }

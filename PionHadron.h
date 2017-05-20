@@ -55,7 +55,7 @@ virtual ~PionHadron();
   
   void                        FillClusterHisto(AliVCluster* cluster, THnSparse* histo);
   void                        FillPionHisto(AliVCluster* cluster1, AliVCluster* cluster2, THnSparse* histo);
-  void                        FillCorrelation(AliVCluster* cluster1, AliVCluster* cluster2, AliVParticle* track, THnSparse* histo);
+  void                        FillCorrelation(AliVCluster* cluster1, AliVCluster* cluster2, AliVParticle* track, THnSparse* histo, double weight);
   Int_t                       CorrelateClusterAndTrack(AliParticleContainer* tracks,TObjArray* bgTracks,Bool_t SameMix, Double_t Weight);
   Bool_t                      PassedCuts(AliVCluster* caloCluster);
   double                      GetIsolation_Track(AliVCluster* cluster);

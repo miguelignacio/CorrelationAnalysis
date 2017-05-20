@@ -15,8 +15,8 @@ PionHadron* AddTask(
   AliVEventHandler* handler = mgr->GetInputEventHandler();
   if (!handler) ::Error("AddTask", "This task requires an input event handler");
  
-  if(trackName=="usedefault")trackName = "Tracks"; //it was "tracks"
-  if(clusName =="usedefault")clusName  = "CaloClusters"; //caloClusters
+  if(trackName=="usedefault")trackName = "usedefault"; //it was Tracks "tracks"
+  if(clusName =="usedefault")clusName  = "usedefault";//"caloClusters"; //CaloClusters"; //caloClusters
   //-------------------------------------------------------
   // Built the name of the Task together
   //-------------------------------------------------------
@@ -26,11 +26,12 @@ PionHadron* AddTask(
 
   //-------------------------------------------------------
   // Init the task and do settings
-  //-------------------------------------------------------
+  //------------------------------------------------------
   std::cout << "----#About to start PionHadron task " << std::endl;
   PionHadron* AnalysisTask = new PionHadron(kTRUE);
-  AnalysisTask->AddClusterContainer(clusName);
-  AliTrackContainer* trackCont = AnalysisTask->AddTrackContainer(trackName);
+  std::cout << "----Adding cluster container, track container" << std::endl;
+  AnalysisTask->AddClusterContainer("usedefault");
+  AliTrackContainer* trackCont = AnalysisTask->AddTrackContainer("usedefault");
   //AliWarning("Setting FilterHybridTracks");
  
  
