@@ -3,7 +3,7 @@ PionHadron* AddTask(
   UInt_t      evtTriggerType         = AliVEvent::kEMCEGA, //AliVEvent::kAnyINT,// AliVEvent::kEMCEGA,//..use this type of events to combine gammas(trigger) with hadrons
   UInt_t      evtMixingType          = AliVEvent::kAnyINT,//..use only this type of events to fill your mixed event pool with tracks
   Double_t    trackptcut             = 0.15,              //..
-  Double_t    clusptcut              = 0.30,              //..
+  Double_t    clusptcut              = 3.0,              //..
   Bool_t      SavePool               = 0,                 //..saves a mixed event pool to the output event
   const char *trackName              = "usedefault",
   const char *clusName               = "usedefault",
@@ -74,9 +74,14 @@ PionHadron* AddTask(
   // Create containers for input/output
   AliAnalysisDataContainer *cinput1  = mgr->GetCommonInputContainer()  ;
   AliAnalysisDataContainer *coutput1 = mgr->CreateContainer(contName.Data(),TList::Class(),
-		  	  	  	  	  	  	  	  	  	  	  	  	   AliAnalysisManager::kOutputContainer,
+	  	  	  	  	  	  	  	  	  	  	  	  	   AliAnalysisManager::kOutputContainer,
 		  	  	  	  	  	  	  	  	  	  	  	  	   Form("%s", AliAnalysisManager::GetCommonFileName()));
+
+  //AliAnalysisDataContainer *coutput2 = mgr->CreateContainer("MyOuputContainer", TList::Class(), 
+   //                                                         AliAnalysisManager::kOutputContainer, 
+   //                                                         Form("%s", AliAnalysisManager::GetCommonFileName()));
   mgr->ConnectInput  (AnalysisTask, 0,  cinput1 );
   mgr->ConnectOutput (AnalysisTask, 1, coutput1 );
+  //mgr->ConnectOutput (AnalysisTask, 2, coutput2 );
   return AnalysisTask;
 }

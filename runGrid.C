@@ -15,8 +15,6 @@ void runGrid()
   Printf("Default track cut period set to: %s", AliTrackContainer::GetDefTrackCutsPeriod().Data());
   AliTrackContainer::SetDefTrackCutsPeriod("lhc13d"); 
   //since we will compile a class, tell root where to look for headers
-  std::cout << "command to ignore warnings" << std::endl;
-  gROOT->ProcessLine( "gErrorIgnoreLevel = 2001;") ;
   std::cout <<"Proceesing lines to include $ROOTSYS/include, $ALICE_ROOT/include and $ALICE_PHYSICS/include" << std::endl;
   gROOT->ProcessLine(".include $ROOTSYS/include");
   gROOT->ProcessLine(".include $ALICE_ROOT/include");
@@ -113,11 +111,9 @@ void runGrid()
   plugin->AddRunNumber(195783);
 
   plugin->SetGridWorkingDir("workdir");
-  plugin->SetGridOutputDir("output_tur3");
+  plugin->SetGridOutputDir("output_Beta1");
   
-  //also specify the include (header) paths on grid
   plugin->AddIncludePath ("-I. -I$ROOTSYS/include -I$ALICE_ROOT -I$ALICE_ROOT/include -I$ALICE_PHYSICS/include");
-  //make sure your source files get copied to the grid
   plugin->SetAdditionalLibs("PionHadron.cxx PionHadron.h");
   plugin->SetAnalysisSource("PionHadron.cxx");  
   
@@ -128,10 +124,9 @@ void runGrid()
   plugin->SetOutputToRunNo(kTRUE);
   plugin->SetKeepLogs(kTRUE);
   plugin->SetMaxMergeStages(1);
-  plugin->SetMergeViaJDL(kTRUE);
+  plugin->SetMergeViaJDL(kFALSE);
 
   mgr->SetGridHandler(plugin);
-  const char *alien_close_se = gSystem->Getenv("alien_CLOSE_SE");
 
   Bool_t isTesting = kFALSE;
   if(isTesting){
@@ -140,7 +135,7 @@ void runGrid()
     plugin->SetRunMode("test"); // 
   }
   else{
-    plugin->SetRunMode("full"); //full, merge, terminate
+    plugin->SetRunMode("terminate"); //full, terminate
   }  
   mgr->StartAnalysis("grid");
   return;

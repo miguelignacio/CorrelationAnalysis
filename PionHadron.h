@@ -89,13 +89,14 @@ virtual ~PionHadron();
   UInt_t                      fCurrentEventTrigger;      //!<! Trigger of the current event
 
    // THnSparse
+  //THnSparse                 *h_Track;                   //!<!
   THnSparse                 *h_Cluster;                 //!<!
   THnSparse                 *h_Pi0;                 //!<!
   THnSparse                 *h_Pi0Track;                 //!<! THnSparse with info on pi0 and track.
   THnSparse                 *h_Pi0Track_Mixed;                 //!<!
   // Other stuff
   TList                      *fEventCutList;           //!<! Output list for event cut histograms
-  TList                      *OutputList;            //!<! Output list
+ // TList                      *OutputList;            //!<! Output list
   
   const static int nEvt      =   10;//30; // mixing "depth"
 
