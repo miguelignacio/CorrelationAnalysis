@@ -13,25 +13,17 @@
 #include "/root/atlasstyle-00-03-05/AtlasLabels.h"
 #include "/root/atlasstyle-00-03-05/AtlasLabels.C"
 
+int axis_pionCen = 0;
+int axis_pionZvtx = 1; 
+int axis_pionMass = 2;
+int axis_pionPt = 3;
 
 void Plot(double minpT, double maxpT){
-    SetAtlasStyle();
-    TFile* fIn = new TFile("Ntuple.root","READ");
-    fIn->Print();
-    fIn->ls();
-
-    THnSparse* h_Pion = 0;
-    fIn->GetObject("h_Pion",h_Pion);
-    THnSparse *  h_PionTrack = 0;
+    auto fIn = new TFile("Ntuple.root","READ");
+    THnSparse *h_PionTrack=0;
     fIn->GetObject("h_PionTrack",h_PionTrack);
     THnSparse *  h_PionTrack_Mixed = 0;
     fIn->GetObject("h_PionTrack_Mixed",h_PionTrack_Mixed);
-    
-    int axis_pionCen = 0;
-    int axis_pionZvtx = 1; 
-    int axis_pionMass = 2;
-    int axis_pionPt = 3;
-    
       
     ///// pion--track correlation plots
     int axis_corr_dphi    = 10;
@@ -43,9 +35,6 @@ void Plot(double minpT, double maxpT){
     double binwidthMass = h_PionTrack->GetAxis(axis_corr_mass)->GetBinWidth(1);
     double Width_PT  = h_PionTrack->GetAxis(axis_corr_pionpT)->GetBinWidth(1);
     
-    std::cout << " Width mass" <<  h_PionTrack->GetAxis(axis_corr_mass)->GetBinWidth(1) << std::endl;
-    std::cout << " Width pion pT" <<  h_PionTrack->GetAxis(axis_corr_pionpT)->GetBinWidth(1) << std::endl;
-    //Set limits
     //Pi0 mass
     h_PionTrack->GetAxis(axis_corr_mass)->SetRange(0.100/binwidthMass, 0.500/binwidthMass);
     h_PionTrack_Mixed->GetAxis(axis_corr_mass)->SetRange(0.100/binwidthMass, 0.500/binwidthMass);
@@ -53,7 +42,6 @@ void Plot(double minpT, double maxpT){
     h_PionTrack->GetAxis(axis_corr_pionpT)->SetRange(minpT/Width_PT, maxpT/Width_PT);
     h_PionTrack_Mixed->GetAxis(axis_corr_pionpT)->SetRange(minpT/Width_PT, maxpT/Width_PT);
 
-   
     TH1F* h_pT   = (TH1F*)h_PionTrack->Projection(axis_pionPt);
     TH1F* h_mass = (TH1F*)h_PionTrack->Projection(axis_pionMass);
     
@@ -107,13 +95,58 @@ void Plot(double minpT, double maxpT){
     h_dphi_deta->GetXaxis()->CenterTitle(kTRUE);
     h_dphi_deta->GetYaxis()->CenterTitle(kTRUE);
     h_dphi_deta->SetTitle("; #Delta#eta; #Delta#phi/#pi");
-    c->SaveAs("h_dphi_deta_Corrected.pdf");
+    c->SaveAs("h_dphi_deta_Corrected.png");
+    c->SaveAs("h_dphi_deta_Corrected.bmp");
     c->Close();  
     }
 
 
+void PionMass(THnSparse* h_Pion){
+    
+    h_Pion->Sumw2();
+    
+    h_Pion->GetAxis(axis_pionMass)->SetTitle("m_{#gamma#gamma} [GeV]");
+    
+    double width_Mass = h_Pion->GetAxis(axis_pionMass)->GetBinWidth(1);
+    h_Pion->GetAxis(axis_pionMass)->SetRange(0.100/width_Mass, 0.25/width_Mass);
+    
+    auto h_pT = h_Pion->Projection(axis_pionPt);
+    auto c = new TCanvas();
+    gPad->SetLogy(1);
+    h_pT->Draw();
+    c->SaveAs("pionpt.pdf");
+    gPad->SetLogy(0);
+    
+    
+    for(int n = 1; n<10; n++){
+    h_Pion->GetAxis(axis_pionPt)->SetRange(5*n,5*(n+1) );
+    auto h_Mass = h_Pion->Projection(axis_pionMass);
+    auto h_pTtemp = h_Pion->Projection(axis_pionPt);
+    h_Mass->Draw();
+    c->SaveAs(Form("mass_%i.pdf",n));
+    c->Clear();
+    h_pTtemp->Draw();
+    c->SaveAs(Form("pt_%i.pdf",n));
+    }
+    
+    
+}
+
+
 void Plotting(){
-    Plot(8,16);
+    SetAtlasStyle();
+    TFile* fIn = new TFile("Ntuple.root","READ");
+    fIn->Print();
+    fIn->ls();
+
+    THnSparse* h_Pion = 0;
+    fIn->GetObject("h_Pion",h_Pion);
+     
+    PionMass(h_Pion);
+    //Pion histograms:
+   
+     
+    //Plot(0,50);
     //Plot(14,18);
     //Plot(18,22);
     //Plot(22,26);
