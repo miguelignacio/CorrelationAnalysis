@@ -47,7 +47,6 @@ void runGrid()
   AliEmcalCorrectionTask * correctionTask = AliEmcalCorrectionTask::AddTaskEmcalCorrectionTask();
   correctionTask->SelectCollisionCandidates(kPhysSel);
   correctionTask->SetForceBeamType(AliAnalysisTaskEmcal::kpA);
-  //correctionTask->SetUserConfigurationFilename("$ALICE_PHYSICS/PWG/EMCAL/config/EMCalSampleConfig.yaml");
   correctionTask->SetUserConfigurationFilename("EMCalConfig.yaml");
   correctionTask->Initialize();
   //////////////////////////////////////////////////////////////////
@@ -111,7 +110,7 @@ void runGrid()
   plugin->AddRunNumber(195783);
 
   plugin->SetGridWorkingDir("workdir");
-  plugin->SetGridOutputDir("output_Beta1");
+  plugin->SetGridOutputDir("output_Rho1");
   
   plugin->AddIncludePath ("-I. -I$ROOTSYS/include -I$ALICE_ROOT -I$ALICE_ROOT/include -I$ALICE_PHYSICS/include");
   plugin->SetAdditionalLibs("PionHadron.cxx PionHadron.h");
@@ -124,7 +123,7 @@ void runGrid()
   plugin->SetOutputToRunNo(kTRUE);
   plugin->SetKeepLogs(kTRUE);
   plugin->SetMaxMergeStages(1);
-  plugin->SetMergeViaJDL(kFALSE);
+  plugin->SetMergeViaJDL(kTRUE);
 
   mgr->SetGridHandler(plugin);
 

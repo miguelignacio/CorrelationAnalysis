@@ -31,14 +31,12 @@ virtual ~PionHadron();
   void SetEvtMixType(UInt_t input)                           { fMixingEventType = input  ; }
   void SetUseManualEvtCuts(Bool_t input)                     { fUseManualEventCuts = input;}
 
-  //Functions for mixed event purposes
   void SetExternalEventPoolManager(AliEventPoolManager* mgr) {fPoolMgr = mgr;}
   AliEventPoolManager*        GetEventPoolManager()                                 {return fPoolMgr;}
-  // Set which pools will be saved
-  void AddEventPoolsToOutput(Double_t minCent, Double_t maxCent,  Double_t minZvtx, Double_t maxZvtx, Double_t minPt, Double_t maxPt);
+  void AddEventPoolsToOutput(double minCent, double maxCent,  double minZvtx, double maxZvtx, double minPt, double maxPt);
   
   private:
-  AliEventCuts fEventCuts;                   ///< event selection utility
+  AliEventCuts fEventCuts;                  
   
   void                        InitArrays()                                                 ;
   // overwritten EMCal framework functions
@@ -50,19 +48,18 @@ virtual ~PionHadron();
   //Functions for mixed event purposes
   void                        InitEventMixer()											  ;
   TObjArray*                  CloneToCreateTObjArray(AliParticleContainer* tracks)          ;
-
   Bool_t                      FillHistograms()                                              ;
   
   void                        FillClusterHisto(AliVCluster* cluster, THnSparse* histo);
   void                        FillPionHisto(AliVCluster* cluster1, AliVCluster* cluster2, THnSparse* histo);
-  void                        FillCorrelation(AliVCluster* cluster1, AliVCluster* cluster2, AliVParticle* track, THnSparse* histo, double weight);
-  Int_t                       CorrelateClusterAndTrack(AliParticleContainer* tracks,TObjArray* bgTracks,Bool_t SameMix, Double_t Weight);
+  void                        FillPionCorrelation(AliVCluster* cluster1, AliVCluster* cluster2, AliVParticle* track, THnSparse* histo, double weight);
+  void                        FillPhotonCorrelation(AliVCluster* cluster, AliVParticle* track, THnSparse* histo, double weight);
+  int                         CorrelateClusterAndTrack(AliParticleContainer* tracks,TObjArray* bgTracks,Bool_t SameMix, double Weight);
   Bool_t                      PassedCuts(AliVCluster* caloCluster);
   double                      GetIsolation_Track(AliVCluster* cluster);
   
-   //<<<<<><<<<<<<<<><<<<<<<<<<><<<<<<<<<<<<><<<<<<<<<<<<<<><<<<<<<<<<<<<<<<<<<<<>
   TObjArray*                  CloneClustersTObjArray(AliClusterContainer* clusters)          ;
-  Double_t                    GetEff(AliTLorentzVector ParticleVec)                         ;
+  double                    GetEff(AliTLorentzVector ParticleVec)                         ;
 
   Bool_t                      fSavePool;                 ///< Defines whether to save output pools in a root file
   Bool_t                      fUseManualEventCuts;       ///< Use manual cuts if automatic setup is not available for the period
@@ -72,29 +69,30 @@ virtual ~PionHadron();
   THnF                       *fHistEffHadron;            ///< ??input efficiency for associate particles
 
   //..Constant
-  static const Int_t          kNvertBins=20;             ///< vertex bins in which the ME are mixed
-  static const Int_t          kNcentBins=8;              ///< centrality bins in which the ME are mixed
-  Double_t                    fArrayNVertBins[21];       ///< 21=kNvertBins+1
+  static const int          kNvertBins=20;             ///< vertex bins in which the ME are mixed
+  static const int          kNcentBins=8;              ///< centrality bins in which the ME are mixed
+  double                    fArrayNVertBins[21];       ///< 21=kNvertBins+1
 
   //..Event pool variables
   TAxis                      *fMixBCent;                 ///< Number of centrality bins for the mixed event
   TAxis                      *fMixBZvtx;                 ///< Number of vertex bins for the mixed event
   AliEventPoolManager        *fPoolMgr;                  ///< event pool manager
-  Int_t                       fTrackDepth;               ///<  #tracks to fill pool
-  Int_t                       fPoolSize;                 ///<  Maximum number of events
-  vector<vector<Double_t> >   fEventPoolOutputList;      //!<! ???vector representing a list of pools (given by value range) that will be saved
-  //..Event selection types
+  int                       fTrackDepth;               ///<  #tracks to fill pool
+  int                       fPoolSize;                 ///<  Maximum number of events
+  vector<vector<double> >   fEventPoolOutputList;      //!<! ???vector representing a list of pools (given by value range) that will be saved
+
   UInt_t                      fTriggerType;              ///<  Event types that are used for the trigger (gamma or pi0)
   UInt_t                      fMixingEventType;          ///<  Event types that are used for the tracks in the mixed event
   UInt_t                      fCurrentEventTrigger;      //!<! Trigger of the current event
 
-   // THnSparse
-  //THnSparse                 *h_Track;                   //!<!
+  THnSparse                 *h_Track;                   //!<!
   THnSparse                 *h_Cluster;                 //!<!
+  THnSparse                 *h_ClusterTrack;                 //!<! THnSparse with info on cluster and track.
+  THnSparse                 *h_ClusterTrack_Mixed;                 //!<!
   THnSparse                 *h_Pi0;                 //!<!
   THnSparse                 *h_Pi0Track;                 //!<! THnSparse with info on pi0 and track.
   THnSparse                 *h_Pi0Track_Mixed;                 //!<!
-  // Other stuff
+
   TList                      *fEventCutList;           //!<! Output list for event cut histograms
  // TList                      *OutputList;            //!<! Output list
   
