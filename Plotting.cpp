@@ -21,17 +21,19 @@ const int axis_pionMass  = 2;
 const int axis_pionPt    = 3;
 const int axis_pionEta   = 4;
 const int axis_pionPhi   = 5;
-
-
+const int axis_pionE     = 6;
 const int axis_pion_PhE_1 = 7;
 const int axis_pion_PhE_2 = 8;
 const int axis_pion_asymmetry = 9;
 const int axis_pion_PhPt_1 = 10;
 const int axis_pion_PhPt_2 = 11;
-const int axis_pionTrackEta = 12;
-const int axis_pionTrackPhi = 14;
-const int axis_pion_PhM02_1 = 16;
-const int axis_pion_PhM02_2 = 17;
+const int axis_pion_PhEta_1 = 12;
+const int axis_pion_PhEta_2 = 13;
+const int axis_pion_PhPhi_1 = 14;
+const int axis_pion_PhPhi_2 = 15;
+const int axis_pionOpeningAngle =16;
+const int axis_pion_PhM02_1 = 17;
+const int axis_pion_PhM02_2 = 18;
 
 //variables of hPionTrack
 const int axis_corr_dphi    = 10;
@@ -65,7 +67,19 @@ double GaussP0(Double_t *x, Double_t *par){
     return fitval;
 }
 
-void Looping(THnSparse* h_PionTrack, THnSparse* h_PionTrack_Mixed, const int axisNumber, std::vector<double> bins, char* name)
+void SetCut(THnSparse* h, const int axis, double min, double max){
+    
+    double width = h->GetAxis(axis)->GetBinWidth(1);
+    int binmin = h->GetAxis(axis)->FindBin(min);
+    int binmax = h->GetAxis(axis)->FindBin(max);
+    //h->GetAxis(axis)->SetRange(min/width+1, max/width);
+    h->GetAxis(axis)->SetRange(binmin, binmax);
+    return;
+}
+
+
+
+void Looping(THnSparse* h, THnSparse* h_mixed, const int axisNumber, std::vector<double> bins, char* name)
 {
     
     TH2F* h_dphi_deta = 0x0;
@@ -77,8 +91,7 @@ void Looping(THnSparse* h_PionTrack, THnSparse* h_PionTrack_Mixed, const int axi
     TH1F* h_deta_Mixed = 0x0;
     
     auto c = new TCanvas("c","c",800,800);
-    double Width   = h_PionTrack->GetAxis(axisNumber)->GetBinWidth(1);
-    
+
     std::vector<double> Yield_near;
     std::vector<double> Yield_near_err;
     std::vector<double> Yield_far;
@@ -89,20 +102,18 @@ void Looping(THnSparse* h_PionTrack, THnSparse* h_PionTrack_Mixed, const int axi
         double min = bins.at(n);
         double max = bins.at(n+1);
         
-        std::cout << "Min " << min << " " << max << std::endl;
-        std::cout << " Width" << Width << std::endl;
-        ///////////////////////////////selecting track
-        h_PionTrack->GetAxis(axisNumber)->SetRange(min/Width +1, max/Width);
-        h_PionTrack_Mixed->GetAxis(axisNumber)->SetRange(min/Width+1, max/Width);
+        SetCut(h, axisNumber, min, max);
+        SetCut(h_mixed, axisNumber, min, max);
+        
         ///////////////////////////////
         c->cd();
-        h_trackpt = (TH1F*)h_PionTrack->Projection(axisNumber);
+        h_trackpt = (TH1F*)h->Projection(axisNumber);
         h_trackpt->Draw();
         //c->SaveAs(Form("PDFOUTPUT/TEMP%s_%2.2f_%2.2f.png", name, min, max));
         c->Clear();
                 
         //h_dphi_deta = (TH2F*)h_PionTrack->Projection(axis_corr_dphi,  axis_corr_dabseta);
-        h_dphi_deta = (TH2F*)h_PionTrack->Projection(axis_corr_dphi,  axis_corr_deta);
+        h_dphi_deta = (TH2F*)h->Projection(axis_corr_dphi,  axis_corr_deta);
         h_dphi_deta->Sumw2();
         
         auto c2 = new TCanvas("c2","c2",1200,600);
@@ -123,7 +134,7 @@ void Looping(THnSparse* h_PionTrack, THnSparse* h_PionTrack_Mixed, const int axi
         h_dphi_deta->GetYaxis()->CenterTitle(kTRUE);
         h_dphi_deta->SetTitle("; |#Delta#eta|; #Delta#phi/#pi");
         
-        h_dphi_deta_Mixed = (TH2F*)h_PionTrack_Mixed->Projection(axis_corr_dphi,  axis_corr_deta);
+        h_dphi_deta_Mixed = (TH2F*)h_mixed->Projection(axis_corr_dphi,  axis_corr_deta);
         h_dphi_deta_Mixed->Sumw2();
         
         c->cd();    
@@ -278,8 +289,8 @@ void Looping(THnSparse* h_PionTrack, THnSparse* h_PionTrack_Mixed, const int axi
         c->SaveAs(Form("PDFOUTPUT/%s_DetaCorr_%2.2f_%2.2f.png", name, min, max));
         
         //undo the cuts on track pt for next iteration
-        h_PionTrack->GetAxis(axisNumber)->SetRange(0,100); //(track_ptmin, track_ptmax);
-        h_PionTrack_Mixed->GetAxis(axisNumber)->SetRange(0,100);//track_ptmin, track_ptmax);
+        SetCut(h, axisNumber, 0, 100);
+        SetCut(h_mixed, axisNumber, 0, 100);
     }//end loop
     
     
@@ -334,75 +345,57 @@ void Looping(THnSparse* h_PionTrack, THnSparse* h_PionTrack_Mixed, const int axi
 return;
 }
 
-void PlotCorrelation(){
-    auto fIn = new TFile("Ntuple.root","READ");
-    THnSparse *h_PionTrack=0;
-    fIn->GetObject("h_PionTrack", h_PionTrack);
-    THnSparse *  h_PionTrack_Mixed = 0;
-    fIn->GetObject("h_PionTrack_Mixed", h_PionTrack_Mixed);
+void PlotCorrelation(THnSparse* h, THnSparse* h_mixed){
 
-    double Width_Mass =     h_PionTrack->GetAxis(axis_corr_mass)->GetBinWidth(1);
-    double Width_PT   =     h_PionTrack->GetAxis(axis_corr_pionpT)->GetBinWidth(1);
-    double Width_TrackpT  = h_PionTrack->GetAxis(axis_corr_trackpT)->GetBinWidth(1);
-    double Width_dabsEta  = h_PionTrack->GetAxis(axis_corr_dabseta)->GetBinWidth(1);
-    double Width_dEta     = h_PionTrack->GetAxis(axis_corr_deta)->GetBinWidth(1);  
-    ///////////////////////////Mass cut//////////////////////////////////////////
-    h_PionTrack->GetAxis(axis_corr_mass)->SetRange(0.100/Width_Mass, 0.200/Width_Mass);
-    h_PionTrack_Mixed->GetAxis(axis_corr_mass)->SetRange(0.100/Width_Mass, 0.200/Width_Mass);
-    ///////////////////////////Pi0 pT cut////////////////////////////////////////
-    h_PionTrack->GetAxis(axis_corr_pionpT)->SetRange(8.0/Width_PT, 20.0/Width_PT);
-    h_PionTrack_Mixed->GetAxis(axis_corr_pionpT)->SetRange(8.0/Width_PT, 20.0/Width_PT);
-    /////////////////////////////////////////////////////////////////////////////
-   
-    auto h_TrackpT = h_PionTrack->Projection(axis_corr_trackpT);
-    auto h_Mass =  h_PionTrack->Projection(axis_corr_mass);
-    auto h_Pionpt = h_PionTrack->Projection(axis_corr_pionpT);
-    
-    auto h_TrackpT_Mixed = h_PionTrack_Mixed->Projection(axis_corr_trackpT);
-    auto h_Mass_Mixed    =  h_PionTrack_Mixed->Projection(axis_corr_mass);
-    auto h_Pionpt_Mixed = h_PionTrack_Mixed->Projection(axis_corr_pionpT);
-    
-    auto h_xi = h_PionTrack->Projection(axis_corr_xi);
-    auto h_zt = h_PionTrack->Projection(axis_corr_zt);
-    
-    h_Mass->Sumw2();
-    h_Pionpt->Sumw2();
-    
     auto c = new TCanvas();
+    SetCut(h, axis_corr_mass, 0.100,0.200);
+    SetCut(h_mixed, axis_corr_mass, 0.100, 0.200);
+   
+    SetCut(h, axis_corr_pionpT, 8.0, 20.0);
+    SetCut(h_mixed, axis_corr_pionpT, 8.0, 20.0); 
+
+    TH1 * h_1D;
+
+  
+    //auto h_TrackpT_Mixed = h_PionTrack_Mixed->Projection(axis_corr_trackpT);
+    //auto h_Mass_Mixed    =  h_PionTrack_Mixed->Projection(axis_corr_mass);
+    //auto h_Pionpt_Mixed = h_PionTrack_Mixed->Projection(axis_corr_pionpT);
     
-    gPad->SetLogy();
-    gPad->SetLogx();
-    h_TrackpT->Draw();
-    h_TrackpT->SetTitle("; p_{T} [GeV]; entries");
+    //auto h_xi = h_PionTrack->Projection(axis_corr_xi);
+    //auto h_zt = h_PionTrack->Projection(axis_corr_zt);
+    
+
+    //Track pt
+    h_1D =  h->Projection(axis_corr_trackpT);
+    gPad->SetLogy(kTRUE);
+    gPad->SetLogx(kTRUE);
+    h_1D->Draw();
+    h_1D->SetTitle("; p_{T} [GeV]; entries");
+    h_1D =  h_mixed->Projection(axis_corr_trackpT);
+    h_1D->SetLineColor(2);
+    h_1D->Draw("same");
     c->SaveAs("PDFOUTPUT/Track_pt.png");
-    
     c->Clear();
-    gPad->SetLogy(0);
-    gPad->SetLogx(0);
-    h_Mass->Draw();
-    h_Mass->SetTitle("; m_{#gamma#gamma} [GeV]; entries");
+    
+    //Mass
+    h_1D = h->Projection(axis_corr_mass);
+    gPad->SetLogy(kFALSE);
+    gPad->SetLogx(kFALSE);
+    h_1D->Draw();
+    h_1D->SetTitle("; m_{#gamma#gamma} [GeV]; entries");
     c->SaveAs("PDFOUTPUT/Mass.png");
-    
     c->Clear();
-    h_Pionpt->Draw();
-    h_Pionpt->SetTitle("; #pi^{0} p_{T} [GeV]; entries");
+    
+    //pT
+    h_1D = h->Projection(axis_corr_pionpT);
+    h_1D->Draw();
+    h_1D->SetTitle("; #pi^{0} p_{T} [GeV]; entries");
     c->SaveAs("PDFOUTPUT/PionpT.png");
-    
     c->Clear(); 
-    gPad->SetLogy();
-    gPad->SetLogx();
-    h_TrackpT_Mixed->Draw();
-    c->SaveAs("PDFOUTPUT/Track_ptMixed.png");
-    c->Clear();
     
-    gPad->SetLogy(0);
-    gPad->SetLogx(0);
-    h_Mass_Mixed->Draw();
-    c->SaveAs("PDFOUTPUT/MassMixed.png");
-    c->Clear();
-    h_Pionpt_Mixed->Draw();
-    c->SaveAs("PDFOUTPUT/PionpTMixed.png");
-    c->Clear(); 
+    /*
+    
+
     
     h_xi->Draw();
     h_xi->SetTitle("; #xi; entries");
@@ -437,7 +430,7 @@ void PlotCorrelation(){
     h_cumulative->SetTitle("; p_{T} hadron [GeV] cumulative prob");
     c->SaveAs("PDFOUTPUT/TrackpT_cumulative.png");
     c->Clear();
-    
+    */
     
     
     
@@ -462,12 +455,9 @@ void PlotCorrelation(){
     bins_zt.push_back(2.0);
     
     //Looping(h_PionTrack, h_PionTrack_Mixed, axis_corr_trackpT, bins_pt, "pt");
-    Looping(h_PionTrack, h_PionTrack_Mixed, axis_corr_xi     , bins_xi, "xi");
+    Looping(h, h_mixed, axis_corr_xi , bins_xi, "xi");
     //Looping(h_PionTrack, h_PionTrack_Mixed, axis_corr_zt     , bins_zt, "zt");
     
-    delete h_PionTrack;
-    delete h_PionTrack_Mixed;
-    delete fIn;
     c->Close();
     delete c;
     return;
@@ -482,6 +472,7 @@ void PlotCorrelation(){
 
 
 void Plot(double minpT, double maxpT){
+    //auto fIn = new TFile("Ntuple.root","READ");
     auto fIn = new TFile("Ntuple.root","READ");
     THnSparse *h_PionTrack=0;
     fIn->GetObject("h_PionTrack",h_PionTrack);
@@ -558,54 +549,52 @@ void Plot(double minpT, double maxpT){
     }
 
 
-void PionMass(THnSparse* h_Pion){
+
+
+void PlotPionHistograms(THnSparse* h_Pion){
        ////
         
     auto c = new TCanvas();  
     h_Pion->GetAxis(axis_pionMass)->SetTitle("m_{#gamma#gamma} [GeV]");
     h_Pion->GetAxis(axis_pionPt)->SetTitle("p^{#gamma#gamma}_{T} [GeV]");
        
-    auto h_MassAll = h_Pion->Projection(axis_pionMass);
-    h_MassAll->Draw();
+    auto h_1D = h_Pion->Projection(axis_pionMass);
+    h_1D->Draw();
     c->SaveAs("PDFOUTPUT/Mass_All.png");
     c->Clear();
     
-    //////////////////Invariant Mass Selection////////////////////////////////////////////
-    double width_Mass = h_Pion->GetAxis(axis_pionMass)->GetBinWidth(1);
-    h_Pion->GetAxis(axis_pionMass)->SetRange(0.100/width_Mass, 0.200/width_Mass);
-    //////////////////////////////////////////////////////////////////////////////////////
     
-    auto h_pT = h_Pion->Projection(axis_pionPt);
+    SetCut(h_Pion, axis_pionMass, 0.100, 0.200); //Invariant mass selection
+    
+    h_1D = h_Pion->Projection(axis_pionPt);
     gPad->SetLogy(1);
-    h_pT->Draw();
+    h_1D->Draw();
     c->SaveAs("PDFOUTPUT/Pionpt_All.png");
     gPad->SetLogy(0);
     c->Clear();
     
-    /////////////////////// pion pT selection /////////////////////////////////////////////
-    double width_Pt = h_Pion->GetAxis(axis_pionPt)->GetBinWidth(1);
-    h_Pion->GetAxis(axis_pionPt)->SetRange(8.0/width_Pt,20.0/width_Pt);
-    //////////////////////////////////////////////////////////////////////////////////////
+    SetCut(h_Pion, axis_pionPt, 8.0, 20.0);  // Pion pT selection
 
-    h_MassAll = h_Pion->Projection(axis_pionMass);
-    h_MassAll->Draw();
+    h_1D = h_Pion->Projection(axis_pionMass);
+    h_1D->Draw();
     c->SaveAs("PDFOUTPUT/Mass_withpTCut.png");
     c->Clear();
 
-
+    //Mass vs pT
     auto h_2D = h_Pion->Projection(axis_pionMass,axis_pionPt);
     h_2D->Draw("colz");
     h_2D->GetZaxis()->SetNdivisions(3);
     h_2D->GetYaxis()->SetNdivisions(6);
     h_2D->GetXaxis()->SetNdivisions(4);
     gPad->SetLogz(1);
-    auto h_proj = h_2D->ProfileX("h_proj",0,100); 
+    auto h_proj = h_2D->ProfileX("h_proj",0,1e3); 
     h_proj->SetMarkerColor(kRed);
     h_proj->SetLineColor(kRed);
     h_proj->Draw("same");
     c->SaveAs("PDFOUTPUT/2D_MassPT.png");
     c->Clear();
     
+    //Mass vs Centrality
     h_2D = h_Pion->Projection(axis_pionMass,axis_pion_Cen);
     h_2D->Draw("colz");
     h_2D->GetZaxis()->SetNdivisions(3);
@@ -618,6 +607,7 @@ void PionMass(THnSparse* h_Pion){
     h_proj->Draw("same");
     c->SaveAs("PDFOUTPUT/2D_MassCen.png");
         
+    //Mass vs Zvertex
     h_2D = h_Pion->Projection(axis_pionMass,    axis_pion_Zvtx);
     h_2D->GetZaxis()->SetNdivisions(3);
     h_2D->GetYaxis()->SetNdivisions(6);
@@ -630,9 +620,8 @@ void PionMass(THnSparse* h_Pion){
     h_proj->Draw("same");
     c->SaveAs("PDFOUTPUT/2D_MassZvtx.png");
 
-    //Mass--asymetry
-    h_Pion->GetAxis(axis_pionPt)->SetRange(12.0/width_Pt,20.0/width_Pt); //setting range of pT
-    
+    //Mass vs asymmetry
+    SetCut(h_Pion, axis_pionPt, 12.0, 20.0);
     h_2D = h_Pion->Projection(axis_pionMass, axis_pion_asymmetry);
     h_2D->GetZaxis()->SetNdivisions(3);
     h_2D->GetYaxis()->SetNdivisions(6);
@@ -643,11 +632,31 @@ void PionMass(THnSparse* h_Pion){
     h_proj->SetMarkerColor(kRed);
     h_proj->SetLineColor(kRed);
     h_proj->Draw("same");
+    myText(0.6,0.92,kBlack, "12 < p_{T}^{#gamma#gamma}< 20 GeV");
     c->SaveAs("PDFOUTPUT/2D_MassAsym.png");
+    c->Clear();
    
-    h_Pion->GetAxis(axis_pionPt)->SetRange(8.0/width_Pt,20.0/width_Pt);
 
 
+    //Mass vs opening angle
+    SetCut(h_Pion, axis_pionOpeningAngle, -0.05,0.05);
+    h_2D = h_Pion->Projection(axis_pionMass, axis_pionOpeningAngle);
+    h_2D->GetZaxis()->SetNdivisions(3);
+    h_2D->GetYaxis()->SetNdivisions(6);
+    h_2D->GetXaxis()->SetNdivisions(6);
+    h_2D->Draw("colz");
+    h_2D->SetTitle("; #Delta#phi; m_{#gamma#gamma} [GeV]");
+    h_proj = h_2D->ProfileX("h_proj",0,100); 
+    h_proj->SetMarkerColor(kRed);
+    h_proj->SetLineColor(kRed);
+    h_proj->Draw("same");
+    myText(0.6,0.92,kBlack, "12 < p_{T}^{#gamma#gamma}< 20 GeV");
+    c->SaveAs("PDFOUTPUT/2D_MassOpeningangle.png");
+    c->Clear(); 
+     
+    //Get back to 8.0--20 Range.
+    SetCut(h_Pion, axis_pionPt, 8.0, 20.0);
+    //Asymmetry vs pT
     h_2D =  h_Pion->Projection(axis_pion_asymmetry,axis_pionPt);
     h_2D->Draw("COLZ");
     h_2D->GetZaxis()->SetNdivisions(3);
@@ -660,41 +669,38 @@ void PionMass(THnSparse* h_Pion){
     c->SaveAs("PDFOUTPUT/2D_AsymPT.png");
     c->Clear();
         
-    auto h_2D_TrackEtaPhi = h_Pion->Projection( axis_pionTrackEta ,  axis_pionTrackPhi );
-    h_2D_TrackEtaPhi->Draw("colz");
-    gPad->SetLogz(0);
-    c->SaveAs("PDFOUTPUT/2D_TrackEtaPhi.png");
-    c->Clear();
-    
-    auto h_2D_M02 = h_Pion->Projection( axis_pion_PhM02_1 ,  axis_pion_PhM02_2 );
-    h_2D_M02->Draw("colz");
+    //Lambda0 photon 1 vs photon 2
+    h_2D = h_Pion->Projection( axis_pion_PhM02_1 ,  axis_pion_PhM02_2 );
+    h_2D->Draw("colz");
     gPad->SetLogz(0);
     c->SaveAs("PDFOUTPUT/2D_PhotonM02.png");
     c->Clear();
     
-    auto h_2D_Pt = h_Pion->Projection( axis_pion_PhE_1   , axis_pion_PhE_2);
-    
-    h_2D_Pt->Draw("colz");
-    h_2D_Pt->SetTitle("; #gamma_{1} Energy [GeV]; #gamma_{2} Energy [GeV]");
-    h_2D_Pt->GetXaxis()->SetRangeUser(0,15.0);
-    h_2D_Pt->GetYaxis()->SetRangeUser(0,15.0);
+    //Energy photon 1 vs photon2;
+    h_2D = h_Pion->Projection( axis_pion_PhE_1   , axis_pion_PhE_2);
+    h_2D->Draw("colz");
+    h_2D->SetTitle("; #gamma_{1} Energy [GeV]; #gamma_{2} Energy [GeV]");
+    h_2D->GetXaxis()->SetRangeUser(0,15.0);
+    h_2D->GetYaxis()->SetRangeUser(0,15.0);
     gPad->SetLogz(0);
     c->SaveAs("PDFOUTPUT/2D_PhotonPt.png");
     c->Clear();
     
-    
-    auto h_1D = h_Pion->Projection(axis_pionEta);
+    //Pion eta
+    h_1D = h_Pion->Projection(axis_pionEta);
     h_1D->Draw("PL");
     h_1D->Sumw2();
     c->SaveAs("PDFOUTPUT/PionEta.png");
     c->Clear();
     
+    //Pion Phi
     h_1D = h_Pion->Projection(axis_pionPhi);
     h_1D->Draw();
     h_1D->Sumw2();
     c->SaveAs("PDFOUTPUT/PionPhi.png");
     c->Clear();
     
+    //Pion Eta-phi
     h_2D =  h_Pion->Projection(axis_pionEta,axis_pionPhi);
     h_2D->Draw("COLZ");
     c->SaveAs("PDFOUTPUT/2D_PionEtaPhi.png");
@@ -713,9 +719,16 @@ void Plotting(){
     fIn->ls();
     THnSparse* h_Pion = 0;
     fIn->GetObject("h_Pion",h_Pion);
+    h_Pion->Print();
     
-    PlotCorrelation();
-    PionMass(h_Pion);
+    THnSparse *h_PionTrack=0;
+    fIn->GetObject("h_PionTrack", h_PionTrack);
+    THnSparse *  h_PionTrack_Mixed = 0;
+    fIn->GetObject("h_PionTrack_Mixed", h_PionTrack_Mixed);
+    
+    
+    //PlotCorrelation(h_PionTrack, h_PionTrack_Mixed);
+    PlotPionHistograms(h_Pion);
      
     //Plot(0,50);
     //Plot(14,18);
