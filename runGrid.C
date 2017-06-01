@@ -110,7 +110,7 @@ void runGrid()
   plugin->AddRunNumber(195783);
 
   plugin->SetGridWorkingDir("workdir");
-  plugin->SetGridOutputDir("output_Rho1");
+  plugin->SetGridOutputDir("output_Rho4");
   
   plugin->AddIncludePath ("-I. -I$ROOTSYS/include -I$ALICE_ROOT -I$ALICE_ROOT/include -I$ALICE_PHYSICS/include");
   plugin->SetAdditionalLibs("PionHadron.cxx PionHadron.h");
@@ -134,7 +134,7 @@ void runGrid()
     plugin->SetRunMode("test"); // 
   }
   else{
-    plugin->SetRunMode("terminate"); //full, terminate
+    plugin->SetRunMode("full"); //full, terminate
   }  
   mgr->StartAnalysis("grid");
   return;

@@ -584,8 +584,14 @@ void PionMass(THnSparse* h_Pion){
     
     /////////////////////// pion pT selection /////////////////////////////////////////////
     double width_Pt = h_Pion->GetAxis(axis_pionPt)->GetBinWidth(1);
-    h_Pion->GetAxis(axis_pionPt)->SetRange(5.0/width_Pt,20.0/width_Pt);
+    h_Pion->GetAxis(axis_pionPt)->SetRange(8.0/width_Pt,20.0/width_Pt);
     //////////////////////////////////////////////////////////////////////////////////////
+
+    h_MassAll = h_Pion->Projection(axis_pionMass);
+    h_MassAll->Draw();
+    c->SaveAs("PDFOUTPUT/Mass_withpTCut.png");
+    c->Clear();
+
 
     auto h_2D = h_Pion->Projection(axis_pionMass,axis_pionPt);
     h_2D->Draw("colz");
@@ -623,6 +629,24 @@ void PionMass(THnSparse* h_Pion){
     h_proj->SetLineColor(kRed);
     h_proj->Draw("same");
     c->SaveAs("PDFOUTPUT/2D_MassZvtx.png");
+
+    //Mass--asymetry
+    h_Pion->GetAxis(axis_pionPt)->SetRange(12.0/width_Pt,20.0/width_Pt); //setting range of pT
+    
+    h_2D = h_Pion->Projection(axis_pionMass, axis_pion_asymmetry);
+    h_2D->GetZaxis()->SetNdivisions(3);
+    h_2D->GetYaxis()->SetNdivisions(6);
+    h_2D->GetXaxis()->SetNdivisions(4);
+    h_2D->Draw("colz");
+    gPad->SetLogz(0);
+    h_proj = h_2D->ProfileX("h_proj",0,100); 
+    h_proj->SetMarkerColor(kRed);
+    h_proj->SetLineColor(kRed);
+    h_proj->Draw("same");
+    c->SaveAs("PDFOUTPUT/2D_MassAsym.png");
+   
+    h_Pion->GetAxis(axis_pionPt)->SetRange(8.0/width_Pt,20.0/width_Pt);
+
 
     h_2D =  h_Pion->Projection(axis_pion_asymmetry,axis_pionPt);
     h_2D->Draw("COLZ");

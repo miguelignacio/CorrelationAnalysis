@@ -155,7 +155,7 @@ void PionHadron::UserCreateOutputObjects()
     InitEventMixer();
 	
     //Initializing the histograms to be saved. For the moment, only pT of clusters and Mgammagamma.
-    int nbins_Mass = 100;
+    int nbins_Mass = 50;
     int nbins_Pt   = 100;
     int nbins_E    = 100;
     int nbins_dphi     = 18;
@@ -171,7 +171,7 @@ void PionHadron::UserCreateOutputObjects()
     int nbins_Asymmetry = 40;
     
     double min_Mass = 0;
-    double max_Mass = 1.0;
+    double max_Mass = 0.5;
     double min_Pt = 0;
     double max_Pt = 50.0;
     double min_dphi = -0.5; // rads
@@ -250,14 +250,14 @@ void PionHadron::UserCreateOutputObjects()
     
     ///////////////Pi0////////////////////////////////////
     axisNames = "Pion THnSparse; Centrality; Z vertex ;#pion Mass; #pionpT; #pion Eta; #pion phi; #pion E;";
-    axisNames = axisNames + "ph1_E; ph2_E; Asymmetry; ph1_pT; ph2_pT; ph1_eta; ph2_eta; ph1_phi; ph2_phi; ph1_M02; ph2_M02;";
+    axisNames = axisNames + "ph1_E; ph2_E; Asymmetry; ph1_pT; ph2_pT; ph1_eta; ph2_eta; ph1_phi; ph2_phi; dphi; ph1_M02; ph2_M02;";
     int binsPi0[19] = {nbins_Centrality, nbins_zvertex, nbins_Mass, nbins_Pt, nbins_eta, nbins_phi, nbins_E, 
-                         nbins_E, nbins_E, nbins_Asymmetry, nbins_Pt, nbins_Pt, nbins_eta, nbins_eta, nbins_phi, nbins_phi, nbins_phi, nbins_M02, nbins_M02};
+                         nbins_E, nbins_E, nbins_Asymmetry, nbins_Pt, nbins_Pt, nbins_eta, nbins_eta, nbins_phi, nbins_phi, 100, nbins_M02, nbins_M02};
     
     double xminPi0[19] = {min_Centrality, min_zvertex, min_Mass, min_Pt, min_eta, min_phi , min_E,
-                            min_E, min_E, min_Asymmetry, min_Pt, min_Pt, min_eta, min_eta, min_phi, min_phi, min_phi, min_M02, min_M02};
+                            min_E, min_E, min_Asymmetry, min_Pt, min_Pt, min_eta, min_eta, min_phi, min_phi, -0.5, min_M02, min_M02};
     double xmaxPi0[19] = {max_Centrality, max_zvertex, max_Mass, max_Pt, max_eta , max_phi , max_E,
-                            max_E, max_E, max_Asymmetry, max_Pt, max_Pt, max_eta, max_eta, max_phi, max_phi, max_phi, max_M02, max_M02};
+                            max_E, max_E, max_Asymmetry, max_Pt, max_Pt, max_eta, max_eta, max_phi, max_phi, +0.5, max_M02, max_M02};
     h_Pi0= new THnSparseD("h_Pi0", axisNames, 19, binsPi0, xminPi0, xmaxPi0);
     h_Pi0->Sumw2();
     fOutput->Add(h_Pi0);
@@ -469,6 +469,7 @@ int PionHadron::CorrelateClusterAndTrack(AliParticleContainer* tracks,TObjArray*
         for(int NoTrack = 0; NoTrack < tracks->GetNParticles(); NoTrack++){ //correlate pion with tracks
 	        track = (AliVParticle*)tracks->GetAcceptParticle(NoTrack);
             if(!track) continue;
+            if(track->Pt()<0.5) continue;
             double entries[3] = {track->Pt(), track->Eta(), TVector2::Phi_mpi_pi(track->Phi())};
             h_Track->Fill(entries);
         }    
@@ -537,9 +538,9 @@ void  PionHadron::FillPionCorrelation(AliVCluster* cluster1, AliVCluster* cluste
     
     //////////////////Selection//////////////////////////////////////////////
     if( pi0.Pt() < 6.0 ) return;
-    if( pi0.M()  > 1.0 ) return;
-    //if( asym > 0.7 ) return;
+    if( pi0.M()  > 0.5 ) return;
     if( track->Pt()<0.5 ) return;
+    //if( asym > 0.7 ) return;
     //if( cluster1->GetM02()>0.4 || cluster2->GetM02()>0.4 ) return;
     /////////////////////////////////////////////////////////////////////////
     
@@ -636,7 +637,7 @@ void  PionHadron::FillPionHisto(AliVCluster* cluster1, AliVCluster* cluster2, TH
     
     double asym = abs(ph_1.E()-ph_2.E())/(ph_1.E()+ph_2.E());
     double entries[19] = {fCent, fVertex[2], pi0.M(), pi0.Pt(), pi0.Eta(), pi0.Phi(), pi0.E(), 
-                          ph_1.E(), ph_2.E(), asym, ph_1.Pt(), ph_2.Pt(), ph_1.Eta(), ph_2.Eta(), ph_1.Phi(), ph_2.Phi() , abs(ph_1.Phi()-ph_2.Phi()), cluster1->GetM02(), cluster2->GetM02()};                
+                          ph_1.E(), ph_2.E(), asym, ph_1.Pt(), ph_2.Pt(), ph_1.Eta(), ph_2.Eta(), ph_1.Phi(), ph_2.Phi() , TVector2::Phi_mpi_pi(ph_1.Phi()-ph_2.Phi()), cluster1->GetM02(), cluster2->GetM02()};                
     histo->Fill(entries);
     return;
 }
