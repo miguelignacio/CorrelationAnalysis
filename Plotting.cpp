@@ -46,6 +46,14 @@ const int axis_corr_zt      = 13;
 const int axis_corr_xi      = 14;
 
 
+//variables of h_Cluster
+const int axis_Cluster_Cen  = 0;
+const int axis_Cluster_Zvtx = 1; 
+const int axis_Cluster_E    = 2;
+const int axis_Cluster_Pt    = 3;
+
+
+
 //fit function
 double fitf(Double_t *x,Double_t *par) {
   double arg1 = 0;
@@ -73,7 +81,7 @@ void SetCut(THnSparse* h, const int axis, double min, double max){
     int binmin = h->GetAxis(axis)->FindBin(min);
     int binmax = h->GetAxis(axis)->FindBin(max);
     //h->GetAxis(axis)->SetRange(min/width+1, max/width);
-    h->GetAxis(axis)->SetRange(binmin, binmax);
+    h->GetAxis(axis)->SetRange(binmin, binmax-1);
     return;
 }
 
@@ -108,11 +116,10 @@ void Looping(THnSparse* h, THnSparse* h_mixed, const int axisNumber, std::vector
         ///////////////////////////////
         c->cd();
         h_trackpt = (TH1F*)h->Projection(axisNumber);
-        h_trackpt->Draw();
-        //c->SaveAs(Form("PDFOUTPUT/TEMP%s_%2.2f_%2.2f.png", name, min, max));
+        h_trackpt->Draw("hist");
+        c->SaveAs(Form("PDFOUTPUT/TEMP%s_%2.2f_%2.2f.png", name, min, max));
         c->Clear();
                 
-        //h_dphi_deta = (TH2F*)h_PionTrack->Projection(axis_corr_dphi,  axis_corr_dabseta);
         h_dphi_deta = (TH2F*)h->Projection(axis_corr_dphi,  axis_corr_deta);
         h_dphi_deta->Sumw2();
         
@@ -180,12 +187,12 @@ void Looping(THnSparse* h, THnSparse* h_mixed, const int axisNumber, std::vector
         c->cd();
         h_dphi_deta->Divide(h_dphi_deta_Mixed);
         h_dphi_deta->Draw("SURF1 FB BB");
-        myText(0.4,0.82,kBlack, "Corrected correlation");
+        myText(0.4,0.76,kBlack, "Corrected correlation");
         gPad->SetPhi(-55);
         gPad->SetTheta(+30);
         h_dphi_deta->GetXaxis()->SetNdivisions(1);
         h_dphi_deta->GetYaxis()->SetNdivisions(4);
-        h_dphi_deta->SetMinimum(0);
+        //h_dphi_deta->SetMinimum(0);
         h_dphi_deta->GetZaxis()->SetNdivisions(1);
         h_dphi_deta->GetXaxis()->CenterTitle(kTRUE);
         h_dphi_deta->GetYaxis()->CenterTitle(kTRUE);
@@ -200,11 +207,20 @@ void Looping(THnSparse* h, THnSparse* h_mixed, const int axisNumber, std::vector
         double width =  h_dphi_deta->GetXaxis()->GetBinWidth(i) ;
         std::cout << " GetBinEdge" << h_dphi_deta->GetXaxis()->GetBinLowEdge(i) << " " <<  h_dphi_deta->GetXaxis()->GetBinLowEdge(i) + width << " i " << i << std::endl;
         }
-        h_dphi_near = (TH1F*)h_dphi_deta->ProjectionY("h_dphi_near",7, 14);
+        //h_dphi_near = (TH1F*)h_dphi_deta->ProjectionY("h_dphi_near",7, 14);
+        int binmin = h_dphi_deta->GetXaxis()->FindBin(-0.6);
+        int binmax = h_dphi_deta->GetXaxis()->FindBin(+0.6);
+        std::cout << " binmin " << binmin << " binmax " << binmax << std::endl;
+        h_dphi_near = (TH1F*)h_dphi_deta->ProjectionY("h_dphi_near", binmin, binmax);
         
-        auto h_dphi_far1 = (TH1F*)h_dphi_deta->ProjectionY("h_dphi_far1",1, 4);
+        binmin =  h_dphi_deta->GetXaxis()->FindBin(-1.4);
+        binmax = h_dphi_deta->GetXaxis()->FindBin(-0.8);
+        auto h_dphi_far1 = (TH1F*)h_dphi_deta->ProjectionY("h_dphi_far1",binmin, binmax);
         h_dphi_far1->Sumw2();
-        h_dphi_far = (TH1F*)h_dphi_deta->ProjectionY("h_dphi_far",17, 20);
+        
+        binmin =  h_dphi_deta->GetXaxis()->FindBin(+0.8);
+        binmax = h_dphi_deta->GetXaxis()->FindBin(+1.4);
+        h_dphi_far = (TH1F*)h_dphi_deta->ProjectionY("h_dphi_far", binmin, binmax);
         h_dphi_far->Sumw2();
         
         h_dphi_far->Add(h_dphi_far1);
@@ -269,7 +285,7 @@ void Looping(THnSparse* h, THnSparse* h_mixed, const int axisNumber, std::vector
         h_deta->Draw();
         h_deta->GetXaxis()->SetNdivisions(9);
         h_deta->GetYaxis()->SetNdivisions(4);
-        myText(.65,.85,kBlack, "|#Delta#phi| < #pi/2");
+        myText(.20,.85,kBlack, "|#Delta#phi| < #pi/2");
         for(int i=1; i< h_dphi_deta->GetYaxis()->GetNbins()+1 ; i++){
             double width =  h_dphi_deta->GetYaxis()->GetBinWidth(i) ;
             std::cout << " GetBinEdge" << h_dphi_deta->GetYaxis()->GetBinLowEdge(i) << " " <<  h_dphi_deta->GetYaxis()->GetBinLowEdge(i) + width << " i " << i << std::endl;
@@ -278,14 +294,14 @@ void Looping(THnSparse* h, THnSparse* h_mixed, const int axisNumber, std::vector
         std::cout << " FIT GAUSS + p0" << std::endl;
         TF1 *f = new TF1("f",GaussP0,-1.5,1.5,3);
         f->SetLineColor(kRed);
-        f->SetLineWidth(1.0);
+        f->SetLineWidth(2.0);
         f->SetParameters(100, 0.5, 3000);
         f->SetParLimits(0, 0.0, 1e5);
         f->SetParLimits(1, 0.05, 2.0 );
         
         h_deta->Fit(f);
-        myText(.65,.79,kRed, Form("#sigma = %2.2f", f->GetParameter(1)));
-        myText(.65,.73,kBlack, label); 
+        myText(.20,.79,kRed, Form("#sigma = %2.2f", f->GetParameter(1)));
+        myText(.55,.85,kBlack, label); 
         c->SaveAs(Form("PDFOUTPUT/%s_DetaCorr_%2.2f_%2.2f.png", name, min, max));
         
         //undo the cuts on track pt for next iteration
@@ -332,9 +348,17 @@ void Looping(THnSparse* h, THnSparse* h_mixed, const int axisNumber, std::vector
     multi->Draw("AP");
     multi->GetXaxis()->SetNdivisions(6);
     multi->GetYaxis()->SetNdivisions(5);
-    multi->GetXaxis()->SetTitle("#xi");
-    multi->GetYaxis()->SetTitle("dN/d#xi");
+    if(name=="xi"){
+        multi->GetXaxis()->SetTitle("#xi");
+        multi->GetYaxis()->SetTitle("dN/d#xi");
+    }
+    else if(name=="pt"){
+        multi->GetXaxis()->SetTitle("p^{h}_{T} [GeV]");
+        multi->GetYaxis()->SetTitle("dN/dp_{T}");
+    }
     
+    myText(.65,.85,kAzure-3, "Near side");
+    myText(.65,.80,kRed, "Away side");
     //multi->SetTitle("; " + title + " ; Yield");
     c->SaveAs("PDFOUTPUT/Yields.png");
     
@@ -345,208 +369,49 @@ void Looping(THnSparse* h, THnSparse* h_mixed, const int axisNumber, std::vector
 return;
 }
 
-void PlotCorrelation(THnSparse* h, THnSparse* h_mixed){
-
+void PlotCorrelation(THnSparse* h, THnSparse* h_mixed, double axisTriggerPt, double ptmin, double ptmax, double axisAssoc, std::vector<double> bins){
+    //Write this in such a way that it is agnostic on whether you work on pion , cluster , merged cluster.
     auto c = new TCanvas();
-    SetCut(h, axis_corr_mass, 0.100,0.200);
-    SetCut(h_mixed, axis_corr_mass, 0.100, 0.200);
-   
-    SetCut(h, axis_corr_pionpT, 8.0, 20.0);
-    SetCut(h_mixed, axis_corr_pionpT, 8.0, 20.0); 
-
-    TH1 * h_1D;
-
-  
-    //auto h_TrackpT_Mixed = h_PionTrack_Mixed->Projection(axis_corr_trackpT);
-    //auto h_Mass_Mixed    =  h_PionTrack_Mixed->Projection(axis_corr_mass);
-    //auto h_Pionpt_Mixed = h_PionTrack_Mixed->Projection(axis_corr_pionpT);
     
-    //auto h_xi = h_PionTrack->Projection(axis_corr_xi);
-    //auto h_zt = h_PionTrack->Projection(axis_corr_zt);
-    
+    ////////////SELECTION//////////////////////////
+    //Pt trigger cut
+    SetCut(h, axisTriggerPt, ptmin, ptmax);
+    SetCut(h_mixed, axisTriggerPt, ptmin, ptmax); 
+    ////////////////////////////////////////////////
 
-    //Track pt
-    h_1D =  h->Projection(axis_corr_trackpT);
+    //Assoc variable (pT, xi or zt)
+    auto h_1D =  h->Projection(axisAssoc);
     gPad->SetLogy(kTRUE);
     gPad->SetLogx(kTRUE);
-    h_1D->Draw();
+    h_1D->Draw("hist");
     h_1D->SetTitle("; p_{T} [GeV]; entries");
-    h_1D =  h_mixed->Projection(axis_corr_trackpT);
+    h_1D = h_mixed->Projection(axisAssoc);
     h_1D->SetLineColor(2);
-    h_1D->Draw("same");
+    h_1D->Draw("histsame");
     c->SaveAs("PDFOUTPUT/Track_pt.png");
     c->Clear();
     
-    //Mass
-    h_1D = h->Projection(axis_corr_mass);
+    //cumulative track pt
+    h_1D =  h->Projection(axisAssoc);
+    h_1D->Scale(1.0/h_1D->Integral());
+    auto h_cumulative = h_1D->GetCumulative();
+    h_cumulative->Draw("hist");
     gPad->SetLogy(kFALSE);
-    gPad->SetLogx(kFALSE);
-    h_1D->Draw();
-    h_1D->SetTitle("; m_{#gamma#gamma} [GeV]; entries");
-    c->SaveAs("PDFOUTPUT/Mass.png");
-    c->Clear();
+    h_cumulative->SetTitle("; track p_{T} [GeV]; cumulative prob");
+    h_1D =  h_mixed->Projection(axisAssoc);
+    h_1D->Scale(1.0/h_1D->Integral());
+    h_cumulative = h_1D->GetCumulative();
+    h_cumulative->SetLineColor(kRed);
+    h_cumulative->Draw("hist same");
+    c->SaveAs("PDFOUTPUT/Track_pt_cumulative.png");
     
-    //pT
-    h_1D = h->Projection(axis_corr_pionpT);
-    h_1D->Draw();
-    h_1D->SetTitle("; #pi^{0} p_{T} [GeV]; entries");
-    c->SaveAs("PDFOUTPUT/PionpT.png");
-    c->Clear(); 
-    
-    /*
-    
-
-    
-    h_xi->Draw();
-    h_xi->SetTitle("; #xi; entries");
-    c->SaveAs("PDFOUTPUT/xi.png");
-    c->Clear();
-    
-    h_xi->Scale(1.0/h_xi->Integral());
-    auto h_cumulative = h_xi->GetCumulative();
-    h_cumulative->Draw();
-    h_cumulative->SetTitle("; #xi; cumulative prob");
-    c->SaveAs("PDFOUTPUT/xi_cumulative.png");
-    
-    h_zt->Draw();
-    h_zt->SetTitle(";Z_{T}; entries");
-    gPad->SetLogy();
-    c->SaveAs("PDFOUTPUT/zt.png");
-    c->Clear();
-    
-    gPad->SetLogy(0);
-    h_zt->Scale(1.0/h_zt->Integral());
-    h_cumulative = h_zt->GetCumulative();
-    h_cumulative->Draw();
-    h_cumulative->SetTitle("; z_{T}; cumulative prob");
-    c->SaveAs("PDFOUTPUT/zt_cumulative.png");
-    c->Clear();
-    
-    gPad->SetLogx(kTRUE);
-    h_TrackpT->Scale(1.0/h_TrackpT->Integral());
-    h_cumulative = h_TrackpT->GetCumulative();
-    h_cumulative->Draw();
-    h_cumulative->GetXaxis()->SetNdivisions(7);
-    h_cumulative->SetTitle("; p_{T} hadron [GeV] cumulative prob");
-    c->SaveAs("PDFOUTPUT/TrackpT_cumulative.png");
-    c->Clear();
-    */
-    
-    
-    
-    
-    std::vector<double> bins_pt;
-    bins_pt.push_back(0.5);
-    bins_pt.push_back(1.0);
-    bins_pt.push_back(2.0);
-    bins_pt.push_back(5.0);
-
-    std::vector<double> bins_xi;
-    bins_xi.push_back(0.0);
-    bins_xi.push_back(1.75);
-    bins_xi.push_back(2.5);
-    bins_xi.push_back(3.5);
-    //bins_xi.push_back(10.0);
-
-    std::vector<double> bins_zt;
-    bins_zt.push_back(0.0);
-    bins_zt.push_back(0.5);
-    bins_zt.push_back(1.0);
-    bins_zt.push_back(2.0);
-    
-    //Looping(h_PionTrack, h_PionTrack_Mixed, axis_corr_trackpT, bins_pt, "pt");
-    Looping(h, h_mixed, axis_corr_xi , bins_xi, "xi");
-    //Looping(h_PionTrack, h_PionTrack_Mixed, axis_corr_zt     , bins_zt, "zt");
-    
+    //Loop over pT, xi or Zt bins and perform analysis.
+    Looping(h, h_mixed, axis_corr_trackpT, bins, "pt");
     c->Close();
     delete c;
     return;
-    
 }
 
-
-
-
-
-
-
-
-void Plot(double minpT, double maxpT){
-    //auto fIn = new TFile("Ntuple.root","READ");
-    auto fIn = new TFile("Ntuple.root","READ");
-    THnSparse *h_PionTrack=0;
-    fIn->GetObject("h_PionTrack",h_PionTrack);
-    THnSparse *  h_PionTrack_Mixed = 0;
-    fIn->GetObject("h_PionTrack_Mixed",h_PionTrack_Mixed);
-      
-
-
-    double binwidthMass = h_PionTrack->GetAxis(axis_corr_mass)->GetBinWidth(1);
-    double Width_PT  = h_PionTrack->GetAxis(axis_corr_pionpT)->GetBinWidth(1);
-    
-    //Pi0 mass
-    h_PionTrack->GetAxis(axis_corr_mass)->SetRange(0.100/binwidthMass, 0.500/binwidthMass);
-    h_PionTrack_Mixed->GetAxis(axis_corr_mass)->SetRange(0.100/binwidthMass, 0.500/binwidthMass);
-    //Pi0 pT
-    h_PionTrack->GetAxis(axis_corr_pionpT)->SetRange(minpT/Width_PT, maxpT/Width_PT);
-    h_PionTrack_Mixed->GetAxis(axis_corr_pionpT)->SetRange(minpT/Width_PT, maxpT/Width_PT);
-
-    TH1F* h_pT   = (TH1F*)h_PionTrack->Projection(axis_pionPt);
-    TH1F* h_mass = (TH1F*)h_PionTrack->Projection(axis_pionMass);
-    
-    h_pT->Sumw2();
-    h_mass->Sumw2();
-    
-    TCanvas* c = new TCanvas();
-    h_pT->Draw();
-    c->SaveAs("PDFOUTPUT/h_pT.png");
-    c->Clear();
-    h_mass->Draw();
-    h_mass->SetTitle("; m_{#gamma#gamma} [GeV]; Entries");
-    c->SaveAs(Form("PDFOUTPUT/h_mass_%2.f_%2.f.png",minpT,maxpT));
-   
-   
-
-    TH2F* h_dphi_deta = (TH2F*)h_PionTrack->Projection(axis_corr_dphi, axis_corr_deta);
-    TH2F* h_dphi_deta_Mixed = (TH2F*)h_PionTrack_Mixed->Projection(axis_corr_dphi, axis_corr_deta);
-  
-    std::cout << " maximum " << h_dphi_deta->GetMaximum() << std::endl;
-    c->Clear();
-    //gPad->SetLogz();
-
-    //h_dphi_deta->SetMinimum(2);
-    //h_dphi_deta->SetMaximum(h_dphi_deta->GetMaximum()/2.0);
-    h_dphi_deta->GetXaxis()->SetNdivisions(4);
-    h_dphi_deta->GetYaxis()->SetNdivisions(4);
-    h_dphi_deta->GetZaxis()->SetNdivisions(4);
-    h_dphi_deta->GetXaxis()->CenterTitle(kTRUE);
-    h_dphi_deta->GetYaxis()->CenterTitle(kTRUE);    
-    h_dphi_deta->Draw("SURF1 Z FB BB");
-    c->SaveAs("PDFOUTPUT/h_dphi_deta.png");
-    
-    c->Clear();
-    h_dphi_deta_Mixed->Draw("SURF1 Z FB BB");
-    h_dphi_deta_Mixed->GetXaxis()->SetNdivisions(4);
-    h_dphi_deta_Mixed->GetYaxis()->SetNdivisions(4);
-    h_dphi_deta_Mixed->GetZaxis()->SetNdivisions(4);
-    h_dphi_deta_Mixed->GetXaxis()->CenterTitle(kTRUE);
-    h_dphi_deta_Mixed->GetYaxis()->CenterTitle(kTRUE);
-    c->SaveAs("PDFOUTPUT/h_dphi_deta_Mixed.png");
-    
-    h_dphi_deta->Divide(h_dphi_deta_Mixed);
-    c->Clear();
-    //h_dphi_deta->SetMaximum(h_dphi_deta->GetMaximum()/3.0);
-    h_dphi_deta->Draw("SURF1 Z FB BB");
-    h_dphi_deta->GetXaxis()->SetNdivisions(4);
-    h_dphi_deta->GetYaxis()->SetNdivisions(4);
-    h_dphi_deta->GetZaxis()->SetNdivisions(4);
-    h_dphi_deta->GetXaxis()->CenterTitle(kTRUE);
-    h_dphi_deta->GetYaxis()->CenterTitle(kTRUE);
-    h_dphi_deta->SetTitle("; #Delta#eta; #Delta#phi/#pi");
-    c->SaveAs("PDFOUTPUT/h_dphi_deta_Corrected.png");
-
-    c->Close();  
-    }
 
 
 
@@ -564,7 +429,7 @@ void PlotPionHistograms(THnSparse* h_Pion){
     c->Clear();
     
     
-    SetCut(h_Pion, axis_pionMass, 0.100, 0.200); //Invariant mass selection
+    SetCut(h_Pion, axis_pionMass, 0.100, 0.180); //Invariant mass selection
     
     h_1D = h_Pion->Projection(axis_pionPt);
     gPad->SetLogy(1);
@@ -573,12 +438,15 @@ void PlotPionHistograms(THnSparse* h_Pion){
     gPad->SetLogy(0);
     c->Clear();
     
-    SetCut(h_Pion, axis_pionPt, 8.0, 20.0);  // Pion pT selection
+    SetCut(h_Pion, axis_pionPt, 8.0, 12.0);  // Pion pT selection
 
     h_1D = h_Pion->Projection(axis_pionMass);
     h_1D->Draw();
     c->SaveAs("PDFOUTPUT/Mass_withpTCut.png");
     c->Clear();
+
+
+    
 
     //Mass vs pT
     auto h_2D = h_Pion->Projection(axis_pionMass,axis_pionPt);
@@ -593,6 +461,50 @@ void PlotPionHistograms(THnSparse* h_Pion){
     h_proj->Draw("same");
     c->SaveAs("PDFOUTPUT/2D_MassPT.png");
     c->Clear();
+    
+    //lambda vs pT photon 1
+    SetCut(h_Pion, axis_pion_PhE_1, 0.0, 15.0);
+    h_2D = h_Pion->Projection( axis_pion_PhE_1, axis_pion_PhM02_1);
+    h_2D->Draw("colz");
+    h_2D->GetZaxis()->SetNdivisions(3);
+    h_2D->GetYaxis()->SetNdivisions(6);
+    h_2D->GetXaxis()->SetNdivisions(4);
+    c->SaveAs("PDFOUTPUT/2D_Ph1Lambda_pT.png");
+    c->Clear();
+    
+    SetCut(h_Pion,axis_pion_PhE_2, 0.0, 15.0);
+    auto temp = h_Pion->Projection( axis_pion_PhE_2, axis_pion_PhM02_2);
+    temp->Draw("colz");
+    temp->GetZaxis()->SetNdivisions(3);
+    temp->GetYaxis()->SetNdivisions(6);
+    temp->GetXaxis()->SetNdivisions(4);
+    c->SaveAs("PDFOUTPUT/2D_Ph2Lambda_pT.png");
+    c->Clear();
+    
+     //Get The Summed histogram.
+    h_2D->Add(temp); 
+    h_2D->Draw("colz");
+    h_2D->SetTitle("; Cluster #lambda_{02}; #gamma Energy [GeV]");
+    h_2D->GetXaxis()->SetNdivisions(7);
+    gPad->SetLogz(kTRUE);
+    myText(0.35,0.92,kBlack, "Photons from #pi^{0}#rightarrow#gamma#gamma decay");
+    myText(0.6,0.22,kBlack, "120 < m_{#gamma#gamma} < 160 MeV");
+    myText(0.6,0.17,kBlack, "8 < p_{T}^{#gamma#gamma}< 20 GeV");
+    c->SaveAs("PDFOUTPUT/2D_PhLambda_pT.png");
+    c->Clear();
+    //project the lambda 02. 
+    
+    auto lambda_1 = h_2D->ProjectionX("lambda02_1", h_2D->GetYaxis()->FindBin(8.0), h_2D->GetYaxis()->FindBin(15.0)-1);
+    auto lambda_2 = h_2D->ProjectionX("lambda02_2", h_2D->GetYaxis()->FindBin(10.0), h_2D->GetYaxis()->FindBin(12.0)-1);
+    
+    
+    lambda_1->DrawNormalized("hist");
+    //    lambda_1->GetYaxis()->SetRangeUser(0,0.25);
+    lambda_2->SetLineColor(kRed);
+    //lambda_2->DrawNormalized("hist same");
+    myText(0.35,0.92,kBlack, "Photons from #pi^{0}#rightarrow#gamma#gamma decay");
+    myText(0.6,0.82,kBlack, "8 < p_{T}^{#gamma}< 20 GeV");
+    c->SaveAs("PDFOUTPUT/FromPion_Lambda_02.png");
     
     //Mass vs Centrality
     h_2D = h_Pion->Projection(axis_pionMass,axis_pion_Cen);
@@ -710,29 +622,82 @@ void PlotPionHistograms(THnSparse* h_Pion){
     delete c;
 }
 
+void PlotClusterHistograms(THnSparse* h){
+       ////
+    
+    SetCut(h, axis_Cluster_E, 0.0, 25.0); //Invariant mass selection
+        
+    auto c = new TCanvas();  
+    h->GetAxis(axis_Cluster_E)->SetTitle("Cluster Energy [GeV]");
+    
+       
+    auto h_1D = h->Projection(axis_Cluster_E);
+    h_1D->Draw();
+    h_1D->GetYaxis()->SetTitle("entries");
+    c->SaveAs("PDFOUTPUT/Clusters_All.png");
+    c->Clear();
+    
+    
+    
+    c->Close();
+    delete c;
+    delete h_1D;
+}
+
+
+
 
 void Plotting(){
     SetAtlasStyle();
 
-    TFile* fIn = new TFile("Ntuple.root","READ");
+    TFile* fIn = new TFile("THnSparses.root","READ");
     fIn->Print();
-    fIn->ls();
+    
+    //Getting the different THnSparses
     THnSparse* h_Pion = 0;
     fIn->GetObject("h_Pion",h_Pion);
-    h_Pion->Print();
-    
     THnSparse *h_PionTrack=0;
     fIn->GetObject("h_PionTrack", h_PionTrack);
     THnSparse *  h_PionTrack_Mixed = 0;
     fIn->GetObject("h_PionTrack_Mixed", h_PionTrack_Mixed);
     
+    THnSparse* h_Cluster = 0;
+    fIn->GetObject("h_Cluster",h_Cluster);
+    THnSparse *h_ClusterTrack=0;
+    fIn->GetObject("h_ClusterTrack", h_ClusterTrack);
+    THnSparse *  h_ClusterTrack_Mixed = 0;
+    fIn->GetObject("h_ClusterTrack_Mixed", h_ClusterTrack_Mixed);
     
-    //PlotCorrelation(h_PionTrack, h_PionTrack_Mixed);
-    PlotPionHistograms(h_Pion);
+    THnSparse* h_Track = 0;
+    fIn->GetObject("h_Track", h_Track);
+    
+    //Set limit on pion variables before running the correlation analysis.
+    SetCut(h_PionTrack, axis_corr_mass, 0.100,0.180);
+    SetCut(h_PionTrack_Mixed, axis_corr_mass, 0.100, 0.180);
+  
+      //Define bin edges for pT, xi and Zt intervals.
+    std::vector<double> bins_trackpt;
+    bins_trackpt.push_back(0.5);
+    bins_trackpt.push_back(1.0);
+    bins_trackpt.push_back(2.0);
+    //bins_pt.push_back(10.0);
+
+    std::vector<double> bins_trackxi;
+    bins_trackxi.push_back(0.0);
+    bins_trackxi.push_back(1.5);
+    bins_trackxi.push_back(2.5);
+    bins_trackxi.push_back(3.0);
+    //bins_xi.push_back(10.0);
+
+    std::vector<double> bins_trackzt;
+    bins_trackzt.push_back(0.0);
+    bins_trackzt.push_back(0.5);
+    bins_trackzt.push_back(1.0);
+    bins_trackzt.push_back(2.0); 
+    
+    //Perform correlation for pions with pT between 8 and 16 GeV. 
+    PlotCorrelation(h_PionTrack, h_PionTrack_Mixed, axis_corr_pionpT, 8.0, 16.0, axis_corr_trackpT, bins_trackpt);
      
-    //Plot(0,50);
-    //Plot(14,18);
-    //Plot(18,22);
-    //Plot(22,26);
-    //Plot(26,30);
+    //PlotClusterHistograms(h_Cluster);
+    //PlotPionHistograms(h_Pion);
 }
