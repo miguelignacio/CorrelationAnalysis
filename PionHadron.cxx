@@ -155,11 +155,11 @@ void PionHadron::UserCreateOutputObjects()
     InitEventMixer();
 	
     //Initializing the histograms to be saved. For the moment, only pT of clusters and Mgammagamma.
-    int nbins_Mass = 50;
+    int nbins_Mass = 100;
     int nbins_Pt   = 100;
     int nbins_E    = 100;
     int nbins_dphi     = 18;
-    int nbins_deta     = 20;
+    int nbins_deta     = 30;
     int nbins_phi     = 36;
     int nbins_eta     = 40;
     int nbins_zt      = 50;
@@ -169,9 +169,10 @@ void PionHadron::UserCreateOutputObjects()
     int nbins_Centrality = 10;
     int nbins_zvertex = 20;
     int nbins_Asymmetry = 40;
+    int nbins_nMatchedTracks = 5;
     
     double min_Mass = 0;
-    double max_Mass = 0.5;
+    double max_Mass = 1.0;
     double min_Pt = 0;
     double max_Pt = 50.0;
     double min_dphi = -0.5; // rads
@@ -194,7 +195,7 @@ void PionHadron::UserCreateOutputObjects()
     double min_E =0;
     double max_E =50;
     double min_M02 = 0.0;
-    double max_M02 = 1.0;
+    double max_M02 = 2.0;
     
     double min_Ncells = -0.5;
     double max_Ncells = 29.5;
@@ -205,52 +206,70 @@ void PionHadron::UserCreateOutputObjects()
     double min_Asymmetry =0;
     double max_Asymmetry = 1.0;
     
+    double min_nMatchedTracks = -0.5;
+    double max_nMatchedTracks  =  4.5;
+    
+    int    nbins_nMaxima = 5;
+    double min_nMaxima = -0.5;
+    double max_nMaxima  =  4.5;
+    
     //Pion-hadron correlations
-    int bins[23]    = {nbins_Centrality, nbins_zvertex, nbins_Mass, nbins_Pt,  nbins_eta, nbins_phi, nbins_E, nbins_Pt,  nbins_eta, nbins_phi, nbins_dphi, nbins_deta, nbins_deta/2, nbins_zt, nbins_xi,
-                        nbins_Pt, nbins_Pt, nbins_eta, nbins_eta, nbins_phi, nbins_phi, nbins_M02, nbins_M02}; //these are for the photons from pion decays
-    double xmin[23] = {min_Centrality, min_zvertex, min_Mass,   min_Pt  , min_eta    , min_phi , min_E, min_Pt, min_eta, min_phi    , min_dphi   , min_deta   , 0.0, min_zt, min_xi,
-                        min_Pt, min_Pt, min_eta, min_eta, min_phi, min_phi, min_M02, min_M02};
-    double xmax[23] = {max_Centrality, max_zvertex, max_Mass,   max_Pt  , max_eta    , max_phi , max_E, max_Pt, max_eta,  max_phi   , max_dphi,   max_deta, max_deta, max_zt, max_xi,
-                        max_Pt, max_Pt, max_eta, max_eta, max_phi, max_phi, max_M02, max_M02};
+    const int nbins_PionCorr = 24;
+    
+    int bins[nbins_PionCorr]    = {nbins_Centrality, nbins_zvertex, nbins_Pt, nbins_E, nbins_eta, nbins_eta, nbins_phi, //trigger variables
+                                   nbins_Pt,  nbins_eta, nbins_phi, nbins_dphi, nbins_deta, nbins_deta/2, nbins_zt, nbins_xi, //track variables
+                                   nbins_Mass,  nbins_Pt, nbins_Pt, nbins_eta, nbins_eta, nbins_phi, nbins_phi, nbins_M02, nbins_M02}; //pion-only and pion-decay variables
+                                   
+    double xmin[nbins_PionCorr] = {min_Centrality, min_zvertex, min_Pt  , min_E,  min_eta, min_eta, min_phi, 
+                                   min_Pt, min_eta, min_phi    , min_dphi   , min_deta   , 0.0, min_zt, min_xi,
+                                   min_Mass, min_Pt, min_Pt, min_eta, min_eta, min_phi, min_phi, min_M02, min_M02};
+                                   
+    double xmax[nbins_PionCorr] = {max_Centrality, max_zvertex,  max_Pt,  max_E, max_eta    , max_eta, max_phi, 
+                                   max_Pt, max_eta,  max_phi   , max_dphi,   max_deta, max_deta, max_zt, max_xi,
+                                   max_Mass, max_Pt, max_Pt, max_eta, max_eta, max_phi, max_phi, max_M02, max_M02};
 
-    TString axisNames = "Pion-Track THnSparse; Centrality; Z vertex;  #pion Mass; #pionpT; #pion Eta; #pion phi; #pion E;";
+    TString axisNames = "Pion-Track THnSparse; Centrality; Z vertex;  #pionpT;#pion E; #pion y; #pion Eta; #pion phi;";
     axisNames = axisNames + "track_pT; track Eta; track Phi; #Dphi ; #Deta; #|Deta|; Zt; Xi;";
-    axisNames = axisNames + "ph1_pT; ph2_pT; ph1_eta; ph2_eta; ph1_phi; ph2_phi; ph1_M02; ph2_M02;";
+    axisNames = axisNames + "#pion Mass; ph1_pT; ph2_pT; ph1_eta; ph2_eta; ph1_phi; ph2_phi; ph1_M02; ph2_M02;";
 
-  
-  
     /////////////Pi0--track correlations////////////
-    h_Pi0Track = new THnSparseD("h_Pi0Track", axisNames, 23, bins, xmin,xmax);
+    h_Pi0Track = new THnSparseD("h_Pi0Track", axisNames, nbins_PionCorr, bins, xmin,xmax);
     h_Pi0Track->Sumw2();
     fOutput->Add(h_Pi0Track);
 
-    h_Pi0Track_Mixed = new THnSparseD("h_Pi0Track_Mixed", axisNames, 23, bins, xmin,xmax);
+    h_Pi0Track_Mixed = new THnSparseD("h_Pi0Track_Mixed", axisNames, nbins_PionCorr, bins, xmin,xmax);
     h_Pi0Track_Mixed->Sumw2();
     fOutput->Add(h_Pi0Track_Mixed);
     
     //////////////////////////////Cluster-Track correlations:///////////////////////////////////////
-    int binsClusterCorr[15]    = {nbins_Centrality, nbins_zvertex, nbins_Pt,  nbins_eta, nbins_phi, nbins_E, nbins_M02,
-                        nbins_Pt,  nbins_eta, nbins_phi, nbins_dphi, nbins_deta, nbins_deta/2, nbins_zt, nbins_xi};
+    const int nbins_ClusterCorr = 18;
+    int binsClusterCorr[nbins_ClusterCorr]    = {nbins_Centrality, nbins_zvertex, nbins_Pt, nbins_E, nbins_eta, nbins_eta, nbins_phi,
+                                                nbins_Pt,  nbins_eta, nbins_phi, nbins_dphi, nbins_deta, nbins_deta/2, nbins_zt, nbins_xi,
+                                                nbins_M02, nbins_nMatchedTracks, nbins_nMaxima};
                         
-    double xminClusterCorr[15] = {min_Centrality, min_zvertex,   min_Pt  , min_eta    , min_phi , min_E, min_M02,
-                        min_Pt, min_eta, min_phi    , min_dphi   , min_deta   , 0.0, min_zt, min_xi};
-    double xmaxClusterCorr[15] = {max_Centrality, max_zvertex,  max_Pt  , max_eta    , max_phi , max_E, max_M02,
-                        max_Pt, max_eta,  max_phi   , max_dphi,   max_deta, max_deta, max_zt, max_xi};
+    double xminClusterCorr[nbins_ClusterCorr] = {min_Centrality, min_zvertex, min_Pt  , min_E,  min_eta, min_eta, min_phi, 
+                                                min_Pt, min_eta, min_phi    , min_dphi   , min_deta   , 0.0, min_zt, min_xi,
+                                                min_M02,   min_nMatchedTracks, min_nMaxima};
+                                   
+    double xmaxClusterCorr[nbins_ClusterCorr] = {max_Centrality, max_zvertex,  max_Pt,  max_E, max_eta    , max_eta, max_phi, 
+                                                max_Pt, max_eta,  max_phi   , max_dphi,   max_deta, max_deta, max_zt, max_xi,
+                                                max_M02, max_nMatchedTracks, max_nMaxima};
 
-    axisNames = "Cluster-Track THnSparse; Centrality; Z vertex;  Cluster pT; Cluster Eta; Cluster phi; Cluster E; Cluster M02";
-    axisNames = axisNames + "; track_pT; track Eta; track Phi; #Dphi ; #Deta; #|Deta|; Zt; Xi";
+    axisNames = "Cluster-Track THnSparse; Centrality; Z vertex; Cluster p_{T}; Cluster E; Cluster #eta; Cluster y; Cluster #phi;";
+    axisNames = axisNames + "track p_{T}; track #eta; track #phi; #Delta#phi ; #Delta#eta; |#Delta#eta|; Z_{T}t; Xi;";
+    axisNames = axisNames + "M02; nMatchedTracks; nMaxima;";
      
-    h_ClusterTrack = new THnSparseD("h_ClusterTrack", axisNames, 15, binsClusterCorr, xminClusterCorr,xmaxClusterCorr);
+    h_ClusterTrack = new THnSparseD("h_ClusterTrack", axisNames, nbins_ClusterCorr, binsClusterCorr, xminClusterCorr,xmaxClusterCorr);
     h_ClusterTrack->Sumw2();
     fOutput->Add(h_ClusterTrack);
     
-    h_ClusterTrack_Mixed = new THnSparseD("h_ClusterTrack_Mixed", axisNames, 15, binsClusterCorr, xminClusterCorr,xmaxClusterCorr);
+    h_ClusterTrack_Mixed = new THnSparseD("h_ClusterTrack_Mixed", axisNames, nbins_ClusterCorr, binsClusterCorr, xminClusterCorr,xmaxClusterCorr);
     h_ClusterTrack_Mixed->Sumw2();
     fOutput->Add(h_ClusterTrack_Mixed);
     
     ///////////////Pi0////////////////////////////////////
     axisNames = "Pion THnSparse; Centrality; Z vertex ;#pion Mass; #pionpT; #pion Eta; #pion phi; #pion E;";
-    axisNames = axisNames + "ph1_E; ph2_E; Asymmetry; ph1_pT; ph2_pT; ph1_eta; ph2_eta; ph1_phi; ph2_phi; dphi; ph1_M02; ph2_M02;";
+    axisNames = axisNames + "ph1_E; ph2_E; Asymmetry; ph1_pT; ph2_pT; ph1 #eta; ph2 #eta; ph1 #phi; ph2 #phi; #Delta#phi; ph1 #lambda_{02}; ph2 #lambda_{02};";
     int binsPi0[19] = {nbins_Centrality, nbins_zvertex, nbins_Mass, nbins_Pt, nbins_eta, nbins_phi, nbins_E, 
                          nbins_E, nbins_E, nbins_Asymmetry, nbins_Pt, nbins_Pt, nbins_eta, nbins_eta, nbins_phi, nbins_phi, 100, nbins_M02, nbins_M02};
     
@@ -263,11 +282,13 @@ void PionHadron::UserCreateOutputObjects()
     fOutput->Add(h_Pi0);
     
     /////////////////////Clusters////////////////////////////////////
-    axisNames = "Cluster THnSparse; Centrality; Z vertex; Cluster E; Cluster Pt; Cluster Eta; Cluster Phi; Cluster M02; Cluster NCells;";
-    int binsCluster[8] = {nbins_Centrality, nbins_zvertex, nbins_E, nbins_Pt, nbins_eta, nbins_phi, nbins_M02, nbins_Ncells};
-    double xminCluster[8] = {min_Centrality, min_zvertex, min_E, min_Pt, min_eta, min_phi, min_M02, min_Ncells};
-    double xmaxCluster[8] = {max_Centrality, max_zvertex, max_E, max_Pt, max_eta, max_phi, max_M02, max_Ncells};
-    h_Cluster = new THnSparseD("h_Cluster", axisNames, 8, binsCluster, xminCluster, xmaxCluster);
+    const int nbins_Cluster = 10;
+    
+    axisNames = "Cluster THnSparse; Centrality; Z vertex; Cluster E; Cluster p_{T}; Cluster #eta; Cluster #phi; Cluster #lambda_{02}; nCells; nMatchedTracks; nMaxima;";
+    int binsCluster[nbins_Cluster] = {nbins_Centrality, nbins_zvertex, nbins_E, nbins_Pt, nbins_eta, nbins_phi, nbins_M02, nbins_Ncells, nbins_nMatchedTracks, nbins_nMaxima};
+    double xminCluster[nbins_Cluster] = {min_Centrality, min_zvertex, min_E, min_Pt, min_eta, min_phi, min_M02, min_Ncells, min_nMatchedTracks, min_nMaxima};
+    double xmaxCluster[nbins_Cluster] = {max_Centrality, max_zvertex, max_E, max_Pt, max_eta, max_phi, max_M02, max_Ncells, max_nMatchedTracks, max_nMaxima};
+    h_Cluster = new THnSparseD("h_Cluster", axisNames, nbins_Cluster, binsCluster, xminCluster, xmaxCluster);
     h_Cluster->Sumw2();
     fOutput->Add(h_Cluster);
     
@@ -538,7 +559,7 @@ void  PionHadron::FillPionCorrelation(AliVCluster* cluster1, AliVCluster* cluste
     
     //////////////////Selection//////////////////////////////////////////////
     if( pi0.Pt() < 6.0 ) return;
-    if( pi0.M()  > 0.5 ) return;
+    if( pi0.M()  > 1.0 ) return;
     if( track->Pt()<0.5 ) return;
     //if( asym > 0.7 ) return;
     //if( cluster1->GetM02()>0.4 || cluster2->GetM02()>0.4 ) return;
@@ -549,7 +570,6 @@ void  PionHadron::FillPionCorrelation(AliVCluster* cluster1, AliVCluster* cluste
     double  Xi  = -999; 
     if(Zt>0) Xi = TMath::Log(1.0/Zt);
     
-
     double trackphi = TVector2::Phi_mpi_pi(track->Phi());
     double dphi;
     
@@ -557,8 +577,9 @@ void  PionHadron::FillPionCorrelation(AliVCluster* cluster1, AliVCluster* cluste
     dphi     = TVector2::Phi_mpi_pi(pi0.Phi()- trackphi)/TMath::Pi();
     if(dphi<-0.5) dphi +=2;
     
-    double entries[23] = {fCent, fVertex[2], pi0.M(), pi0.Pt(), pi0.Eta(), pi0.Phi(), pi0.E(), track->Pt(), track->Eta(), trackphi, dphi, deta, abs(deta), Zt, Xi,
-               ph_1.Pt(), ph_2.Pt(), ph_1.Eta(), ph_2.Eta(), ph_1.Phi(), ph_2.Phi() , cluster1->GetM02(), cluster2->GetM02()};                
+    double entries[24] = {fCent, fVertex[2], pi0.Pt(), pi0.E(), pi0.Rapidity(), pi0.Eta(), pi0.Phi(), 
+                         track->Pt(), track->Eta(), trackphi, dphi, deta, abs(deta), Zt, Xi,
+                         pi0.M(), ph_1.Pt(), ph_2.Pt(), ph_1.Eta(), ph_2.Eta(), ph_1.Phi(), ph_2.Phi() , cluster1->GetM02(), cluster2->GetM02()};                
     histo->Fill(entries, weight); //
     /*
     entries[11] = -1.0*deta;           
@@ -586,6 +607,11 @@ void  PionHadron::FillPhotonCorrelation(AliVCluster* cluster, AliVParticle* trac
     //if( cluster1->GetM02()>0.4 ) return
     /////////////////////////////////////////////////////////////////////////
     
+    
+    //    axisNames = "Cluster-Track THnSparse; Centrality; Z vertex; Cluster pT; Cluster E; Cluster Eta; Cluster y; Cluster phi;";
+    //axisNames = axisNames + "track_pT; track Eta; track #phi; #Dphi ; #Delta#eta; #|Deta|; Zt; Xi;";
+    //axisNames = axisNames + "M02;";
+    
     double trackphi = TVector2::Phi_mpi_pi(track->Phi());
     double dphi;
     
@@ -597,8 +623,9 @@ void  PionHadron::FillPhotonCorrelation(AliVCluster* cluster, AliVParticle* trac
     dphi = TVector2::Phi_mpi_pi(ph.Phi()- trackphi)/TMath::Pi();
     if(dphi<-0.5) dphi +=2;
     
-    double entries[15] = {fCent, fVertex[2], ph.Pt(), ph.Eta(), ph.Phi(), ph.E(), cluster->GetM02(),
-              track->Pt(), track->Eta(), trackphi, dphi, deta, abs(deta), Zt, Xi
+    double entries[18] = {fCent, fVertex[2], ph.Pt(), ph.E(), ph.Eta(), ph.Rapidity(), ph.Phi(),  
+              track->Pt(), track->Eta(), trackphi, dphi, deta, abs(deta), Zt, Xi,
+              cluster->GetM02(), cluster->GetNTracksMatched(), cluster->GetNExMax()
               };                
     histo->Fill(entries, weight);//
     
@@ -632,7 +659,7 @@ void  PionHadron::FillPionHisto(AliVCluster* cluster1, AliVCluster* cluster2, TH
 	pi0= ph_1+ph_2;
     //////////////////Selection//////////////////////////////////////////////
     if( pi0.Pt() < 6.0) return;
-    if( pi0.M()  > 0.5) return;
+    if( pi0.M()  > 1.0) return;
     /////////////////////////////////////////////////////////////////////////
     
     double asym = abs(ph_1.E()-ph_2.E())/(ph_1.E()+ph_2.E());
@@ -647,7 +674,7 @@ void PionHadron::FillClusterHisto(AliVCluster* cluster, THnSparse* histo){
     AliClusterContainer* clusters  = GetClusterContainer(0);
     TLorentzVector ph;
     clusters->GetMomentum(ph, cluster);
-    double entries[8] = {fCent, fVertex[2], ph.E(), ph.Pt(), ph.Eta(), ph.Phi(), cluster->GetM02(), cluster->GetNCells()};                
+    double entries[10] = {fCent, fVertex[2], ph.E(), ph.Pt(), ph.Eta(), ph.Phi(), cluster->GetM02(), cluster->GetNCells(), cluster->GetNTracksMatched(), cluster->GetNExMax()};                
     histo->Fill(entries);
     return;
 }
@@ -676,8 +703,8 @@ Bool_t PionHadron::PassedCuts(AliVCluster* cluster)
     if(!cluster->IsEMCAL()) return kFALSE;
     if(cluster->E()<3.0) return kFALSE;
 	if(cluster->GetNCells()<2) return kFALSE;
-	if(cluster->GetNExMax() > 1) return kFALSE; //local maxima should be 0 or 1
-	if(cluster->GetM02()<0.1) return kFALSE;
+	//if(cluster->GetNExMax() > 1) return kFALSE; //local maxima should be 0 or 1
+	//if(cluster->GetM02()<0.1) return kFALSE;
 	//if(fRmvMTrack==1 && caloCluster->GetNTracksMatched(s)!=0) return kFALSE;
 	return kTRUE;
 }
