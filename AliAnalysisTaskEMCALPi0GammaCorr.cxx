@@ -204,8 +204,8 @@ void AliAnalysisTaskEMCALPi0GammaCorr::UserCreateOutputObjects()
     double min_Asymmetry =0;
     double max_Asymmetry = 1.0;
     
-    double min_nMatchedTracks = -0.5;
-    double max_nMatchedTracks  =  4.5;
+    double min_nMatchedTracks = -1.5;
+    double max_nMatchedTracks  =  3.5;
     
     int    nbins_nMaxima = 5;
     double min_nMaxima = -0.5;
@@ -558,14 +558,30 @@ double AliAnalysisTaskEMCALPi0GammaCorr::GetIsolation_Track(AliVCluster* cluster
 }
 
 void  AliAnalysisTaskEMCALPi0GammaCorr::FillPionCorrelation(AliVCluster* cluster1, AliVCluster* cluster2, AliVParticle* track, THnSparse* histo, double weight){
+
     AliClusterContainer* clusters  = GetClusterContainer(0);
-    TLorentzVector ph_1, ph_2, pi0; 
-	clusters->GetMomentum(ph_1, cluster1);
-    clusters->GetMomentum(ph_2, cluster2);
-    double asym = abs(ph_1.E()-ph_2.E())/(ph_1.E()+ph_2.E());
-	pi0= ph_1+ph_2;
+    
+    AliVCluster* cluster_lead = 0;
+    AliVCluster* cluster_sub  = 0;
+    
+    TLorentzVector ph_lead, ph_sub, pi0; 
+       
+    if(cluster1->E() > cluster2->E()){
+        cluster_lead = cluster1;
+        cluster_sub  = cluster2;
+    }
+    else{
+        cluster_lead = cluster2;
+        cluster_sub  = cluster1; 
+    }    
+    
+	clusters->GetMomentum(ph_lead, cluster_lead);
+    clusters->GetMomentum(ph_sub, cluster_sub);
+    double asym = abs(ph_lead.E()-ph_sub.E())/(ph_lead.E()+ph_sub.E());
+	pi0= ph_lead+ph_sub;
     
     //////////////////Selection//////////////////////////////////////////////
+    if( cluster_lead->E()<6.0) return; //at least one photon with 6 GeV of energy, this is lowest threshold trigger in pPb data.
     if( pi0.Pt() < 6.0 ) return;
     if( pi0.M()  > 1.0 ) return;
     if( track->Pt()<0.5 ) return;
@@ -587,7 +603,7 @@ void  AliAnalysisTaskEMCALPi0GammaCorr::FillPionCorrelation(AliVCluster* cluster
     
     double entries[24] = {fCent, fVertex[2], pi0.Pt(), pi0.E(), pi0.Rapidity(), pi0.Eta(), pi0.Phi(), 
                          track->Pt(), track->Eta(), trackphi, dphi, deta, abs(deta), Zt, Xi,
-                         pi0.M(), ph_1.Pt(), ph_2.Pt(), ph_1.Eta(), ph_2.Eta(), ph_1.Phi(), ph_2.Phi() , cluster1->GetM02(), cluster2->GetM02()};                
+                         pi0.M(), ph_lead.Pt(), ph_sub.Pt(), ph_lead.Eta(), ph_sub.Eta(), ph_lead.Phi(), ph_sub.Phi() , cluster_lead->GetM02(), cluster_sub->GetM02()};                
     histo->Fill(entries, weight); //
     /*
     entries[11] = -1.0*deta;           
@@ -612,6 +628,7 @@ void  AliAnalysisTaskEMCALPi0GammaCorr::FillPhotonCorrelation(AliVCluster* clust
 	clusters->GetMomentum(ph, cluster);
    
     if( track->Pt()<0.5 ) return;
+    if( cluster->E()< 6.0) return;
     //if( cluster1->GetM02()>0.4 ) return
     /////////////////////////////////////////////////////////////////////////
     
@@ -682,6 +699,7 @@ void  AliAnalysisTaskEMCALPi0GammaCorr::FillPionHisto(AliVCluster* cluster1, Ali
     //////////////////Selection/////////////////////////////////////////
     if( pi0.Pt() < 6.0) return;
     if( pi0.M()  > 1.0) return;
+    if(cluster_lead->E()<6.0) return;
     ////////////////////////////////////////////////////////////////////
     double asym = abs(ph_lead.E()-ph_sub.E())/(ph_lead.E()+ph_sub.E());
     double entries[25] = {fCent, fVertex[2], pi0.M(), pi0.Pt(), pi0.Eta(), pi0.Phi(), pi0.E(), 
@@ -697,6 +715,7 @@ void AliAnalysisTaskEMCALPi0GammaCorr::FillClusterHisto(AliVCluster* cluster, TH
     AliClusterContainer* clusters  = GetClusterContainer(0);
     TLorentzVector ph;
     clusters->GetMomentum(ph, cluster);
+    if(cluster->E()< 5.0) return;
     double entries[10] = {fCent, fVertex[2], ph.E(), ph.Pt(), ph.Eta(), ph.Phi(), cluster->GetM02(), cluster->GetNCells(), cluster->GetNTracksMatched(), cluster->GetNExMax()};                
     histo->Fill(entries);
     return;

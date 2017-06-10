@@ -10,7 +10,7 @@ class AliAnalysisGrid;
 void runGrid()
 {
 
-  Bool_t isLocal = kTRUE;
+  Bool_t isLocal = kFALSE;
   //Setting track cuts
   Printf("Default track cut period set to: %s", AliTrackContainer::GetDefTrackCutsPeriod().Data());
   AliTrackContainer::SetDefTrackCutsPeriod("lhc13d"); 
@@ -54,9 +54,9 @@ void runGrid()
   //compile the class (locally)
   gROOT->LoadMacro("AliAnalysisTaskEMCALPi0GammaCorr.cxx++g");
   //load the addtask macro
-  gROOT->LoadMacro("AddTask.C");
+  gROOT->LoadMacro("AddTaskEMCALPi0GammaCorr.C");
   //create an instance of your analysis task
-  AliAnalysisTaskEMCALPi0GammaCorr *ptr = AddTask();
+  AliAnalysisTaskEMCALPi0GammaCorr *ptr = AddTaskEMCALPi0GammaCorr();
 
   Printf("About to set Force Beam Type");
   AliAnalysisTaskEmcal::BeamType iBeamType = AliAnalysisTaskEmcal::kpA;
@@ -123,7 +123,7 @@ void runGrid()
   plugin->SetOutputToRunNo(kTRUE);
   plugin->SetKeepLogs(kTRUE);
   plugin->SetMaxMergeStages(1);
-  plugin->SetMergeViaJDL(kFALSE);
+  plugin->SetMergeViaJDL(kTRUE);
 
   mgr->SetGridHandler(plugin);
 
@@ -134,7 +134,7 @@ void runGrid()
     plugin->SetRunMode("test"); // 
   }
   else{
-    plugin->SetRunMode("terminate"); //full, terminate
+    plugin->SetRunMode("full"); //full, terminate
   }  
   mgr->StartAnalysis("grid");
   return;
