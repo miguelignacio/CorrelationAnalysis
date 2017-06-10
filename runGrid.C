@@ -10,7 +10,7 @@ class AliAnalysisGrid;
 void runGrid()
 {
 
-  Bool_t isLocal = kFALSE;
+  Bool_t isLocal = kTRUE;
   //Setting track cuts
   Printf("Default track cut period set to: %s", AliTrackContainer::GetDefTrackCutsPeriod().Data());
   AliTrackContainer::SetDefTrackCutsPeriod("lhc13d"); 
@@ -52,11 +52,11 @@ void runGrid()
   //////////////////////////////////////////////////////////////////
   
   //compile the class (locally)
-  gROOT->LoadMacro("PionHadron.cxx++g");
+  gROOT->LoadMacro("AliAnalysisTaskEMCALPi0GammaCorr.cxx++g");
   //load the addtask macro
   gROOT->LoadMacro("AddTask.C");
   //create an instance of your analysis task
-  PionHadron *ptr = AddTask();
+  AliAnalysisTaskEMCALPi0GammaCorr *ptr = AddTask();
 
   Printf("About to set Force Beam Type");
   AliAnalysisTaskEmcal::BeamType iBeamType = AliAnalysisTaskEmcal::kpA;
@@ -110,20 +110,20 @@ void runGrid()
   plugin->AddRunNumber(195783);
 
   plugin->SetGridWorkingDir("workdir");
-  plugin->SetGridOutputDir("output_Rho4");
+  plugin->SetGridOutputDir("output_Rho7");
   
   plugin->AddIncludePath ("-I. -I$ROOTSYS/include -I$ALICE_ROOT -I$ALICE_ROOT/include -I$ALICE_PHYSICS/include");
-  plugin->SetAdditionalLibs("PionHadron.cxx PionHadron.h");
-  plugin->SetAnalysisSource("PionHadron.cxx");  
+  plugin->SetAdditionalLibs("AliAnalysisTaskEMCALPi0GammaCorr.cxx AliAnalysisTaskEMCALPi0GammaCorr.h");
+  plugin->SetAnalysisSource("AliAnalysisTaskEMCALPi0GammaCorr.cxx");  
   
   plugin->SetSplitMaxInputFileNumber(40);
   plugin->SetExecutable("myTask.sh");
   plugin->SetTTL(10000);
-  plugin->SetJDLName("PionHadron.jdl");  
+  plugin->SetJDLName("AliAnalysisTaskEMCALPi0GammaCorr.jdl");  
   plugin->SetOutputToRunNo(kTRUE);
   plugin->SetKeepLogs(kTRUE);
   plugin->SetMaxMergeStages(1);
-  plugin->SetMergeViaJDL(kTRUE);
+  plugin->SetMergeViaJDL(kFALSE);
 
   mgr->SetGridHandler(plugin);
 
@@ -134,7 +134,7 @@ void runGrid()
     plugin->SetRunMode("test"); // 
   }
   else{
-    plugin->SetRunMode("full"); //full, terminate
+    plugin->SetRunMode("terminate"); //full, terminate
   }  
   mgr->StartAnalysis("grid");
   return;

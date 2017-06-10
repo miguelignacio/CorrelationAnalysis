@@ -1,5 +1,5 @@
 // $Id$
-PionHadron* AddTask(
+AliAnalysisTaskEMCALPi0GammaCorr* AddTask(
   UInt_t      evtTriggerType         = AliVEvent::kEMCEGA, //AliVEvent::kAnyINT,// AliVEvent::kEMCEGA,//..use this type of events to combine gammas(trigger) with hadrons
   UInt_t      evtMixingType          = AliVEvent::kAnyINT,//..use only this type of events to fill your mixed event pool with tracks
   Double_t    trackptcut             = 0.15,              //..
@@ -27,15 +27,13 @@ PionHadron* AddTask(
   //-------------------------------------------------------
   // Init the task and do settings
   //------------------------------------------------------
-  std::cout << "----#About to start PionHadron task " << std::endl;
-  PionHadron* AnalysisTask = new PionHadron(kTRUE);
+  std::cout << "----#About to start AliAnalysisTaskEMCALPi0GammaCorr task " << std::endl;
+  AliAnalysisTaskEMCALPi0GammaCorr* AnalysisTask = new AliAnalysisTaskEMCALPi0GammaCorr(kTRUE);
   std::cout << "----Adding cluster container, track container" << std::endl;
   AnalysisTask->AddClusterContainer("usedefault");
   AliTrackContainer* trackCont = AnalysisTask->AddTrackContainer("usedefault");
   //AliWarning("Setting FilterHybridTracks");
- 
- 
-  //trackCont->SetFilterHybridTracks(kTRUE); //gives me Hyprid tracks
+ //trackCont->SetFilterHybridTracks(kTRUE); //gives me Hyprid tracks
 
   //-------------------------------------------------------
   // Add some selection criteria
