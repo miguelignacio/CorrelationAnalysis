@@ -15,10 +15,10 @@ void runGrid()
   Printf("Default track cut period set to: %s", AliTrackContainer::GetDefTrackCutsPeriod().Data());
   AliTrackContainer::SetDefTrackCutsPeriod("lhc13d"); 
   //since we will compile a class, tell root where to look for headers
-  std::cout <<"Proceesing lines to include $ROOTSYS/include, $ALICE_ROOT/include and $ALICE_PHYSICS/include" << std::endl;
-  gROOT->ProcessLine(".include $ROOTSYS/include");
-  gROOT->ProcessLine(".include $ALICE_ROOT/include");
-  gROOT->ProcessLine(".include $ALICE_PHYSICS/include");
+  //std::cout <<"Proceesing lines to include $ROOTSYS/include, $ALICE_ROOT/include and $ALICE_PHYSICS/include" << std::endl;
+  //gROOT->ProcessLine(".include $ROOTSYS/include");
+  //gROOT->ProcessLine(".include $ALICE_ROOT/include");
+  //gROOT->ProcessLine(".include $ALICE_PHYSICS/include");
   
   ///Create the analysis manager
   AliAnalysisManager *mgr = new AliAnalysisManager();
@@ -51,10 +51,8 @@ void runGrid()
   correctionTask->Initialize();
   //////////////////////////////////////////////////////////////////
   
-  //compile the class (locally)
-  gROOT->LoadMacro("AliAnalysisTaskEMCALPi0GammaCorr.cxx++g");
-  //load the addtask macro
-  gROOT->LoadMacro("AddTaskEMCALPi0GammaCorr.C");
+  std::cout << " About to load AddTaskEMCALPi0GammaCorr macro " << std::endl;
+  gROOT->LoadMacro("$ALICE_PHYSICS/PWGGA/EMCALTasks/macros/AddTaskEMCALPi0GammaCorr.C");
   //create an instance of your analysis task
   AliAnalysisTaskEMCALPi0GammaCorr *ptr = AddTaskEMCALPi0GammaCorr();
 
@@ -86,7 +84,6 @@ void runGrid()
   ////////////////////////////////////////////////////////////////////////////////////////////////////////
   Printf("About to initialize AliAnalysisManager::InitAnalysis()");
   if(!mgr->InitAnalysis()) return;
-  //mgr->SetDebugLevel(2);
   mgr->PrintStatus();
   
   if(isLocal){ 
@@ -101,20 +98,18 @@ void runGrid()
     
   AliAnalysisAlien *plugin = new AliAnalysisAlien()
   plugin->SetOverwriteMode();
-  //  plugin->SetAliPhysicsVersion("vAN-20170510-1");
-  //plugin->SetAliPhysicsVersion("vAN-20160203-1");
-  plugin->SetAliPhysicsVersion("vAN-20170519-1");
+ // plugin->SetAliPhysicsVersion("vAN-20170519-1"); //this is maybe causing ISSUES.
   plugin->SetGridDataDir("/alice/data/2013/LHC13d");
   plugin->SetDataPattern("*/pass4/*/*ESDs.root");
   plugin->SetRunPrefix("000");
   plugin->AddRunNumber(195783);
 
   plugin->SetGridWorkingDir("workdir");
-  plugin->SetGridOutputDir("output_Rho7");
+  plugin->SetGridOutputDir("output_pi01");
   
-  plugin->AddIncludePath ("-I. -I$ROOTSYS/include -I$ALICE_ROOT -I$ALICE_ROOT/include -I$ALICE_PHYSICS/include");
-  plugin->SetAdditionalLibs("AliAnalysisTaskEMCALPi0GammaCorr.cxx AliAnalysisTaskEMCALPi0GammaCorr.h");
-  plugin->SetAnalysisSource("AliAnalysisTaskEMCALPi0GammaCorr.cxx");  
+  //plugin->AddIncludePath ("-I. -I$ROOTSYS/include -I$ALICE_ROOT -I$ALICE_ROOT/include -I$ALICE_PHYSICS/include");//noot needed.
+  //plugin->SetAdditionalLibs("$ALICE_PHYSICS/PWGGA/EMCALTasks/AliAnalysisTaskEMCALPi0GammaCorr.cxx $ALICE_PHYSICS/PWGGA/EMCALTasks/AliAnalysisTaskEMCALPi0GammaCorr.h"); //commented because crashed when using aliphysics
+  //plugin->SetAnalysisSource("$ALICE_PHYSICS/PWGGA/EMCALTasks/AliAnalysisTaskEMCALPi0GammaCorr.cxx");  //commented because crashed when using aliphysics
   
   plugin->SetSplitMaxInputFileNumber(40);
   plugin->SetExecutable("myTask.sh");
@@ -127,7 +122,7 @@ void runGrid()
 
   mgr->SetGridHandler(plugin);
 
-  Bool_t isTesting = kFALSE;
+  Bool_t isTesting = kTRUE;
   if(isTesting){
     std::cout<< "Running Grid Test " << std::endl;
     plugin->SetNtestFiles(1);

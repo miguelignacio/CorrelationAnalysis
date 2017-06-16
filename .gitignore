@@ -1,3 +1,10 @@
 *.d
 *.so
 *~
+*.xml
+*.root
+*myTask*
+*.sh
+*.jdl
+*.pcm
+*.png

@@ -1,4 +1,4 @@
-configurationName: "EMCal Sample Configuration"
+configurationName: "pi/gamma-correlations config"
 pass: "pass4"
 CellEnergy:
     enabled: true
@@ -8,8 +8,6 @@ CellTimeCalib:
     enabled: true
 Clusterizer:
     enabled: true
-    # Note: These are the same values as in the defualt configuration, but these often need to be set and
-    #       included here as a reminder.
     clusterizer: kClusterizerv2
     cellTimeMin: -1
     cellTimeMax: +1
