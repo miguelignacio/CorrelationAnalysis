@@ -4,46 +4,36 @@ class AliVEvent;
 class AliAnalysisManager;
 class AliPhysicsSelectionTask;
 class AliCentralitySelectionTask;
-class AliEmcalSetupTask;
+class AliEmcalCorrectionTask;
 class AliAnalysisGrid;
+
+
+void LoadMacros();
 
 void runGrid()
 {
-
   Bool_t isLocal = kFALSE;
   //Setting track cuts
   Printf("Default track cut period set to: %s", AliTrackContainer::GetDefTrackCutsPeriod().Data());
   AliTrackContainer::SetDefTrackCutsPeriod("lhc13d"); 
-  //since we will compile a class, tell root where to look for headers
-  //std::cout <<"Proceesing lines to include $ROOTSYS/include, $ALICE_ROOT/include and $ALICE_PHYSICS/include" << std::endl;
-  //gROOT->ProcessLine(".include $ROOTSYS/include");
-  //gROOT->ProcessLine(".include $ALICE_ROOT/include");
-  //gROOT->ProcessLine(".include $ALICE_PHYSICS/include");
   
+  LoadMacros();
   ///Create the analysis manager
   AliAnalysisManager *mgr = new AliAnalysisManager();
-  std::cout << "---***--- Adding ESDHandler" << std::endl;
-  gROOT->LoadMacro("$ALICE_ROOT/ANALYSIS/macros/train/AddESDHandler.C");
   AliESDInputHandler* pESDHandler = AddESDHandler();
     
   //////Physics selection
-  std::cout << "---***--- Adding AliPhysicsSelection" << std::endl;
-  gROOT->LoadMacro("$ALICE_PHYSICS/OADB/macros/AddTaskPhysicsSelection.C");
   AliPhysicsSelectionTask *pPhysSelTask = AddTaskPhysicsSelection();  
   ////Centrality (only works on ESD)
-  std::cout << "---***--- Adding Centrality" << std::endl;
-  gROOT->LoadMacro("$ALICE_PHYSICS/OADB/macros/AddTaskCentrality.C");
   AliCentralitySelectionTask *pCentralityTask = AddTaskCentrality(kTRUE);
   pCentralityTask->SelectCollisionCandidates(AliVEvent::kAny);
   ////CDB ////////////////////////////////////////////////////////////
-  std::cout << "---***--- Adding TaskCDBConnect" << std::endl;
-  gROOT->LoadMacro("$ALICE_PHYSICS/PWGPP/PilotTrain/AddTaskCDBconnect.C");
   AliTaskCDBconnect *taskCDB = AddTaskCDBconnect();
   taskCDB->SetFallBackToRaw(kTRUE);
 
   const UInt_t  kPhysSel       = AliVEvent::kEMCEGA + AliVEvent::kAnyINT;
-  std::cout <<" Loading AddTaskEmcalCorrectionTask.C" << std::endl;
-  gROOT->LoadMacro("$ALICE_PHYSICS/PWG/EMCAL/macros/AddTaskEmcalCorrectionTask.C");
+  //std::cout <<" Loading AddTaskEmcalCorrectionTask.C" << std::endl;
+  //gROOT->LoadMacro("$ALICE_PHYSICS/PWG/EMCAL/macros/AddTaskEmcalCorrectionTask.C");
   AliEmcalCorrectionTask * correctionTask = AliEmcalCorrectionTask::AddTaskEmcalCorrectionTask();
   correctionTask->SelectCollisionCandidates(kPhysSel);
   correctionTask->SetForceBeamType(AliAnalysisTaskEmcal::kpA);
@@ -51,8 +41,8 @@ void runGrid()
   correctionTask->Initialize();
   //////////////////////////////////////////////////////////////////
   
-  std::cout << " About to load AddTaskEMCALPi0GammaCorr macro " << std::endl;
-  gROOT->LoadMacro("$ALICE_PHYSICS/PWGGA/EMCALTasks/macros/AddTaskEMCALPi0GammaCorr.C");
+  //std::cout << " About to load AddTaskEMCALPi0GammaCorr macro " << std::endl;
+  //gROOT->LoadMacro("$ALICE_PHYSICS/PWGGA/EMCALTasks/macros/AddTaskEMCALPi0GammaCorr.C");
   //create an instance of your analysis task
   AliAnalysisTaskEMCALPi0GammaCorr *ptr = AddTaskEMCALPi0GammaCorr();
 
@@ -135,3 +125,13 @@ void runGrid()
   return;
 }
 
+void LoadMacros()
+{
+  // Aliroot macros
+  //  std::cout << "---***--- Adding ESDHandler" << std::endl;
+  gROOT->LoadMacro("$ALICE_ROOT/ANALYSIS/macros/train/AddESDHandler.C");
+  gROOT->LoadMacro("$ALICE_PHYSICS/OADB/macros/AddTaskCentrality.C");
+  gROOT->LoadMacro("$ALICE_PHYSICS/OADB/macros/AddTaskPhysicsSelection.C");
+  gROOT->LoadMacro("$ALICE_PHYSICS/PWGPP/PilotTrain/AddTaskCDBconnect.C");
+  gROOT->LoadMacro("$ALICE_PHYSICS/PWG/EMCAL/macros/AddTaskEMCALPi0GammaCorr.C");
+}
