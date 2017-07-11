@@ -65,6 +65,11 @@ const int axis_Cluster_Pt   = 3;
 const int axis_Cluster_Eta  = 4;
 const int axis_Cluster_Phi  = 5;
 
+const int axis_Cluster_Ncells = 7;
+const int axis_Cluster_DisToBorder = 10;
+const int axis_Cluster_DisToBad = 11;
+
+
 //fit function
 double fitf(Double_t *x,Double_t *par) {
   double arg1 = 0;
@@ -643,23 +648,96 @@ void PlotPionHistograms(THnSparse* h_Pion){
 
 void PlotClusterHistograms(THnSparse* h){
     ////
-  
+    //SetCut(h, axis_Cluster_Ncells, 3.0, 100);
+    
     auto c = new TCanvas();  
-    h->GetAxis(axis_Cluster_Pt)->SetTitle("Cluster p_{T} [GeV]");
+    h->GetAxis(axis_Cluster_Pt)->SetTitle("Cluster E_{T} [GeV]");
     h->GetAxis(axis_Cluster_Phi)->SetTitle("Cluster #phi [rad]");
     h->GetAxis(axis_Cluster_Eta)->SetTitle("Cluster #eta");   
+    h->GetAxis(axis_Cluster_Ncells)->SetTitle("Number of cells in cluster");   
     
+    //Plotting ET distribution
     auto h_1D = h->Projection(axis_Cluster_Pt);
     h_1D->Draw("hist");
+    gPad->SetLogy(kTRUE);
     h_1D->GetYaxis()->SetTitle("entries");
     Guardar(c, "Clusters_All" );
+    gPad->SetLogy(kFALSE);
     c->Clear();
 
-    SetCut(h, axis_Cluster_Pt, 6, 25.0); // 
-    SetCut(h , axis_Cluster_Phi, 0, TMath::Pi());
+    SetCut(h,  axis_Cluster_Pt, 8, 100); // Cut Et
+    SetCut(h , axis_Cluster_Phi, 1.2, TMath::Pi()); 
     auto h_2D  = h->Projection(axis_Cluster_Eta, axis_Cluster_Phi);
+    
+    h_2D->RebinY(3);
     h_2D->Draw("COLZ");
-    Guardar(c, "Cluster_EtaPhi");
+    myText(0.25,0.85,kBlack, "E_{T}> 8 GeV");
+    Guardar(c, "Cluster_EtaPhi_NoCut");
+    c->Clear();
+   
+    //Cutting on distance-to-border
+    for (int n=1; n<4; n++){
+        SetCut(h, axis_Cluster_DisToBorder, 1.0*n, 6.0);
+        h_2D  = h->Projection(axis_Cluster_Eta, axis_Cluster_Phi);
+        h_2D->RebinY(3);
+        h_2D->Draw("COLZ");
+        myText(0.25,0.85,kBlack, "E_{T}> 8 GeV");
+        myText(0.35,0.92,kBlack, Form("%i cell away from border", n));
+        Guardar(c, Form("Cluster_EtaPhi_%i_fromBorder", n));
+        c->Clear();
+    }
+   
+   
+   
+   
+    //Projecting phi
+    h_1D = h->Projection(axis_Cluster_Phi);
+    h_1D->Draw();
+    std::cout << " BinWidth Phi " << h_1D->GetBinWidth(1) << "rads" << std::endl;
+    Guardar(c, "Cluster_Phi");
+    c->Clear();
+    
+    h_1D = h->Projection(axis_Cluster_Eta);
+    h_1D->Draw();
+    h_1D->Rebin(3);
+    std::cout << " BinWidth Eta " << h_1D->GetBinWidth(1) << std::endl;
+    Guardar(c, "Cluster_Eta");
+    c->Clear();
+
+    //Number of cells in the cluster: 
+    h_1D = h->Projection(axis_Cluster_Ncells); 
+    h_1D->Draw("hist");
+    Guardar(c, "Ncells");
+    c->Clear();
+     
+    //Number of cells vs Et
+    h_2D  = h->Projection(axis_Cluster_Ncells, axis_Cluster_Pt);
+    h_2D->Draw("COLZ");
+    //gPad->SetLogx(kTRUE);
+    Guardar(c, "NcellsVsEt");
+    gPad->SetLogx(kFALSE);
+    c->Clear();
+    
+    //Cutting on Ncells
+    SetCut(h, axis_Cluster_Ncells, 3.0, 100);
+    
+    //Distance to bad channel 
+    h_1D = h->Projection(axis_Cluster_DisToBad);
+    h_1D->Draw("hist");
+    Guardar(c, "DistanceToBad");
+    c->Clear();
+    //Cutting on distance-to-bad-channel, plotting 2D eta--phi distribution
+    for (int n=1; n<4; n++){
+        SetCut(h, axis_Cluster_DisToBad, 1.0*n, 9.0);
+        h_2D  = h->Projection(axis_Cluster_Eta, axis_Cluster_Phi);
+        h_2D->RebinY(3);
+        h_2D->Draw("COLZ");
+        myText(0.25,0.85,kBlack, "E_{T}> 8 GeV");
+        myText(0.35,0.92,kBlack, Form("%i cell away from bad channel", n));
+        Guardar(c, Form("Cluster_EtaPhi_%i_fromBadChannel", n));
+        c->Clear();
+    }
+    
     c->Close();
     delete c;
     delete h_1D;
@@ -671,7 +749,7 @@ void PlotClusterHistograms(THnSparse* h){
 void Plotting(){
     SetAtlasStyle();
 
-    TFile* fIn = new TFile("THnSparses_060717.root","READ");
+    TFile* fIn = new TFile("THnSparses_070517.root","READ");
     fIn->Print();
     
     //Getting the different THnSparses
@@ -692,7 +770,9 @@ void Plotting(){
     THnSparse* h_Track = 0;
     fIn->GetObject("h_Track", h_Track);
     
-  
+    PlotClusterHistograms(h_Cluster);
+}
+    /*
   
       //Define bin edges for pT, xi and Zt intervals.
     std::vector<double> bins_trackpt;
@@ -728,22 +808,22 @@ void Plotting(){
     //Pt cuts:
     SetCut(h_PionTrack,  axis_corr_triggerpT, 8.0 ,16.0);
     SetCut(h_PionTrack_Mixed,  axis_corr_triggerpT, 8.0 ,16.0);
-    PlotCorrelation(h_PionTrack, h_PionTrack_Mixed,axis_corr_trackpT, bins_trackpt);
+    //PlotCorrelation(h_PionTrack, h_PionTrack_Mixed,axis_corr_trackpT, bins_trackpt);
      
     //Perform correlation for pions with pT between 8 and 16 GeV. 
 
      
-    h = h_ClusterTrack->Projection(axis_Clustercorr_M02);
-    h->SetTitle("; Cluster #lambda_{02}; entries");
-    h->Draw("hist");
-    Guardar(c, "Lambda02Corr");
-    c->Clear();
-    c->Close();
+    //h = h_ClusterTrack->Projection(axis_Clustercorr_M02);
+    //h->SetTitle("; Cluster #lambda_{02}; entries");
+    //h->Draw("hist");
+    //Guardar(c, "Lambda02Corr");
+    //c->Clear();
+    //c->Close();
     
     SetCut(h_ClusterTrack,  axis_Clustercorr_M02, 0.1, 0.4 );
     SetCut(h_ClusterTrack_Mixed,  axis_Clustercorr_M02, 0.1, 0.4 );
    // PlotCorrelation(h_ClusterTrack, h_ClusterTrack_Mixed, axis_corr_trackpT, bins_trackpt);
     
     PlotClusterHistograms(h_Cluster);
-    PlotPionHistograms(h_Pion);
-}
+    //PlotPionHistograms(h_Pion);
+}*/
