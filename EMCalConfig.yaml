@@ -1,5 +1,19 @@
 configurationName: "pi/gamma-correlations config"
 pass: "pass4"
+
+inputObjects:  
+    trackContainers:
+    defaultTrackContainer:
+        branchName: "usedefault"
+    defaultTrackContainer_1:
+        branchName: "ForMatching"
+        minPt: 0.15
+        trackFilterType: kHybridTracks 
+    defaultTrackContainer_2:
+        branchName: "ForCorrelation"
+        minPt: 0.15
+        trackFilterType: kTPCOnlyTracks
+
 CellEnergy:
     enabled: true
 CellBadChannel:
@@ -9,18 +23,25 @@ CellTimeCalib:
 Clusterizer:
     enabled: true
     clusterizer: kClusterizerv2
+    recalDistToBadChannels: true 
     cellTimeMin: -1
     cellTimeMax: +1
     clusterTimeLength: 1
 ClusterExotics:
     enabled: true
-    createHistos: true
+    createHistos: false
 ClusterNonLinearity:
     enabled: true
-    createHistos: true
+    createHistos: false
 ClusterTrackMatcher:
     enabled: true
-    createHistos: true
+    createHistos: false
+    maxDist: 0.1
+    useDCA: true
+    usePIDmass: true
+    trackContainersNames:           
+        - defaultTrackContainer_2   
+
 ClusterHadronicCorrection:
     enabled: false
     createHistos: false

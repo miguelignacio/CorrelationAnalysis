@@ -15,59 +15,57 @@
 #include "/root/atlasstyle-00-03-05/AtlasLabels.C"
 
 //variables of hPion
-const int axis_pion_Cen  = 0;
-const int axis_pion_Zvtx = 1; 
-const int axis_pionMass  = 2;
-const int axis_pionPt    = 3;
-const int axis_pionEta   = 4;
-const int axis_pionPhi   = 5;
-const int axis_pionE     = 6;
-const int axis_pion_PhE_1 = 7;
-const int axis_pion_PhE_2 = 8;
-const int axis_pion_asymmetry = 9;
-const int axis_pion_PhPt_1 = 10;
-const int axis_pion_PhPt_2 = 11;
-const int axis_pion_PhEta_1 = 12;
-const int axis_pion_PhEta_2 = 13;
-const int axis_pion_PhPhi_1 = 14;
-const int axis_pion_PhPhi_2 = 15;
-const int axis_pionOpeningAngle =16;
-const int axis_pion_PhM02_1 = 17;
-const int axis_pion_PhM02_2 = 18;
+const int axis_pion_Cen         = 0;
+const int axis_pion_Zvtx        = 1; 
+const int axis_pionMass         = 2;
+const int axis_pionPt           = 3;
+const int axis_pionRapidity     = 4;
+const int axis_pion_asymmetry   = 5;
+const int axis_pion_PhPt_1      = 6;
+const int axis_pion_PhPt_2      = 7;
+const int axis_pionOpeningAngle = 8;
+const int axis_pion_PhM02_1     = 9;
+const int axis_pion_PhM02_2     = 10;
+const int axis_pion_PhdR_1      = 11;
+const int axis_pion_PhdR_2      = 12;
 
-//variables of hPionTrack
-const int axis_corr_centrality = 0;
-const int axis_corr_zvertex    = 1;
+//variables common to hPionTrack and hpionCluster
+const int axis_corr_centrality  = 0;
+const int axis_corr_zvertex     = 1;
 const int axis_corr_triggerpT   = 2; 
-const int axis_corr_pionE      = 3;
-const int axis_corr_y          = 4;
-const int axis_corr_eta        = 5;
-const int axis_corr_phi        = 6;
-const int axis_corr_trackpT    = 7;
-const int axis_corr_trackEta   = 8;
-const int axis_corr_trackPhi   = 9;
-const int axis_corr_dphi       = 10;
-const int axis_corr_deta       = 11;
-const int axis_corr_dabseta    = 12;
-const int axis_corr_zt         = 13;
-const int axis_corr_xi         = 14;
-//variables non-comon to 
-const int axis_corr_mass    = 15;
-const int axis_Clustercorr_M02 = 15;
-
-
+const int axis_corr_trackpT     = 3;
+const int axis_corr_dphi        = 4;
+const int axis_corr_deta        = 5;
+const int axis_corr_zt          = 6;
+const int axis_corr_xi          = 7;
+//non-shared, (Pion)
+const int axis_corr_mass        = 8;
+const int axis_corr_photon1Pt   = 9;
+const int axis_corr_photon2Pt   = 10;
+const int axis_corr_photon1M02  = 11;
+const int axis_corr_photon2M02  = 12;
+//non-shared (Cluster)
+const int axis_corr_M02     = 8;
+const int axis_corr_dR      = 9;
 
 //variables of h_Cluster
-const int axis_Cluster_Cen  = 0;
-const int axis_Cluster_Zvtx = 1; 
-const int axis_Cluster_E    = 2;
+const int axis_Cluster_RunNumber = 0;
+const int axis_Cluster_Cen  = 1;
+const int axis_Cluster_Zvtx = 2; 
 const int axis_Cluster_Pt   = 3;
 const int axis_Cluster_Eta  = 4;
 const int axis_Cluster_Phi  = 5;
-
+const int axis_Cluster_M02  = 6;
 const int axis_Cluster_Ncells = 7;
-const int axis_Cluster_DisToBorder = 10;
-const int axis_Cluster_DisToBad = 11;
+const int axis_Cluster_Nmaxima = 8;
+const int axis_Cluster_DisToBorder = 9;
+const int axis_Cluster_DisToBad = 10;
+const int axis_Cluster_dR = 11;
+const int axis_Cluster_deta = 12;
+const int axis_Cluster_dphi = 13;
+const int axis_Cluster_Exoticity = 14;
+const int axis_Cluster_time = 15;
+const int axis_Cluster_nTracks =16;
 
 
 //fit function
@@ -99,15 +97,15 @@ void SetCut(THnSparse* h, const int axis, double min, double max){
     return;
 }
 
-void Guardar(TCanvas* c, char* name){
+void Guardar(TCanvas* c, TString name){
     
-    c->SaveAs(Form("PDFOUTPUT/%s.pdf",name));
-    c->SaveAs(Form("PNGOUTPUT/%s.png",name));
+  c->SaveAs("PDFOUTPUT/"+name+".pdf");
+  c->SaveAs("PNGOUTPUT/"+name+".png");
     
 }
 
 
-void Looping(THnSparse* h, THnSparse* h_mixed, const int axisNumber, std::vector<double> bins, const char* name)
+void Looping(THnSparse* h, THnSparse* h_mixed, const int axisNumber, std::vector<double> bins, const char* name, TMultiGraph& multi)
 {   
    
     TH2F* h_dphi_deta = 0x0;
@@ -317,7 +315,7 @@ void Looping(THnSparse* h, THnSparse* h_mixed, const int axisNumber, std::vector
         }
         
         std::cout << " FIT GAUSS + p0" << std::endl;
-        TF1 *f = new TF1("f",GaussP0,-1.5,1.5,3);
+        TF1 *f = new TF1("f",GaussP0,-1.0,1.0,3);
         f->SetLineColor(kRed);
         f->SetLineWidth(2.0);
         f->SetParameters(100, 0.5, 3000);
@@ -358,11 +356,11 @@ void Looping(THnSparse* h, THnSparse* h_mixed, const int axisNumber, std::vector
     g_yieldnear->SetLineColor(kAzure-3);
     
     
-    TMultiGraph* multi = new TMultiGraph();
-    multi->Add(g_yieldnear);
-    multi->Add(g_yieldfar);
+    //TMultiGraph* multi = new TMultiGraph();
+    multi.Add(g_yieldnear);
+    multi.Add(g_yieldfar);
 
-    multi->SetMinimum(0);
+    multi.SetMinimum(0);
     
     TString title;
     if(name=="xi"){
@@ -370,16 +368,20 @@ void Looping(THnSparse* h, THnSparse* h_mixed, const int axisNumber, std::vector
     }
     
     c->Clear();
-    multi->Draw("AP");
-    multi->GetXaxis()->SetNdivisions(6);
-    multi->GetYaxis()->SetNdivisions(5);
+    multi.Draw("AP");
+    multi.GetXaxis()->SetNdivisions(6);
+    multi.GetYaxis()->SetNdivisions(5);
     if(name=="xi"){
-        multi->GetXaxis()->SetTitle("#xi");
-        multi->GetYaxis()->SetTitle("dN/d#xi");
+        multi.GetXaxis()->SetTitle("#xi");
+        multi.GetYaxis()->SetTitle("dN/d#xi");
     }
     else if(name=="pt"){
-        multi->GetXaxis()->SetTitle("p^{h}_{T} [GeV]");
-        multi->GetYaxis()->SetTitle("dN/dp_{T}");
+        multi.GetXaxis()->SetTitle("p^{h}_{T} [GeV]");
+        multi.GetYaxis()->SetTitle("dN/dp_{T}");
+    }
+    else if(name=="zt"){
+        multi.GetXaxis()->SetTitle("Z_{T}");
+        multi.GetYaxis()->SetTitle("dN/dz_{T}");
     }
     
     myText(.65,.85,kAzure-3, "Near side");
@@ -398,22 +400,17 @@ void PlotCorrelation(THnSparse* h, THnSparse* h_mixed, double axisAssoc, std::ve
     //Write this in such a way that it is agnostic on whether you work on pion , cluster , merged cluster.
     auto c = new TCanvas();
     
-    ////////////SELECTION//////////////////////////
-    //Pt trigger cut
-    //SetCut(h, axisTriggerPt, ptmin, ptmax);
-    //SetCut(h_mixed, axisTriggerPt, ptmin, ptmax); 
-    ////////////////////////////////////////////////
 
     //Assoc variable (pT, xi or zt)
     auto h_1D =  h->Projection(axisAssoc);
     gPad->SetLogy(kTRUE);
-    gPad->SetLogx(kTRUE);
+    //    gPad->SetLogx(kTRUE);
     h_1D->Draw("hist");
-    h_1D->SetTitle("; p_{T} [GeV]; entries");
+    h_1D->SetTitle("; Zt; entries");
     h_1D = h_mixed->Projection(axisAssoc);
     h_1D->SetLineColor(2);
     h_1D->Draw("histsame");
-    Guardar(c, "Track_pt");
+    Guardar(c, "Track_zt");
     c->Clear();
     
     //cumulative track pt
@@ -422,17 +419,20 @@ void PlotCorrelation(THnSparse* h, THnSparse* h_mixed, double axisAssoc, std::ve
     auto h_cumulative = h_1D->GetCumulative();
     h_cumulative->Draw("hist");
     gPad->SetLogy(kFALSE);
-    h_cumulative->SetTitle("; track p_{T} [GeV]; cumulative prob");
+    h_cumulative->SetTitle("; zt; cumulative prob");
     h_1D =  h_mixed->Projection(axisAssoc);
     h_1D->Scale(1.0/h_1D->Integral());
     h_cumulative = h_1D->GetCumulative();
     h_cumulative->SetLineColor(kRed);
     h_cumulative->Draw("hist same");
-    Guardar(c, "Track_pt_cumulative");
+    Guardar(c, "Track_zt_cumulative");
     //Loop over pT, xi or Zt bins and perform analysis.
     
-    Looping(h, h_mixed, axis_corr_trackpT, bins, "pt");
+    TMultiGraph multi;
+    Looping(h, h_mixed, axisAssoc, bins, "zt", multi);
     c->Close();
+   
+    multi.Print();
     delete c;
     return;
 }
@@ -485,8 +485,8 @@ void PlotPionHistograms(THnSparse* h_Pion){
     c->Clear();
     
     //lambda vs pT photon 1
-    SetCut(h_Pion, axis_pion_PhE_1, 0.0, 15.0);
-    h_2D = h_Pion->Projection( axis_pion_PhE_1, axis_pion_PhM02_1);
+    SetCut(h_Pion, axis_pion_PhPt_1, 0.0, 15.0);
+    h_2D = h_Pion->Projection( axis_pion_PhPt_1, axis_pion_PhM02_1);
     h_2D->Draw("colz");
     h_2D->GetZaxis()->SetNdivisions(3);
     h_2D->GetYaxis()->SetNdivisions(6);
@@ -494,8 +494,8 @@ void PlotPionHistograms(THnSparse* h_Pion){
     Guardar(c, "2D_Ph1Lambda_pT");
     c->Clear();
     
-    SetCut(h_Pion,axis_pion_PhE_2, 0.0, 15.0);
-    auto temp = h_Pion->Projection( axis_pion_PhE_2, axis_pion_PhM02_2);
+    SetCut(h_Pion,axis_pion_PhPt_2, 0.0, 15.0);
+    auto temp = h_Pion->Projection( axis_pion_PhPt_2, axis_pion_PhM02_2);
     temp->Draw("colz");
     temp->GetZaxis()->SetNdivisions(3);
     temp->GetYaxis()->SetNdivisions(6);
@@ -612,7 +612,7 @@ void PlotPionHistograms(THnSparse* h_Pion){
     c->Clear();
     
     //Energy photon 1 vs photon2;
-    h_2D = h_Pion->Projection( axis_pion_PhE_1   , axis_pion_PhE_2);
+    h_2D = h_Pion->Projection( axis_pion_PhPt_1   , axis_pion_PhPt_2);
     h_2D->Draw("colz");
     h_2D->SetTitle("; #gamma_{1} Energy [GeV]; #gamma_{2} Energy [GeV]");
     h_2D->GetXaxis()->SetRangeUser(0,15.0);
@@ -622,25 +622,12 @@ void PlotPionHistograms(THnSparse* h_Pion){
     c->Clear();
     
     //Pion eta
-    h_1D = h_Pion->Projection(axis_pionEta);
+    h_1D = h_Pion->Projection(axis_pionRapidity);
     h_1D->Draw("PL");
     h_1D->Sumw2();
-    Guardar(c, "PionEta");
+    Guardar(c, "PionRapidity");
     c->Clear();
     
-    //Pion Phi
-    h_1D = h_Pion->Projection(axis_pionPhi);
-    h_1D->Draw();
-    h_1D->Sumw2();
-    Guardar(c, "PionPhi");
-    c->Clear();
-    
-    //Pion Eta-phi
-    h_2D =  h_Pion->Projection(axis_pionEta,axis_pionPhi);
-    h_2D->Draw("COLZ");
-    Guardar(c, "2D_PionEtaPhi");
-    Guardar(c, "2D_PionEtaPhi");
-    c->Clear();
     
     c->Close();
     delete c;
@@ -749,7 +736,7 @@ void PlotClusterHistograms(THnSparse* h){
 void Plotting(){
     SetAtlasStyle();
 
-    TFile* fIn = new TFile("THnSparses_070517.root","READ");
+    TFile* fIn = new TFile("THnSparses_072417.root","READ");
     fIn->Print();
     
     //Getting the different THnSparses
@@ -770,9 +757,44 @@ void Plotting(){
     THnSparse* h_Track = 0;
     fIn->GetObject("h_Track", h_Track);
     
-    PlotClusterHistograms(h_Cluster);
+    std::vector<double> bins_trackpt;
+    bins_trackpt.push_back(1.0);
+    bins_trackpt.push_back(2.0);
+    bins_trackpt.push_back(4.0);
+    bins_trackpt.push_back(10.0);
+
+    std::vector<double> bins_trackzt;
+    bins_trackzt.push_back(0.0);
+    bins_trackzt.push_back(0.2);
+    bins_trackzt.push_back(0.5);
+
+    //Cutting the pion-h THnSparse   
+    SetCut(h_PionTrack, axis_corr_photon1M02, 0.0, 0.4);
+    SetCut(h_PionTrack, axis_corr_photon2M02, 0.0, 0.4);
+    SetCut(h_PionTrack_Mixed, axis_corr_photon1M02, 0.0, 0.4);
+    SetCut(h_PionTrack_Mixed, axis_corr_photon2M02, 0.0, 0.4);
+
+    //Cut on pT of pion and mass. 
+    SetCut(h_PionTrack,  axis_corr_triggerpT, 8.0 ,15.0);
+    SetCut(h_PionTrack_Mixed,  axis_corr_triggerpT, 8.0 ,15.0);
+    SetCut(h_PionTrack, axis_corr_mass, 0.100,0.180);
+    SetCut(h_PionTrack_Mixed, axis_corr_mass, 0.100, 0.180);
+
+    //Cutting Cluster-track: 
+   
+    SetCut(h_ClusterTrack, axis_corr_triggerpT, 15.0, 50.0); 
+    SetCut(h_ClusterTrack_Mixed, axis_corr_triggerpT, 15.0, 50.0);
+    SetCut(h_ClusterTrack, axis_corr_M02, 0.0, 0.4);
+    SetCut(h_ClusterTrack_Mixed, axis_corr_M02, 0.0, 0.4);
+    SetCut(h_ClusterTrack, axis_corr_dR, 0.02, 100);
+    SetCut(h_ClusterTrack_Mixed, axis_corr_dR, 0.02, 100);
+   
+    //PlotCorrelation(h_PionTrack, h_PionTrack_Mixed,axis_corr_zt, bins_trackzt);
+    PlotCorrelation(h_ClusterTrack, h_ClusterTrack_Mixed, axis_corr_zt, bins_trackzt);
+
+    //PlotClusterHistograms(h_Cluster);
 }
-    /*
+   /*
   
       //Define bin edges for pT, xi and Zt intervals.
     std::vector<double> bins_trackpt;
@@ -797,7 +819,7 @@ void Plotting(){
     auto c = new TCanvas();
     auto h = h_PionTrack->Projection(axis_corr_mass);
     h->SetTitle("; m_{#gamma#gamma} [GeV]; entries");
-    h->Draw("hist");
+[6~    h->Draw("hist");
     Guardar(c, "MassCorr");
     c->Clear();
     
