@@ -5,7 +5,9 @@
 
 
 void Reformat(){
-    TFile* fIn = new TFile("ROOTOUTPUT/Results_072417_Train.root","READ");
+
+    TString name = "080117_MC.root";
+    TFile* fIn = new TFile("ROOTOUTPUT/Results_"+name,"READ");
     fIn->Print();
     AliEmcalList* list = (AliEmcalList*)fIn->Get("AliAnalysisTask_histos");
     THnSparse* h_Cluster = (THnSparse*)list->FindObject("h_Cluster");
@@ -16,7 +18,7 @@ void Reformat(){
     THnSparse* h_PionTrack = (THnSparse*)list->FindObject("h_Pi0Track");
     THnSparse* h_PionTrack_Mixed = (THnSparse*)list->FindObject("h_Pi0Track_Mixed");
  
-    TFile* fOut = new TFile("THnSparses_072417.root","RECREATE");
+    TFile* fOut = new TFile("THnSparses_"+name,"RECREATE");
     h_Cluster->Write("h_Cluster");
     h_ClusterTrack->Write("h_ClusterTrack");
     h_ClusterTrack_Mixed->Write("h_ClusterTrack_Mixed");
