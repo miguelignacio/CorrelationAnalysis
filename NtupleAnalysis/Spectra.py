@@ -10,7 +10,7 @@ from ROOT import TLatex
 SetAtlasStyle()
 
 #fMC = ROOT.TFile("fout_16c3b.root")
-fMC = ROOT.TFile("fout.root")
+fMC = ROOT.TFile("fout_MC.root")
 #fMC = ROOT.TFile("fout_MCGamma.root")
 fMC.Print()
 eff_NN = fMC.Get("eff_NN_bin")
@@ -130,15 +130,19 @@ ROOT.gPad.SetLogy(0)
 hstack = {}
 hstack["NN"] = []
 hstack["Lambda"] = []
-
+hstack["b5x5"] = []
 
 h = {}
 h["NN"] = {}
 h["Lambda"] = {}
+h["b5x5"] = {}
+
 h["NN"]["data"] = []
 h["NN"]["MC"]   = []
 h["Lambda"]["data"] = []
 h["Lambda"]["MC"]   = []
+h["b5x5"]["data"] = []
+h["b5x5"]["MC"]   = []
 
 colors = [1,2,4,ROOT.kGreen+2,ROOT.kOrange+2,8,9,12] #[2,4,6,33,25]
 tags = [ "", "#pi^{0} 2 showers", "#pi^{0} 1 shower", "#eta BKG", "Other BKG"]
@@ -148,11 +152,12 @@ label = Legend("")
 limits = {}
 limits["NN"] = [32,40]
 limits["Lambda"] = [8,40]
+limits["b5x5"]  = [8,40]
 
-ptbins = [8., 10.0, 12.0, 14.0, 16.0,18.0,20.0,22.0,24.0,26.0,28.0]
+ptbins = [10.0, 12.0, 14.0, 16.0,18.0,20.0,22.0,24.0,26.0,28.0]
 
 
-for var in ["NN","Lambda"]:
+for var in ["NN","Lambda","b5x5"]:
     for ipt in range(len(ptbins)-1): 
         print ipt
 
@@ -182,10 +187,11 @@ for var in ["NN","Lambda"]:
 co = {}
 co["NN"] =  2
 co["Lambda"] = 4
+co["b5x5"] =4
 
 
 
-for var in ["NN","Lambda"]:
+for var in ["NN","Lambda","b5x5"]:
     for ipt in range(len(ptbins)-1):
         h[var]["MC"][ipt].Scale(h[var]["data"][ipt].Integral(limits[var][0],limits[var][1])/h[var]["MC"][ipt].Integral(limits[var][0],limits[var][1]))
         c.Clear()
@@ -205,7 +211,7 @@ for var in ["NN","Lambda"]:
 
 
 
-for var in ["NN","Lambda"]:
+for var in ["NN","Lambda","b5x5"]:
     for ipt in range(len(ptbins)-1):
     
         hstack[var][ipt].Draw("hist")
