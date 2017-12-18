@@ -7,6 +7,8 @@
 #include <TCanvas.h>
 #include <TStyle.h>
 #include <TH2D.h>
+#include <TEfficiency.h>
+#include <TGraphAsymmErrors.h>
 #include <THStack.h>
 #include <TProfile.h>
 #include <iostream>
@@ -70,14 +72,17 @@ int main(int argc, char *argv[])
         TH1D num_purity_NN("num_purity_NN", "Numerator of purity with NN>0.85", nbins, 0,ptmax);
         TH1D num_purity_Lambda("num_purity_Lambda", "Numerator of purity with Lambda>0.27", nbins, 0,ptmax);
 
-        const int nptbins = 10; 
- 	const float ptbins[nptbins+1] = {8., 10.0, 12.0, 14.0, 16.0,18.0,20.0,22.0,25.0,30.0,40.0};
+        const int nptbins = 11; 
+ 	const float ptbins[nptbins+1] = {10.0, 12.0, 14.0, 16.0,18.0,20.0,22.0,24.0,26.0, 28.0,30.0,50.0};
 
         TH1F *hist[nptbins][5];
         THStack* hist_stack[nptbins];
         THStack* hist_stack_Lambda[nptbins];
+	THStack* hist_stack_b5x5[nptbins];
 
 	TH1F *hist_Lambda[nptbins][5];
+        TH1F *hist_b5x5[nptbins][5];
+
         TH2F *hist_Lambda_NN[nptbins][5];
 
 	char *histname = new char[30];
@@ -94,6 +99,11 @@ int main(int argc, char *argv[])
           hist_stack_Lambda[ipt] = new THStack(histname,"");
           hist_stack_Lambda[ipt]->SetTitle("; lambda_{0}^{2} ; entries");
 
+          sprintf(histname, "hstack_b5x5_ptbin%d",ipt);
+          hist_stack_b5x5[ipt] = new THStack(histname,"");
+          hist_stack_b5x5[ipt]->SetTitle("; b5x5 ; entries");
+
+
 	  for(int iclass=0; iclass<5; iclass++){
 	       sprintf(histname, "h_NN_ptbin%d_class%d",ipt, iclass);
 	       hist[ipt][iclass]=new TH1F(histname,"",40, 0.0 , 1.0);
@@ -108,9 +118,16 @@ int main(int argc, char *argv[])
 	       hist_Lambda[ipt][iclass]->SetLineWidth(2);
                         
 
+               sprintf(histname, "h_b5x5_ptbin%d_class%d",ipt,iclass);
+               hist_b5x5[ipt][iclass]=new TH1F(histname,"",40, 0.0 , 1.0);
+               hist_b5x5[ipt][iclass]->SetLineColor(colors[iclass]);
+               hist_b5x5[ipt][iclass]->SetFillColor(colors[iclass]);
+               hist_b5x5[ipt][iclass]->SetLineWidth(2);
+
 	       if(iclass>0){
                    hist_stack[ipt]->Add(hist[ipt][iclass]);
                    hist_stack_Lambda[ipt]->Add(hist_Lambda[ipt][iclass]);
+                   hist_stack_b5x5[ipt]->Add(hist_b5x5[ipt][iclass]);
 	       }
                sprintf(histname, "h_LambdaNN_ptbin%d_class%d",ipt,iclass);
                hist_Lambda_NN[ipt][iclass]=new TH2F(histname,"",40, 0.0 , 2.0,40,0,1.0);
@@ -141,7 +158,8 @@ int main(int argc, char *argv[])
         unsigned short cluster_mc_truth_index[NTRACK_MAX][32];
         Int_t cluster_ncell[NTRACK_MAX];
 
-        Float_t cluster_lambda_square[NTRACK_MAX][2];   
+        Float_t cluster_lambda_square[NTRACK_MAX][2];  
+        Float_t  cluster_b5x5_lin[NTRACK_MAX]; 
         //MC
 	unsigned int nmc_truth;
         Float_t mc_truth_pt[NTRACK_MAX];
@@ -155,6 +173,7 @@ int main(int argc, char *argv[])
         Float_t mc_truth_first_parent_pt[NTRACK_MAX];
 	Float_t mc_truth_first_parent_eta[NTRACK_MAX];
 	Float_t mc_truth_first_parent_phi[NTRACK_MAX];
+	UChar_t mc_truth_status[NTRACK_MAX];
  
         _tree_event->SetBranchAddress("primary_vertex", primary_vertex);
         _tree_event->SetBranchAddress("ntrack", &ntrack);
@@ -174,7 +193,8 @@ int main(int argc, char *argv[])
         _tree_event->SetBranchAddress("cluster_mc_truth_index", cluster_mc_truth_index);
         _tree_event->SetBranchAddress("cluster_lambda_square", cluster_lambda_square);
 	_tree_event->SetBranchAddress("cluster_ncell", cluster_ncell);
-	 
+	_tree_event->SetBranchAddress("cluster_b5x5_lin", cluster_b5x5_lin);
+
 	_tree_event->SetBranchAddress("nmc_truth",&nmc_truth);
 	_tree_event->SetBranchAddress("mc_truth_pt",mc_truth_pt);
 	_tree_event->SetBranchAddress("mc_truth_eta",mc_truth_eta);
@@ -186,12 +206,13 @@ int main(int argc, char *argv[])
 	_tree_event->SetBranchAddress("mc_truth_first_parent_pt", mc_truth_first_parent_pt);
         _tree_event->SetBranchAddress("mc_truth_first_parent_eta", mc_truth_first_parent_eta);
 	_tree_event->SetBranchAddress("mc_truth_first_parent_phi", mc_truth_first_parent_phi);
-	
+        _tree_event->SetBranchAddress("mc_truth_status",  mc_truth_status);
+ 	
  	std::cout << " Total Number of entries in TTree: " << _tree_event->GetEntries() << std::endl;
 
 
-	//for(Long64_t ievent = 0; ievent < _tree_event->GetEntries() ; ievent++){     
-        for(Long64_t ievent = 0; ievent < 1000 ; ievent++){
+	for(Long64_t ievent = 0; ievent < _tree_event->GetEntries() ; ievent++){     
+	// for(Long64_t ievent = 0; ievent < 1000 ; ievent++){
              _tree_event->GetEntry(ievent);
 	      for (ULong64_t n = 0; n < ncluster; n++) {
               //event selection
@@ -201,7 +222,7 @@ int main(int argc, char *argv[])
               //if(cluster_pt[n]>20) continue;
               if(TMath::Abs(cluster_eta[n])>0.6) continue;
               if(cluster_ncell[n]<3) continue; 
-              if(cluster_e_cross[n]/cluster_e[n]<0.03) continue;
+              if(cluster_e_cross[n]/cluster_e[n]<0.05) continue;
               
               //std::cout << " cluster pt " << cluster_pt[n] << " NN output " << cluster_s_nphoton[n][2] << std::endl;
               int nphotons_pi0 = 0;
@@ -214,8 +235,11 @@ int main(int argc, char *argv[])
 	      	{
 	        unsigned short index = cluster_mc_truth_index[n][counter];
               	if(index!=65535){
-		  if (mc_truth_first_parent_pdg_code[index]==22) continue;
-		  std::cout << "reco pt" << cluster_pt[n] << " true pt " << mc_truth_pt[index] << " pdgcode:" << mc_truth_pdg_code[index] << "  parent pdg:" << mc_truth_first_parent_pdg_code[index] << " first parent:" << mc_truth_first_parent_pt[index] << std::endl;
+		  //if (mc_truth_first_parent_pdg_code[index]==22) continue;
+		  // std::cout << "reco pt" << cluster_pt[n] << " true pt " << mc_truth_pt[index] << " pdgcode:" << mc_truth_pdg_code[index] << "  parent pdg:" << mc_truth_first_parent_pdg_code[index] << " first parent:" << mc_truth_first_parent_pt[index] << std::endl;
+                   
+
+
 	            if(mc_truth_pdg_code[index]==22){
 		        if(mc_truth_first_parent_pdg_code[index]==111 && index!=index_temp){
 		            nphotons_pi0 += 1;
@@ -235,12 +259,12 @@ int main(int argc, char *argv[])
 		}
 	      }//end loop on indices
 
-	      // std::cout << " truth photons from pi0 " << nphotons_pi0 << "; from eta " << nphotons_eta << " electrons from conv" << nelectrons_convertion << std::endl;
-              //std::cout << std::endl;
+	       //std::cout << " truth photons from pi0 " << nphotons_pi0 << "; from eta " << nphotons_eta << " electrons from conv" << nelectrons_convertion << std::endl;
+	       //std::cout << std::endl;
 
 
 	       //Fill numerator of purity
-	     if(nphotons_pi0==2){
+	     if(nphotons_pi0==2 || nphotons_pi0==1){
 	      if(cluster_s_nphoton[n][2]>0.85){
                   num_purity_NN.Fill(cluster_pt[n]);
                   eff_NN.Fill(cluster_pt[n]);
@@ -255,28 +279,36 @@ int main(int argc, char *argv[])
 	      if(cluster_pt[n]>ptbins[ipt] && cluster_pt[n] < ptbins[ipt+1]){
                 hist[ipt][0]->Fill(cluster_s_nphoton[n][2]);
                 hist_Lambda[ipt][0]->Fill(cluster_lambda_square[n][0]);
+                hist_b5x5[ipt][0]->Fill(cluster_b5x5_lin[n]);
                 hist_Lambda_NN[ipt][0]->Fill(cluster_lambda_square[n][0], cluster_s_nphoton[n][2]);
                 
                 //start filling different classes 
                 if(nphotons_pi0==1){
 		  hist[ipt][2]->Fill(cluster_s_nphoton[n][2]);
 		  hist_Lambda[ipt][2]->Fill(cluster_lambda_square[n][0]);
+                  hist_b5x5[ipt][2]->Fill(cluster_b5x5_lin[n]);
 		  hist_Lambda_NN[ipt][2]->Fill(cluster_lambda_square[n][0], cluster_s_nphoton[n][2]);
 
 		}
                 else if(nphotons_pi0==2){
 		  hist[ipt][1]->Fill(cluster_s_nphoton[n][2]);
                   hist_Lambda[ipt][1]->Fill(cluster_lambda_square[n][0]);
+		  hist_b5x5[ipt][1]->Fill(cluster_b5x5_lin[n]);
+
                   hist_Lambda_NN[ipt][1]->Fill(cluster_lambda_square[n][0], cluster_s_nphoton[n][2]);
 		}
                 else if(nphotons_eta>0){
 		  hist[ipt][3]->Fill(cluster_s_nphoton[n][2]);
                   hist_Lambda[ipt][3]->Fill(cluster_lambda_square[n][0]);
+		  hist_b5x5[ipt][3]->Fill(cluster_b5x5_lin[n]);
+
                   hist_Lambda_NN[ipt][3]->Fill(cluster_lambda_square[n][0], cluster_s_nphoton[n][2]);
 		}
                 else{
 		  hist[ipt][4]->Fill(cluster_s_nphoton[n][2]);
                   hist_Lambda[ipt][4]->Fill(cluster_lambda_square[n][0]);
+		  hist_b5x5[ipt][4]->Fill(cluster_b5x5_lin[n]);
+
                   hist_Lambda_NN[ipt][4]->Fill(cluster_lambda_square[n][0], cluster_s_nphoton[n][2]);
 		}
 	      }
@@ -293,6 +325,7 @@ int main(int argc, char *argv[])
 	      if(mc_truth_pdg_code[nmc]==22 &&  mc_truth_first_parent_pdg_code[nmc]==111){
 		//std::cout << " pdg " << mc_truth_pdg_code[nmc] <<  " eta " << mc_truth_eta[nmc] << " " << mc_truth_first_parent_pdg_code[nmc] << 
 		//  " " << mc_truth_pt[nmc] << " parent " << mc_truth_first_parent_pt[nmc] << std::endl; 
+		if(TMath::Abs(mc_truth_eta[nmc])>0.6) continue;
                 if(TMath::Abs(mc_truth_first_parent_eta[nmc])<0.6 && mc_truth_first_parent_phi[nmc]>1.4){  
 		  TrueSpectra.Fill(mc_truth_first_parent_pt[nmc],0.5);
                 }
@@ -300,7 +333,7 @@ int main(int argc, char *argv[])
 	    }//end loop over truth particles
 
 
-            if (ievent % 25000 == 0) {
+            if (ievent % 100000 == 0) {
               //hist[0][0]->Draw("e1x0");
 	      for(int iclass=1; iclass<5; iclass++){
                   hist_stack[5]->RecursiveRemove(hist[5][iclass]);
@@ -318,6 +351,10 @@ int main(int argc, char *argv[])
             }
 	  } //end loop over events
 
+        //TEfficiency* eff_Binomial_NN = 0;
+        //TEfficiency* eff_Binomial_Lambda = 0;
+        //TGraphAsymmErrors* eff_Binomial_NN = 0;
+	//TGraphAsymmErrors* eff_Binomial_Lambda = 0;
 	TFile* fout = new TFile("fout.root","RECREATE");
 	
         histogram0.SetTitle("; cluster p_{T} [GeV]}; entries");
@@ -330,7 +367,17 @@ int main(int argc, char *argv[])
         eff_NN.Write("eff_NN");  
         eff_Lambda.Divide(&TrueSpectra);
         eff_Lambda.Write("eff_Lambda");
+	TGraphAsymmErrors* eff_Binomial_NN = new TGraphAsymmErrors(&num_purity_NN, &TrueSpectra);
+	eff_Binomial_NN->Write("eff_NN_bin");
+        eff_Binomial_NN->Print();
+	TGraphAsymmErrors*eff_Binomial_Lambda = new TGraphAsymmErrors(&num_purity_Lambda, &TrueSpectra);
 
+        //eff_Binomial_NN = new TEfficiency(num_purity_NN,TrueSpectra);
+	//	eff_Binomial_Lambda = new TEfficiency(num_purity_Lambda,TrueSpectra);
+        //eff_Binomial_NN->Write("eff_NN_bin");
+        eff_Binomial_Lambda->Write("eff_Lambda_bin");
+
+	eff_Binomial_Lambda->Print();
 
         num_purity_NN.SetTitle("; cluster p_{T} [GeV] with NN>0.85; entries");
         num_purity_Lambda.SetTitle("; cluster p_{T} [GeV] with lambda>0.27; entries");
@@ -367,11 +414,15 @@ int main(int argc, char *argv[])
 	      hist[ipt][iclass]->Write();
               hist_Lambda[ipt][iclass]->SetTitle("; #lambda^{2}_{0}; Entries");
               hist_Lambda[ipt][iclass]->Write();
+	      hist_b5x5[ipt][iclass]->SetTitle("; b5x5; Entries");
+              hist_b5x5[ipt][iclass]->Write();
+
 	      hist_Lambda_NN[ipt][iclass]->SetTitle("; #lambda^{2}_{0} ; NN output (2 photons)");
 	      hist_Lambda_NN[ipt][iclass]->Write();
 	  }
           hist_stack[ipt]->Write();
           hist_stack_Lambda[ipt]->Write();
+	  hist_stack_b5x5[ipt]->Write();
 	}
 
 	fout->Close();     
