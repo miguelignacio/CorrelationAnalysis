@@ -186,7 +186,9 @@ int main(int argc, char *argv[])
 		  //electron veto
                   float SumIso =0.0;
                   bool hasMatch = false;
-		  //FIXME: Here is where I will do the switch for mixing
+
+		  //FIXME: Here is where I would like to do the switch for mixing
+
                   const int TrackCutBit =16;
 		  for (ULong64_t itrack = 0; itrack < ntrack; itrack++) {
 		    if((track_quality[itrack]&TrackCutBit)==0) continue; //select only tracks that pass selection 16

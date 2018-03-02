@@ -11,22 +11,21 @@
 #include <TProfile.h>
 #include <iostream>
 #include <fstream>
+#include "H5Cpp.h"
 
 #define NTRACK_MAX (1U << 14)
 
 #include <vector>
 #include <math.h>
 
+using namespace H5;
 int main(int argc, char *argv[])
 {
-    if (argc < 2){
-      std::cout<<"Please Specify at least one root file [Command] [root_file]"<<std::endl;
-      exit(EXIT_FAILURE);
-  }
     if (argc < 3) {
       std::cout<<"Temporary Syntax for Mixing is [Command] [root_file] [hdf5_file]"<<std::endl;
       exit(EXIT_FAILURE);
     }
+
     int dummyc = 1;
     char **dummyv = new char *[1];
 
@@ -81,6 +80,14 @@ int main(int argc, char *argv[])
         TH1F* h_dPhiLargedEta_iso[nztbins];
         TH1F* h_dPhiLargedEta_noniso[nztbins];
 
+	TH2D IsoCorr = TH2D("Correlation", "GS Mixed #gamma-H [Iso] Correlation", 60,-M_PI/2,3*M_PI/2, 34, -1.7, 1.7);
+	IsoCorr.Sumw2();
+	IsoCorr.SetMinimum(0.);
+
+	TH2D AntiIsoCorr = TH2D("Correlation", "GS Mixed #gamma-H [AntiIso] Correlation", 60,-M_PI/2,3*M_PI/2, 34, -1.7, 1.7);
+        AntiIsoCorr.Sumw2();
+        AntiIsoCorr.SetMinimum(0.);
+
         const int nphibins = 18;
 	for (int izt = 0; izt<nztbins; izt++){
           h_dPhi_iso[izt] = new TH1F(Form("dPhi_iso_ztmin%1.0f_ztmax%1.0f",10*ztbins[izt],10*ztbins[izt+1]) ,"",nphibins,-0.5,1.5);
@@ -98,7 +105,6 @@ int main(int argc, char *argv[])
 	  h_dPhiLargedEta_iso[izt]->Sumw2();
           h_dPhiLargedEta_noniso[izt]->Sumw2();
 	}
-
 
         //variables 
         Double_t primary_vertex[3];
@@ -124,6 +130,8 @@ int main(int argc, char *argv[])
         UShort_t  cluster_cell_id_max[NTRACK_MAX];
         Float_t cluster_lambda_square[NTRACK_MAX][2];   
         Float_t cell_e[17664];
+
+	Long64_t Mix_Events[10];
 
         //MC
 	unsigned int nmc_truth;
@@ -167,6 +175,7 @@ int main(int argc, char *argv[])
         _tree_event->SetBranchAddress("cluster_cell_id_max", cluster_cell_id_max);
         _tree_event->SetBranchAddress("cell_e", cell_e);
 
+	_tree_event->SetBranchAddress("Mix_Events", Mix_Events);
 	 
  	
  	std::cout << " Total Number of entries in TTree: " << _tree_event->GetEntries() << std::endl;
@@ -174,9 +183,76 @@ int main(int argc, char *argv[])
         const float isomax = 2.0; //2 GeV is maximum energy
         const float nonisomin = 5.0;
 
+	UInt_t ntrack_max = 517; 
+	UInt_t ncluster_max = 125;
+
+// 	fprintf(stderr, "\r%s:%d: %s\n", __FILE__, __LINE__, "Determining ntrack_max and ncluster_max needed for hdf5 hyperslab");
+// 	for (Long64_t i = 0; i < _tree_event->GetEntries(); i++) {
+// 	  _tree_event->GetEntry(i);
+// 	  ntrack_max = std::max(ntrack_max, ntrack);
+// 	  ncluster_max = std::max(ncluster_max, ncluster);
+// 	  fprintf(stderr, "\r%s:%d: %llu", __FILE__, __LINE__, i);
+// 	}
+// 	fprintf(stderr, "\n%s:%d: %i %i", __FILE__, __LINE__, ntrack_max,ncluster_max);
+
+	//open hdf5
+
+	const H5std_string hdf5_file_name(argv[2]);
+
+	const H5std_string track_ds_name( "track" );
+	H5File h5_file( hdf5_file_name, H5F_ACC_RDONLY );
+	DataSet track_dataset = h5_file.openDataSet( track_ds_name );
+	DataSpace track_dataspace = track_dataset.getSpace();
+
+	const H5std_string cluster_ds_name( "cluster" );
+	DataSet cluster_dataset = h5_file.openDataSet( cluster_ds_name );
+	DataSpace cluster_dataspace = cluster_dataset.getSpace();
+
+	//Define array hyperslab will be read into
+
+	float track_data_out[1][ntrack_max][7];
+	float cluster_data_out[1][ncluster_max][5];
+
+	//Define hyperslab size and offset in  FILE;
+	hsize_t track_offset[3] = {0, 0, 0};
+	hsize_t track_count[3] = {1, ntrack_max, 7};
+	hsize_t cluster_offset[3] = {0, 0, 0};
+	hsize_t cluster_count[3] = {1, ncluster_max, 5};
+
+	track_dataspace.selectHyperslab( H5S_SELECT_SET, track_count, track_offset );
+	cluster_dataspace.selectHyperslab( H5S_SELECT_SET, cluster_count, cluster_offset );
+	fprintf(stderr, "%s:%d: %s\n", __FILE__, __LINE__, "select Hyperslab OK");
+
+	//Define the memory dataspace to place hyperslab
+	const int RANK_OUT = 3;
+	hsize_t track_dimsm[3] = {1, ntrack_max, 7};      //memory space dimensions
+	DataSpace track_memspace( RANK_OUT, track_dimsm );
+	hsize_t cluster_dimsm[3] = {1, ncluster_max, 5};      //memory space dimensions
+	DataSpace cluster_memspace( RANK_OUT, cluster_dimsm );
+
+	//Define memory offset for hypreslab->array
+	hsize_t track_offset_out[3] = {0};
+	hsize_t cluster_offset_out[3] = {0};
+
+	//define 2D memory hyperslab
+	hsize_t track_count_out[3] = {1, ntrack_max, 7};    // size of the hyperslab in memory
+	hsize_t cluster_count_out[3] = {1, ncluster_max, 5};
+
+	//define space in memory for hyperslab, then write from file to memory
+	track_memspace.selectHyperslab( H5S_SELECT_SET, track_count_out, track_offset_out );
+	track_dataset.read( track_data_out, PredType::NATIVE_FLOAT, track_memspace, track_dataspace );
+	fprintf(stderr, "%s:%d: %s\n", __FILE__, __LINE__, "track dataset read into array: OK");
+
+	cluster_memspace.selectHyperslab( H5S_SELECT_SET, cluster_count_out, cluster_offset_out );
+	cluster_dataset.read( cluster_data_out, PredType::NATIVE_FLOAT, cluster_memspace, cluster_dataspace );
+	fprintf(stderr, "%s:%d: %s\n", __FILE__, __LINE__, "cluster dataset read into array: OK");
+
+	Long64_t nentries = _tree_event->GetEntries();
+
 	for(Long64_t ievent = 0; ievent < _tree_event->GetEntries() ; ievent++){     
-        //for(Long64_t ievent = 0; ievent < 1000 ; ievent++){
+	  //for(Long64_t ievent = 0; ievent < 1000 ; ievent++){
              _tree_event->GetEntry(ievent);
+	     fprintf(stderr, "\r%s:%d: %llu / %llu", __FILE__, __LINE__, ievent, nentries);
 	      for (ULong64_t n = 0; n < ncluster; n++) {
 	          if( not(cluster_pt[n]>8 and cluster_pt[n]<16)) continue; //select pt of photons
                   if( not(cluster_s_nphoton[n][1]>0.75 and cluster_s_nphoton[n][1]<0.85)) continue; //select deep-photons
@@ -187,74 +263,107 @@ int main(int argc, char *argv[])
                   float SumIso =0.0;
                   bool hasMatch = false;
 
-		  //FIXME: Here is where I would like to do the switch for mixing
-
-                  const int TrackCutBit =16;
+		  const int TrackCutBit =16;
 		  for (ULong64_t itrack = 0; itrack < ntrack; itrack++) {
 		    if((track_quality[itrack]&TrackCutBit)==0) continue; //select only tracks that pass selection 16
-                    if( not(track_pt[itrack]>0.15)) continue;
-                    Float_t deta =  cluster_eta[n]-track_eta[itrack];
+		    if( not(track_pt[itrack]>0.15)) continue;
+		    Float_t deta =  cluster_eta[n]-track_eta[itrack];
 		    Float_t dphi =  TVector2::Phi_mpi_pi(cluster_phi[n]-track_phi[itrack]);
 		    Float_t dR = TMath::Sqrt(deta*deta + dphi*dphi);
-                    //Calculate the isolation energy    
-                    if(dR<0.4)  SumIso = SumIso + track_pt[itrack];
-                    //Veto charged-particles
+		    //Calculate the isolation energy    
+		    if(dR<0.4)  SumIso = SumIso + track_pt[itrack];
+		    //Veto charged-particles
 		    if(not (track_pt[itrack]>5)) continue; //only veto if track has > 5 GeV.
 		    if(TMath::Abs(deta)<0.015) hasMatch = true; //removes clusters near a high-pt track
 		    if(TMath::Abs(dphi)<0.015) hasMatch = true; //removes clusters neat a high-pt track
 		  }
-                  
-                  if(hasMatch) continue; //remove clusters near a high-pt track
-                  //Cluster selection ended
-                  hcluster_sumiso.Fill(SumIso);
-                  hcluster_sumisoNoUE.Fill(cluster_iso_tpc_04[n]);
-                  hcluster_pt.Fill(cluster_pt[n]);
-                  hcluster_eta.Fill(cluster_eta[n]);
-                  hcluster_phi.Fill(cluster_phi[n]);
-                  
-                  const float Isolation = cluster_iso_tpc_04[n];
-                  //const float Isolation = SumIso;
+		  
+		  if(hasMatch) continue; //remove clusters near a high-pt track
+		  //Cluster selection ended
+		  hcluster_sumiso.Fill(SumIso);
+		  hcluster_sumisoNoUE.Fill(cluster_iso_tpc_04[n]);
+		  hcluster_pt.Fill(cluster_pt[n]);
+		  hcluster_eta.Fill(cluster_eta[n]);
+		  hcluster_phi.Fill(cluster_phi[n]);
+		  
+		  const float Isolation = cluster_iso_tpc_04[n];
+		  //const float Isolation = SumIso;
 		  if(Isolation<isomax){
-                      histogram0.Fill(cluster_pt[n]); //isolated deep-photon pt spectra
-                      h_ntrig.Fill(0);
+		    histogram0.Fill(cluster_pt[n]); //isolated deep-photon pt spectra
+		    h_ntrig.Fill(0);
 		  }
-                  if(Isolation>nonisomin){ 
-		      h_ntrig.Fill(0.5);
+		  if(Isolation>nonisomin){ 
+		    h_ntrig.Fill(0.5);
 		  }
+		  
+		  for (Long64_t imix = 0; imix < 10; imix++){
+		    Long64_t mix_event = Mix_Events[imix];	
+		    if (mix_event == ievent) continue;
+		    	    
+		    //read mixed event into hyperslab Place in track loop if high pt cut.
+		    track_offset[0]=mix_event;
+		    track_dataspace.selectHyperslab( H5S_SELECT_SET, track_count, track_offset );
+		    track_dataset.read( track_data_out, PredType::NATIVE_FLOAT, track_memspace, track_dataspace );
 
-		  for (ULong64_t itrack = 0; itrack < ntrack; itrack++) {            
-		      if((track_quality[itrack]&TrackCutBit)==0) continue; //select only tracks that pass selection 3
-		      if( not(track_pt[itrack]>0.15)) continue;
-                      htrack_pt.Fill(track_pt[itrack]);
-                      htrack_eta.Fill(track_eta[itrack]);
-                      htrack_phi.Fill(track_phi[itrack]);
+		    cluster_offset[0]=mix_event;
+		    cluster_dataspace.selectHyperslab( H5S_SELECT_SET, cluster_count, cluster_offset );
+		    cluster_dataset.read( cluster_data_out, PredType::NATIVE_FLOAT, cluster_memspace, cluster_dataspace );
+		    
+		    for (ULong64_t itrack = 0; itrack < ntrack; itrack++) {            
+		      //select only tracks that pass selection 3
+		      if ((int(track_data_out[0][itrack][4]+0.5)&TrackCutBit)==0) continue;		      
+		      if (track_data_out[0][itrack][1] < 0.15) continue;
+                      htrack_pt.Fill(track_data_out[0][itrack][1]);
+                      htrack_eta.Fill(track_data_out[0][itrack][2]);
+                      htrack_phi.Fill(track_data_out[0][itrack][3]);
+		      
+		      //veto charged particles from mixed event tracks
+		      bool Mix_HasMatch = false;
+		      for (unsigned int l = 0; l < ncluster_max; l++){
+			if (std::isnan(cluster_data_out[0][l][0])) break;
+			if (TMath::Abs(cluster_data_out[0][l][2] - track_data_out[0][itrack][5]) < 0.015) {
+			  Mix_HasMatch = true;
+			  break; }
+			if (TMath::Abs(cluster_data_out[0][l][3] - track_data_out[0][itrack][6]) < 0.015) {
+			  Mix_HasMatch = true;
+			  break; }
+		      }
+		      if (Mix_HasMatch) continue;
+		      //FIXME: See if need to skip when emcal_eta = -999, or track_emcal_phi = 0.026....
 
-                      Double_t zt = track_pt[itrack]/cluster_pt[n];
-		      Float_t deta =  cluster_eta[n]-track_eta[itrack];
-		      Float_t dphi =  TVector2::Phi_mpi_pi(cluster_phi[n]-track_phi[itrack]);
-                      //Veto charged-particles
-                      if(TMath::Abs(deta)<0.015) continue;
-                      if(TMath::Abs(dphi)<0.015) continue;  
+		      //FIXME: Lazy implementation from past code. Will use this repositories ∆'s soon
+		      Float_t DeltaPhi = track_phi[n] - track_data_out[0][itrack][3];
+		      if (DeltaPhi < -M_PI/2){DeltaPhi += 2*M_PI;}  //if less then -pi/2 add 2pi
+		      if (DeltaPhi > 3*M_PI/2){DeltaPhi =DeltaPhi -2*M_PI;}
+		      Float_t DeltaEta = track_eta[n] - track_data_out[0][itrack][2];
+		      if ((TMath::Abs(DeltaPhi) < 0.01) && (TMath::Abs(DeltaEta) < 0.01)) continue;
+		      
+		      if(Isolation<isomax) IsoCorr.Fill(DeltaPhi,DeltaEta);
+		      if(Isolation>nonisomin) AntiIsoCorr.Fill(DeltaPhi,DeltaEta);
+
+		      Double_t zt = track_pt[itrack]/cluster_pt[n];
+		      Float_t deta =  cluster_eta[n]-track_data_out[0][itrack][2];;
+		      Float_t dphi =  TVector2::Phi_mpi_pi(cluster_phi[n]-track_data_out[0][itrack][3]);
                       dphi = dphi/TMath::Pi();
-                     //if(!(TMath::Abs(deta)<0.6)) continue;
+		      //if(!(TMath::Abs(deta)<0.6)) continue;
                       if(dphi<-0.5) dphi +=2;
-
+		      
 		      for(int izt = 0; izt<nztbins ; izt++){
                         if(zt>ztbins[izt] and  zt<ztbins[izt+1])
 			  {
 			    if(Isolation< isomax){
-			        if(TMath::Abs(deta)<0.6) h_dPhi_iso[izt]->Fill(dphi);
-                                else if(TMath::Abs(deta)>0.8 and TMath::Abs(deta)<1.4) h_dPhiLargedEta_iso[izt]->Fill(dphi);
+			      if(TMath::Abs(deta)<0.6) h_dPhi_iso[izt]->Fill(dphi);
+			      else if(TMath::Abs(deta)>0.8 and TMath::Abs(deta)<1.4) h_dPhiLargedEta_iso[izt]->Fill(dphi);
 			    }
                 	    else if(Isolation> nonisomin){
-			        if(TMath::Abs(deta)<0.6) h_dPhi_noniso[izt]->Fill(dphi);
-                                else if(TMath::Abs(deta)>0.8 and TMath::Abs(deta)<1.4) h_dPhiLargedEta_noniso[izt]->Fill(dphi);
+			      if(TMath::Abs(deta)<0.6) h_dPhi_noniso[izt]->Fill(dphi);
+			      else if(TMath::Abs(deta)>0.8 and TMath::Abs(deta)<1.4) h_dPhiLargedEta_noniso[izt]->Fill(dphi);
 			    }
 			  } 
 		      } //end loop over zt bins
-		  }//end loop over tracks
-
-	    }//end loop on clusters. 
+		    }//end loop over tracks
+		  }//end loop over mixed events
+	      }//end loop on clusters. 
 	    if (ievent % 25000 == 0) {
 	       hcluster_sumiso.Draw("e1x0");
                hcluster_sumisoNoUE.SetLineColor(2);
@@ -290,6 +399,12 @@ int main(int argc, char *argv[])
 	hcluster_sumisoNoUE.Write("cluster_tpc04iso");
 	fout->Close();     
 	  
+	TString NewFileName = "GS_gamma_hadron.root";
+	TFile *MyFile = new TFile(NewFileName,"RECREATE");
+	IsoCorr.Write();
+	AntiIsoCorr.Write();
+	MyFile->Print();
+
 	//}//end loop over samples
 
     std::cout << " ending " << std::endl;
