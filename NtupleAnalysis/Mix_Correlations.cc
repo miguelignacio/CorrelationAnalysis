@@ -80,11 +80,11 @@ int main(int argc, char *argv[])
         TH1F* h_dPhiLargedEta_iso[nztbins];
         TH1F* h_dPhiLargedEta_noniso[nztbins];
 
-	TH2D IsoCorr = TH2D("Correlation", "GS Mixed #gamma-H [Iso] Correlation", 60,-M_PI/2,3*M_PI/2, 34, -1.7, 1.7);
+	TH2D IsoCorr = TH2D("Iso_Correlation", "GS Mixed #gamma-H [Iso] Correlation", 60,-M_PI/2,3*M_PI/2, 34, -1.7, 1.7);
 	IsoCorr.Sumw2();
 	IsoCorr.SetMinimum(0.);
 
-	TH2D AntiIsoCorr = TH2D("Correlation", "GS Mixed #gamma-H [AntiIso] Correlation", 60,-M_PI/2,3*M_PI/2, 34, -1.7, 1.7);
+	TH2D AntiIsoCorr = TH2D("Anti_Iso_Correlation", "GS Mixed #gamma-H [AntiIso] Correlation", 60,-M_PI/2,3*M_PI/2, 34, -1.7, 1.7);
         AntiIsoCorr.Sumw2();
         AntiIsoCorr.SetMinimum(0.);
 
@@ -332,10 +332,10 @@ int main(int argc, char *argv[])
 		      //FIXME: See if need to skip when emcal_eta = -999, or track_emcal_phi = 0.026....
 
 		      //FIXME: Lazy implementation from past code. Will use this repositories ∆'s soon
-		      Float_t DeltaPhi = track_phi[n] - track_data_out[0][itrack][3];
+		      Float_t DeltaPhi = cluster_phi[n] - track_data_out[0][itrack][3];
 		      if (DeltaPhi < -M_PI/2){DeltaPhi += 2*M_PI;}  //if less then -pi/2 add 2pi
 		      if (DeltaPhi > 3*M_PI/2){DeltaPhi =DeltaPhi -2*M_PI;}
-		      Float_t DeltaEta = track_eta[n] - track_data_out[0][itrack][2];
+		      Float_t DeltaEta = cluster_eta[n] - track_data_out[0][itrack][2];
 		      if ((TMath::Abs(DeltaPhi) < 0.01) && (TMath::Abs(DeltaEta) < 0.01)) continue;
 		      
 		      if(Isolation<isomax) IsoCorr.Fill(DeltaPhi,DeltaEta);
