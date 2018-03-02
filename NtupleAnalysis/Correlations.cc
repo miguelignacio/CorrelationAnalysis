@@ -73,6 +73,14 @@ int main(int argc, char *argv[])
         TH1D hcluster_sumiso("hcluster_sumiso","", 100, -5.0, 25.0);
 	TH1D hcluster_sumisoNoUE("hcluster_sumisoNoUE","", 100, -5.0, 25.0);
  
+	TH2D IsoCorr = TH2D("Iso_Correlation", "GS Mixed #gamma-H [Iso] Correlation", 60,-M_PI/2,3*M_PI/2, 34, -1.7, 1.7);
+        IsoCorr.Sumw2();
+        IsoCorr.SetMinimum(0.);
+
+        TH2D AntiIsoCorr = TH2D("Anti_Iso_Correlation", "GS Mixed #gamma-H [AntiIso] Correlation", 60,-M_PI/2,3*M_PI/2, 34, -1.7, 1.7);
+        AntiIsoCorr.Sumw2();
+        AntiIsoCorr.SetMinimum(0.);
+
 	const int nztbins = 7;
         const float ztbins[nztbins+1] = {0.0, 0.1, 0.2, 0.4, 0.6, 0.8, 1.0, 1.2};
 
