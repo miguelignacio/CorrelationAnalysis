@@ -80,6 +80,10 @@ int main(int argc, char *argv[])
         TH1F* h_dPhiLargedEta_iso[nztbins];
         TH1F* h_dPhiLargedEta_noniso[nztbins];
 
+	TH2D Corr = TH2D("Correlation", "GS Mixed #gamma-H [all] Correlation", 60,-M_PI/2,3*M_PI/2, 34, -1.7, 1.7);
+        Corr.Sumw2();
+        Corr.SetMinimum(0.);
+
 	TH2D IsoCorr = TH2D("Iso_Correlation", "GS Mixed #gamma-H [Iso] Correlation", 60,-M_PI/2,3*M_PI/2, 34, -1.7, 1.7);
 	IsoCorr.Sumw2();
 	IsoCorr.SetMinimum(0.);
@@ -248,11 +252,12 @@ int main(int argc, char *argv[])
 	fprintf(stderr, "%s:%d: %s\n", __FILE__, __LINE__, "cluster dataset read into array: OK");
 
 	Long64_t nentries = _tree_event->GetEntries();
-
+	int clusters_passed = 0;
 	for(Long64_t ievent = 0; ievent < _tree_event->GetEntries() ; ievent++){     
 	  //for(Long64_t ievent = 0; ievent < 1000 ; ievent++){
              _tree_event->GetEntry(ievent);
 	     fprintf(stderr, "\r%s:%d: %llu / %llu", __FILE__, __LINE__, ievent, nentries);
+
 	      for (ULong64_t n = 0; n < ncluster; n++) {
 	          if( not(cluster_pt[n]>8 and cluster_pt[n]<16)) continue; //select pt of photons
                   if( not(cluster_s_nphoton[n][1]>0.75 and cluster_s_nphoton[n][1]<0.85)) continue; //select deep-photons
@@ -338,6 +343,7 @@ int main(int argc, char *argv[])
 		      Float_t DeltaEta = cluster_eta[n] - track_data_out[0][itrack][2];
 		      if ((TMath::Abs(DeltaPhi) < 0.01) && (TMath::Abs(DeltaEta) < 0.01)) continue;
 		      
+		      Corr.Fill(DeltaPhi,DeltaEta);
 		      if(Isolation<isomax) IsoCorr.Fill(DeltaPhi,DeltaEta);
 		      if(Isolation>nonisomin) AntiIsoCorr.Fill(DeltaPhi,DeltaEta);
 
@@ -363,17 +369,18 @@ int main(int argc, char *argv[])
 		      } //end loop over zt bins
 		    }//end loop over tracks
 		  }//end loop over mixed events
+		  if(Isolation< isomax) clusters_passed += 1;
 	      }//end loop on clusters. 
 	    if (ievent % 25000 == 0) {
 	       hcluster_sumiso.Draw("e1x0");
                hcluster_sumisoNoUE.SetLineColor(2);
                hcluster_sumisoNoUE.Draw("e1x0same");
                canvas.Update();
-               std::cout << "Event # " << ievent << " / " << _tree_event->GetEntries() << std::endl;
+               //std::cout << "Event # " << ievent << " / " << _tree_event->GetEntries() << std::endl;
             }
 	} //end loop over events
-
-	TFile* fout = new TFile("fout.root","RECREATE");
+	std::cout<<clusters_passed<<std::endl;
+	TFile* mix_fout = new TFile("mix_fout.root","RECREATE");
 	histogram0.Write("DeepPhotonSpectra");
         h_ntrig.Write("ntriggers");
    
@@ -397,10 +404,11 @@ int main(int argc, char *argv[])
 
         hcluster_sumiso.Write("cluster_sumiso");
 	hcluster_sumisoNoUE.Write("cluster_tpc04iso");
-	fout->Close();     
+	mix_fout->Close();     
 	  
 	TString NewFileName = "GS_gamma_hadron.root";
 	TFile *MyFile = new TFile(NewFileName,"RECREATE");
+	Corr.Write();
 	IsoCorr.Write();
 	AntiIsoCorr.Write();
 	MyFile->Print();

@@ -22,11 +22,8 @@ int main(int argc, char *argv[])
     if (argc < 2){
       std::cout<<"Please Specify at least one root file [Command] [root_file]"<<std::endl;
       exit(EXIT_FAILURE);
-  }
-    if (argc < 3) {
-      std::cout<<"Temporary Syntax for Mixing is [Command] [root_file] [hdf5_file]"<<std::endl;
-      exit(EXIT_FAILURE);
     }
+
     int dummyc = 1;
     char **dummyv = new char *[1];
 
@@ -73,11 +70,15 @@ int main(int argc, char *argv[])
         TH1D hcluster_sumiso("hcluster_sumiso","", 100, -5.0, 25.0);
 	TH1D hcluster_sumisoNoUE("hcluster_sumisoNoUE","", 100, -5.0, 25.0);
  
-	TH2D IsoCorr = TH2D("Iso_Correlation", "GS Mixed #gamma-H [Iso] Correlation", 60,-M_PI/2,3*M_PI/2, 34, -1.7, 1.7);
+	TH2D Corr = TH2D("Correlation", "Same Event #gamma-H [all] Correlation", 60,-M_PI/2,3*M_PI/2, 34, -1.7, 1.7);
+        Corr.Sumw2();
+        Corr.SetMinimum(0.);
+
+	TH2D IsoCorr = TH2D("Iso_Correlation", "Same Event #gamma-H [Iso] Correlation", 60,-M_PI/2,3*M_PI/2, 34, -1.7, 1.7);
         IsoCorr.Sumw2();
         IsoCorr.SetMinimum(0.);
 
-        TH2D AntiIsoCorr = TH2D("Anti_Iso_Correlation", "GS Mixed #gamma-H [AntiIso] Correlation", 60,-M_PI/2,3*M_PI/2, 34, -1.7, 1.7);
+        TH2D AntiIsoCorr = TH2D("Anti_Iso_Correlation", "Same Event #gamma-H [AntiIso] Correlation", 60,-M_PI/2,3*M_PI/2, 34, -1.7, 1.7);
         AntiIsoCorr.Sumw2();
         AntiIsoCorr.SetMinimum(0.);
 
@@ -182,6 +183,7 @@ int main(int argc, char *argv[])
         const float isomax = 2.0; //2 GeV is maximum energy
         const float nonisomin = 5.0;
 
+	int clusters_passed = 0;
 	for(Long64_t ievent = 0; ievent < _tree_event->GetEntries() ; ievent++){     
         //for(Long64_t ievent = 0; ievent < 1000 ; ievent++){
              _tree_event->GetEntry(ievent);
@@ -237,6 +239,16 @@ int main(int argc, char *argv[])
                       htrack_eta.Fill(track_eta[itrack]);
                       htrack_phi.Fill(track_phi[itrack]);
 
+		      Float_t DeltaPhi = cluster_phi[n] - track_phi[itrack];
+                      if (DeltaPhi < -M_PI/2){DeltaPhi += 2*M_PI;}  //if less then -pi/2 add 2pi
+                      if (DeltaPhi > 3*M_PI/2){DeltaPhi =DeltaPhi -2*M_PI;}
+                      Float_t DeltaEta = cluster_eta[n] - track_eta[itrack];
+                      if ((TMath::Abs(DeltaPhi) < 0.01) && (TMath::Abs(DeltaEta) < 0.01)) continue;
+
+		      Corr.Fill(DeltaPhi,DeltaEta);
+                      if(Isolation<isomax) IsoCorr.Fill(DeltaPhi,DeltaEta);		      
+                      if(Isolation>nonisomin) AntiIsoCorr.Fill(DeltaPhi,DeltaEta);
+
                       Double_t zt = track_pt[itrack]/cluster_pt[n];
 		      Float_t deta =  cluster_eta[n]-track_eta[itrack];
 		      Float_t dphi =  TVector2::Phi_mpi_pi(cluster_phi[n]-track_phi[itrack]);
@@ -261,7 +273,7 @@ int main(int argc, char *argv[])
 			  } 
 		      } //end loop over zt bins
 		  }//end loop over tracks
-
+		  if (Isolation < isomax) clusters_passed += 1;
 	    }//end loop on clusters. 
 	    if (ievent % 25000 == 0) {
 	       hcluster_sumiso.Draw("e1x0");
@@ -271,7 +283,7 @@ int main(int argc, char *argv[])
                std::cout << "Event # " << ievent << " / " << _tree_event->GetEntries() << std::endl;
             }
 	} //end loop over events
-
+	std::cout<<clusters_passed<< std::endl;
 	TFile* fout = new TFile("fout.root","RECREATE");
 	histogram0.Write("DeepPhotonSpectra");
         h_ntrig.Write("ntriggers");
@@ -299,6 +311,13 @@ int main(int argc, char *argv[])
 	fout->Close();     
 	  
 	//}//end loop over samples
+	TString NewFileName = "Same_gamma_hadron.root";
+        TFile *MyFile = new TFile(NewFileName,"RECREATE");
+
+        Corr.Write();
+	IsoCorr.Write();
+        AntiIsoCorr.Write();
+        MyFile->Print();
 
     std::cout << " ending " << std::endl;
     return EXIT_SUCCESS;
