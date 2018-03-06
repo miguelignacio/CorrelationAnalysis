@@ -284,7 +284,7 @@ int main(int argc, char *argv[])
 	      if( not(cell_e[c_id] >0.100)) continue;
 	      eta_center =+ cell_e[c_id]* c_eta_array[c_id];
 	      phi_center =+ cell_e[c_id]* c_phi_array[c_id];
-	      sumw       =+ cell_e[c_id];
+	      sumw       = + cell_e[c_id];
 	    }
 	    eta_center = eta_center/sumw;
 	    phi_center = phi_center/sumw;

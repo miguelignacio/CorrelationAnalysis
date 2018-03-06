@@ -29,9 +29,9 @@ int main(int argc, char *argv[])
 
     dummyv[0] = strdup("main");
 
-    //for (int iarg = 1; iarg < argc; iarg++) {
-    //FIXME: Implement multiple root/hdf5 files
-    int iarg = 1;
+    for (int iarg = 1; iarg < argc; iarg++) {
+
+    //int iarg = 1;
     std::cout << "Opening: " << (TString)argv[iarg] << std::endl;
         TFile *file = TFile::Open((TString)argv[iarg]);
 
@@ -49,7 +49,7 @@ int main(int argc, char *argv[])
         }  
         //_tree_event->Print();
 
-	TApplication application("", &dummyc, dummyv);
+	//TApplication application("", &dummyc, dummyv);
 	
    
         TCanvas canvas("canvas", "");
@@ -185,9 +185,10 @@ int main(int argc, char *argv[])
 
 	int clusters_passed = 0;
 	for(Long64_t ievent = 0; ievent < _tree_event->GetEntries() ; ievent++){     
-        //for(Long64_t ievent = 0; ievent < 1000 ; ievent++){
+	  //for(Long64_t ievent = 0; ievent < 1000 ; ievent++){
              _tree_event->GetEntry(ievent);
-	      for (ULong64_t n = 0; n < ncluster; n++) {
+	     fprintf(stderr, "\r%s:%d: %llu / %llu", __FILE__, __LINE__, ievent, _tree_event->GetEntries());
+	     for (ULong64_t n = 0; n < ncluster; n++) {
 	          if( not(cluster_pt[n]>8 and cluster_pt[n]<16)) continue; //select pt of photons
                   if( not(cluster_s_nphoton[n][1]>0.75 and cluster_s_nphoton[n][1]<0.85)) continue; //select deep-photons
                   if( not(TMath::Abs(cluster_eta[n])<0.6)) continue; //cut edges of detector
@@ -280,10 +281,10 @@ int main(int argc, char *argv[])
                hcluster_sumisoNoUE.SetLineColor(2);
                hcluster_sumisoNoUE.Draw("e1x0same");
                canvas.Update();
-               std::cout << "Event # " << ievent << " / " << _tree_event->GetEntries() << std::endl;
+               //std::cout << "Event # " << ievent << " / " << _tree_event->GetEntries() << std::endl;
             }
 	} //end loop over events
-	std::cout<<clusters_passed<< std::endl;
+	std::cout<<std::endl<<"Number of Clusters Used:"<<clusters_passed<< std::endl;
 	TFile* fout = new TFile("fout.root","RECREATE");
 	histogram0.Write("DeepPhotonSpectra");
         h_ntrig.Write("ntriggers");
@@ -310,15 +311,13 @@ int main(int argc, char *argv[])
 	hcluster_sumisoNoUE.Write("cluster_tpc04iso");
 	fout->Close();     
 	  
-	//}//end loop over samples
-	TString NewFileName = "Same_gamma_hadron.root";
-        TFile *MyFile = new TFile(NewFileName,"RECREATE");
+	TFile* MyFile = new TFile("def_Correlation.root","RECREATE");
 
         Corr.Write();
 	IsoCorr.Write();
         AntiIsoCorr.Write();
         MyFile->Print();
-
+    }//end loop over samples
     std::cout << " ending " << std::endl;
     return EXIT_SUCCESS;
 }

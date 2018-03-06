@@ -20,16 +20,17 @@ int main()
 //     exit(EXIT_FAILURE);
 //   }
 
-  //TFile *corr = TFile::Open("Same_Event_150MeV_Correlation");
   //TFile *corr = TFile::Open((TString)argv[1]);
-  TFile *corr = TFile::Open("Same_gamma_hadron.root");
-  
+  //TFile *corr = TFile::Open("Same_gamma_hadron.root");
+  TFile *corr = TFile::Open("Correlation_def.root");
+
   if (corr == NULL) {
     std::cout << "file 1 fail" << std::endl;
     exit(EXIT_FAILURE);
     }
 
-    TH2D * h1 = (TH2D*)corr->Get("Correlation");
+  //TH2D * h1 = (TH2D*)corr->Get("Correlation");
+  TH2D * h1 = (TH2D*)corr->Get("Iso_Correlation");
     if (h1 == NULL) {
       std::cout << "tree 1 fail" << std::endl;
       exit(EXIT_FAILURE);
@@ -40,22 +41,23 @@ int main()
     TAxis *xaxis = h1->GetXaxis();
     Int_t bin_phi = xaxis->FindBin(1.57);
     TAxis *yaxis = h1->GetYaxis();
-    Int_t bin_eta = yaxis->FindBin(0.0);
+    Int_t bin_eta_neg = yaxis->FindBin(-0.6);
+    Int_t bin_eta_pos = yaxis->FindBin(0.6);
     //integrate along eta at phi=pi/2
     corr->Print();
     Double_t same_integ = h1->Integral(bin_phi,bin_phi);
 
     //TFile *mix = TFile::Open((TString)argv[2]);
+    //TFile *mix = TFile::Open("bin_gamma_hadron.root");
     TFile *mix = TFile::Open("GS_gamma_hadron.root");
-    //TFile *mix = TFile::Open("GS_Corr_150MeV.root");
-    //TFile *mix = TFile::Open("LBin_Corr_150MeV.root");
-
+    
     if (mix == NULL) {
       std::cout << " file 2 fail" << std::endl;
       exit(EXIT_FAILURE);
     }
 
-    TH2D  *h2 = (TH2D*)mix->Get("Correlation"); 
+    //TH2D  *h2 = (TH2D*)mix->Get("Correlation"); 
+    TH2D  *h2 = (TH2D*)mix->Get("Iso_Correlation");
     if (h2 == NULL) {
       std::cout << "tree 2 fail " << std::endl;
       exit(EXIT_FAILURE);
@@ -86,7 +88,7 @@ int main()
     h1->GetYaxis()->SetTitle("#Delta #eta");
     h1->GetXaxis()->SetTitle("#Delta #phi");
     h1->Write();
-    TH1D *PhiProj = h1->ProjectionX("phi",0,-1);
+    TH1D *PhiProj = h1->ProjectionX("phi",bin_eta_neg,bin_eta_pos);
     PhiProj->Write();
     TH1D *EtaProj = h1->ProjectionY("eta",0,-1);
     EtaProj->Write();

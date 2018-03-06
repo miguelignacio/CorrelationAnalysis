@@ -22,7 +22,7 @@ using namespace H5;
 int main(int argc, char *argv[])
 {
     if (argc < 3) {
-      std::cout<<"Temporary Syntax for Mixing is [Command] [root_file] [hdf5_file]"<<std::endl;
+      std::cout<<"Temporary Syntax for Mixing is [Command] [mixed_root_file] [hdf5_file] (repeat for mult. samples)"<<std::endl;
       exit(EXIT_FAILURE);
     }
 
@@ -31,9 +31,9 @@ int main(int argc, char *argv[])
 
     dummyv[0] = strdup("main");
 
-    //for (int iarg = 1; iarg < argc; iarg++) {
-    //FIXME: Implement multiple root/hdf5 files
-    int iarg = 1;
+    for (int iarg = 1; iarg < argc; iarg+=2) {
+      //FIXME: Current sytanx is [root] [hdf5], [root] [hdf5], (repeat)
+      // int iarg = 1;
     std::cout << "Opening: " << (TString)argv[iarg] << std::endl;
         TFile *file = TFile::Open((TString)argv[iarg]);
 
@@ -51,7 +51,7 @@ int main(int argc, char *argv[])
         }  
         //_tree_event->Print();
 
-	TApplication application("", &dummyc, dummyv);
+	//TApplication application("", &dummyc, dummyv);
 	
    
         TCanvas canvas("canvas", "");
@@ -180,6 +180,7 @@ int main(int argc, char *argv[])
         _tree_event->SetBranchAddress("cell_e", cell_e);
 
 	_tree_event->SetBranchAddress("Mix_Events", Mix_Events);
+	//_tree_event->SetBranchAddress("LimitUse_Mixed_Events", Mix_Events);
 	 
  	
  	std::cout << " Total Number of entries in TTree: " << _tree_event->GetEntries() << std::endl;
@@ -187,21 +188,26 @@ int main(int argc, char *argv[])
         const float isomax = 2.0; //2 GeV is maximum energy
         const float nonisomin = 5.0;
 
-	UInt_t ntrack_max = 517; 
-	UInt_t ncluster_max = 125;
+// 	UInt_t ntrack_max = 517; 
+// 	UInt_t ncluster_max = 125;
 
-// 	fprintf(stderr, "\r%s:%d: %s\n", __FILE__, __LINE__, "Determining ntrack_max and ncluster_max needed for hdf5 hyperslab");
-// 	for (Long64_t i = 0; i < _tree_event->GetEntries(); i++) {
-// 	  _tree_event->GetEntry(i);
-// 	  ntrack_max = std::max(ntrack_max, ntrack);
-// 	  ncluster_max = std::max(ncluster_max, ncluster);
-// 	  fprintf(stderr, "\r%s:%d: %llu", __FILE__, __LINE__, i);
-// 	}
-// 	fprintf(stderr, "\n%s:%d: %i %i", __FILE__, __LINE__, ntrack_max,ncluster_max);
+	UInt_t ntrack_max = 0; 
+	UInt_t ncluster_max = 0;
+	
+	fprintf(stderr, "\r%s:%d: %s\n", __FILE__, __LINE__, "Determining ntrack_max and ncluster_max needed for hdf5 hyperslab");
+	for (Long64_t i = 0; i < _tree_event->GetEntries(); i++) {
+	  _tree_event->GetEntry(i);
+	  ntrack_max = std::max(ntrack_max, ntrack);
+	  ncluster_max = std::max(ncluster_max, ncluster);
+	  fprintf(stderr, "\r%s:%d: %llu", __FILE__, __LINE__, i);
+	}
+	fprintf(stderr, "\n%s:%d: maximum tracks:%i maximum clusters:%i\n", __FILE__, __LINE__, ntrack_max,ncluster_max);
 
 	//open hdf5
 
-	const H5std_string hdf5_file_name(argv[2]);
+	const H5std_string hdf5_file_name(argv[iarg+1]);
+	//FIXME: Can parse the string s.t. remove .root and simply add .hdf5
+	//FIXME: This will obviously require stringent naming conventions
 
 	const H5std_string track_ds_name( "track" );
 	H5File h5_file( hdf5_file_name, H5F_ACC_RDONLY );
@@ -413,7 +419,7 @@ int main(int argc, char *argv[])
 	AntiIsoCorr.Write();
 	MyFile->Print();
 
-	//}//end loop over samples
+    }//end loop over samples
 
     std::cout << " ending " << std::endl;
     return EXIT_SUCCESS;
