@@ -24,14 +24,9 @@ int main(int argc, char *argv[])
       exit(EXIT_FAILURE);
     }
 
-    int dummyc = 1;
-    char **dummyv = new char *[1];
-
-    dummyv[0] = strdup("main");
-
     for (int iarg = 1; iarg < argc; iarg++) {
 
-    //int iarg = 1;
+      //FIXME:For switch, do if argv[1] == "mix"
     std::cout << "Opening: " << (TString)argv[iarg] << std::endl;
         TFile *file = TFile::Open((TString)argv[iarg]);
 
@@ -49,9 +44,6 @@ int main(int argc, char *argv[])
         }  
         //_tree_event->Print();
 
-	//TApplication application("", &dummyc, dummyv);
-	
-   
         TCanvas canvas("canvas", "");
 	TH1D histogram0("histogram0", "", 16, 8.0, 16.0);
         //TH2D histogram1("histogram1", "", 30, -1.5, 1.5, 18, -0.5, 1.5);
@@ -184,8 +176,8 @@ int main(int argc, char *argv[])
         const float nonisomin = 5.0;
 
 	int clusters_passed = 0;
-	for(Long64_t ievent = 0; ievent < _tree_event->GetEntries() ; ievent++){     
-	  //for(Long64_t ievent = 0; ievent < 1000 ; ievent++){
+	//for(Long64_t ievent = 0; ievent < _tree_event->GetEntries() ; ievent++){     
+	for(Long64_t ievent = 0; ievent < 10000 ; ievent++){
              _tree_event->GetEntry(ievent);
 	     fprintf(stderr, "\r%s:%d: %llu / %llu", __FILE__, __LINE__, ievent, _tree_event->GetEntries());
 	     for (ULong64_t n = 0; n < ncluster; n++) {
@@ -246,10 +238,11 @@ int main(int argc, char *argv[])
                       Float_t DeltaEta = cluster_eta[n] - track_eta[itrack];
                       if ((TMath::Abs(DeltaPhi) < 0.01) && (TMath::Abs(DeltaEta) < 0.01)) continue;
 
+		      //Simple 2D Histo
 		      Corr.Fill(DeltaPhi,DeltaEta);
                       if(Isolation<isomax) IsoCorr.Fill(DeltaPhi,DeltaEta);		      
                       if(Isolation>nonisomin) AntiIsoCorr.Fill(DeltaPhi,DeltaEta);
-
+		      
                       Double_t zt = track_pt[itrack]/cluster_pt[n];
 		      Float_t deta =  cluster_eta[n]-track_eta[itrack];
 		      Float_t dphi =  TVector2::Phi_mpi_pi(cluster_phi[n]-track_phi[itrack]);

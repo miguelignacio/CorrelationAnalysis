@@ -320,8 +320,10 @@ int main(int argc, char *argv[])
 		    cluster_dataspace.selectHyperslab( H5S_SELECT_SET, cluster_count, cluster_offset );
 		    cluster_dataset.read( cluster_data_out, PredType::NATIVE_FLOAT, cluster_memspace, cluster_dataspace );
 		    
-		    for (ULong64_t itrack = 0; itrack < ntrack; itrack++) {            
+		    for (ULong64_t itrack = 0; itrack < ntrack_max; itrack++) {            
+		      //FIXED was looping nutil ntrack, a property of original, not mixed, event. Needed isnan check!
 		      //select only tracks that pass selection 3
+		      if (std::isnan(track_data_out[0][itrack][1])) break;
 		      if ((int(track_data_out[0][itrack][4]+0.5)&TrackCutBit)==0) continue;		      
 		      if (track_data_out[0][itrack][1] < 0.15) continue;
                       htrack_pt.Fill(track_data_out[0][itrack][1]);
