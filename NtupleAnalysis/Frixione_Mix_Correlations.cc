@@ -36,9 +36,9 @@ int main(int argc, char *argv[])
   
   // Default values of various variables used in the file (actual values are to be determined by the configuration file)
   // Cut variables
-  double DNN_min = 0.75;
+  double DNN_min = 0.55;
   double DNN_max = 0.85;
-  double pT_min = 8;
+  double pT_min = 10;
   double pT_max = 16;
   double Eta_max = 0.6;
   double Cluster_min = 2;
@@ -48,7 +48,7 @@ int main(int argc, char *argv[])
   // The bounds for the events to fal into the isolation and nonisolation areas
   double iso_max = 2.0;
   double noniso_min = 5.0;
-  double noniso_max = 15.0;
+  double noniso_max = 10.0;
   
   // Delta eta
   double deta_max = 0.6;
@@ -63,7 +63,7 @@ int main(int argc, char *argv[])
   int n_correlationbins = 18;
     
   // Which branch should be used to determine whether a cluster should fall into iso, noniso, or neither
-  isolationDet determiner = CLUSTER_ISO_TPC_04;
+    isolationDet determiner = CLUSTER_ISO_ITS_04;
   
   // Loop through config file
   char line[MAX_INPUT_LENGTH];
@@ -217,6 +217,14 @@ int main(int argc, char *argv[])
   // Function declarations of h_dPhi_iso and h_dPhi_noniso
   TH1F* h_dPhi_iso[nztbins];
   TH1F* h_dPhi_noniso[nztbins];
+  TH2D* Corr[nztbins];
+  TH2D* IsoCorr[nztbins];
+  TH2D* AntiIsoCorr[nztbins];
+  
+  int clusters_passed_iso[nztbins];
+  int clusters_passed_Antiiso[nztbins];
+
+  int n_eta_bins = 56;
   
   // Function initializations of h_dPhi_iso and h_dPhi_noniso for each and every zt bin
   for (int izt = 0; izt<nztbins; izt++){
@@ -226,20 +234,26 @@ int main(int argc, char *argv[])
     h_dPhi_noniso[izt]->SetTitle("; #Delta#phi/#pi [rad]; entries");
     h_dPhi_iso[izt]->Sumw2();
     h_dPhi_noniso[izt]->Sumw2();
-  }
+
+
+    Corr[izt] = new TH2D(Form("Correlation_ztmin%1.0f_ztmax%1.0f",10*ztbins[izt],10*ztbins[izt+1]),
+                         "Mixed Event #gamma-H [all] Correlation", 60,-M_PI/2,3*M_PI/2, n_eta_bins, -1.4, 1.4);
+    Corr[izt]->Sumw2();
+    Corr[izt]->SetMinimum(0.);
+
+    IsoCorr[izt] = new TH2D(Form("IsoCorrelation_ztmin%1.0f_ztmax%1.0f",10*ztbins[izt],10*ztbins[izt+1]),
+                            "Mixed Event #gamma-H [Iso] Correlation", 60,-M_PI/2,3*M_PI/2, n_eta_bins, -1.4, 1.4);
+    IsoCorr[izt]->Sumw2();
+    IsoCorr[izt]->SetMinimum(0.);
     
-  TH2D Corr = TH2D("Correlation", "Same Event #gamma-H [all] Correlation", 60,-M_PI/2,3*M_PI/2, 34, -1.7, 1.7);
-  Corr.Sumw2();
-  Corr.SetMinimum(0.);
-  
-  TH2D IsoCorr = TH2D("Iso_Correlation", "Same Event #gamma-H [Iso] Correlation", 60,-M_PI/2,3*M_PI/2, 34, -1.7, 1.7);
-  IsoCorr.Sumw2();
-  IsoCorr.SetMinimum(0.);
-  
-  TH2D AntiIsoCorr = TH2D("Anti_Iso_Correlation", "Same Event #gamma-H [AntiIso] Correlation", 60,-M_PI/2,3*M_PI/2, 34, -1.7, 1.7);
-  AntiIsoCorr.Sumw2();
-  AntiIsoCorr.SetMinimum(0.);
-  
+    AntiIsoCorr[izt] = new TH2D(Form("AntiIsoCorrelation_ztmin%1.0f_ztmax%1.0f",10*ztbins[izt],10*ztbins[izt+1]),
+                                "Mixed Event #gamma-H [AntiIso] Correlation", 60,-M_PI/2,3*M_PI/2, n_eta_bins, -1.4, 1.4);
+    AntiIsoCorr[izt]->Sumw2();
+    AntiIsoCorr[izt]->SetMinimum(0.);
+
+    clusters_passed_iso[izt] = 0;
+    clusters_passed_Antiiso[izt] = 0;
+}
   
   //histogram2.Sumw2();
   //histogram3.Sumw2();
@@ -411,7 +425,6 @@ int main(int argc, char *argv[])
     fprintf(stderr, "%s:%d: %s\n", __FILE__, __LINE__, "cluster dataset read into array: OK");
 
     Long64_t nentries = _tree_event->GetEntries();
-    int clusters_passed = 0;
 
     for(Long64_t ievent = 0; ievent < nentries ; ievent++){     
       //for(Long64_t ievent = 0; ievent < 1000 ; ievent++){
@@ -443,7 +456,7 @@ int main(int argc, char *argv[])
 	  h_ntrig.Fill(0.5);
 	}
 
-	for (Long64_t imix = 0; imix < 10; imix++){
+	for (Long64_t imix = 0; imix < 50; imix++){
 	  Long64_t mix_event = Mix_Events[imix];
 	  if (mix_event == ievent) continue;
 
@@ -477,12 +490,12 @@ int main(int argc, char *argv[])
 	    }
 	    if (Mix_HasMatch) continue;
 
-	    //FIXME: Lazy implementation from past code. Will use this repositories ∆'s soon                                                                                                                                        
+	    //FIXME: Lazy implementation from past code. Will use this repositories ∆'s soon
 	    Float_t DeltaPhi = cluster_phi[n] - track_data_out[0][itrack][3];
-	    if (DeltaPhi < -M_PI/2){DeltaPhi += 2*M_PI;}  //if less then -pi/2 add 2pi                                                                                                                                              
+	    if (DeltaPhi < -M_PI/2){DeltaPhi += 2*M_PI;}  //if less then -pi/2 add 2pi              
 	    if (DeltaPhi > 3*M_PI/2){DeltaPhi =DeltaPhi -2*M_PI;}
 	    Float_t DeltaEta = cluster_eta[n] - track_data_out[0][itrack][2];
-	    if ((TMath::Abs(DeltaPhi) < 0.01) && (TMath::Abs(DeltaEta) < 0.01)) continue;
+	    if ((TMath::Abs(DeltaPhi) < 0.1) && (TMath::Abs(DeltaEta) < 0.1)) continue;
 
 // 	    Corr.Fill(DeltaPhi,DeltaEta);
 // 	    if(isolation<iso_max) IsoCorr.Fill(DeltaPhi,DeltaEta);
@@ -492,28 +505,31 @@ int main(int argc, char *argv[])
 	    Float_t deta =  cluster_eta[n]-track_data_out[0][itrack][2];;
 	    Float_t dphi =  TVector2::Phi_mpi_pi(cluster_phi[n]-track_data_out[0][itrack][3]);
 	    dphi = dphi/TMath::Pi();
-	    //if(!(TMath::Abs(deta)<0.6)) continue;
+	    //if(!(TMath::Abs(deta)<0.6)) continue; //deta cut
 	    if(dphi<-0.5) dphi +=2;
-
-	    Corr.Fill(dphi,deta);
-	    if(isolation<iso_max) IsoCorr.Fill(dphi,deta);
-	    if(isolation>noniso_min && isolation<noniso_max) AntiIsoCorr.Fill(dphi,deta);
 
 	    // Loop over zt bins
 	    for(int izt = 0; izt<nztbins ; izt++){
 	      if(zt>ztbins[izt] and  zt<ztbins[izt+1])
 		{
 		  // Where the  h_dPhi_iso and h_dPhi_noniso bins are filled
-		  if(isolation< iso_max)    h_dPhi_iso[izt]->Fill(dphi);
-		  if(isolation> noniso_min && isolation<noniso_max) h_dPhi_noniso[izt]->Fill(dphi);
+		  if(isolation< iso_max){
+		    h_dPhi_iso[izt]->Fill(DeltaPhi);
+		    IsoCorr[izt]->Fill(DeltaPhi,DeltaEta);
+		    clusters_passed_iso[izt] += 1;
+		  }
+		  if(isolation> noniso_min && isolation<noniso_max){
+		    h_dPhi_noniso[izt]->Fill(DeltaPhi);
+		    AntiIsoCorr[izt]->Fill(DeltaPhi,DeltaEta);
+		    clusters_passed_Antiiso[izt] += 1;
+		  }
+		  Corr[izt]->Fill(DeltaPhi,DeltaEta);
 		}
 	    } // end loop over zt bins
 	  }//end loop over tracks
 	}//end loop over mixed events
-
-	if(isolation< iso_max) clusters_passed += 1;
-
-      }//end loop on clusters. 
+	 
+     }//end loop on clusters. 
       if (ievent % 25000 == 0) {
 	histogram0.Draw("e1x0");
 	canvas.Update();
@@ -535,16 +551,18 @@ int main(int argc, char *argv[])
       h_dPhi_noniso[izt]->SetMinimum(0.0);
       h_dPhi_noniso[izt]->Write();  
     }
+    for (int izt = 0; izt<nztbins; izt++){
+      Corr[izt]->Write();
+    }
+    for (int izt = 0; izt<nztbins; izt++){ 
+      IsoCorr[izt]->Write();
+    }
+    for (int izt = 0; izt<nztbins; izt++){
+      AntiIsoCorr[izt]->Write();
+
+    }
     fout->Close();     
     
-    TFile* MyFile = new TFile("def_Mixed_Better_ISO_Correlation.root","RECREATE");
-    
-    Corr.Write();
-    IsoCorr.Write();
-    AntiIsoCorr.Write();
-    MyFile->Print();
-
-  
-  std::cout << " ending " << std::endl;
-  return EXIT_SUCCESS;
+    std::cout << " ending " << std::endl;
+    return EXIT_SUCCESS;
 }

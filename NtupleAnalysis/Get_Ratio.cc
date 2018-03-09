@@ -40,12 +40,8 @@ int main()
 
   TH2F* Corr_Iso_same[nztbins]; 
   TH2F* Corr_Iso_mix[nztbins];
-
-  TH2F* Corr_AntiIso_same[nztbins];
-  TH2F* Corr_AntiIso_mix[nztbins];
-
   TH1D* IsoPhiProj[nztbins];
-  TH1D* AntiIsoPhiProj[nztbins];
+
   for (int izt = 0; izt<nztbins; izt++){
     Corr_Iso_same[izt] = (TH2F*)corr->Get(Form("IsoCorrelation_ztmin%1.0f_ztmax%1.0f",10*ztbins[izt],10*ztbins[izt+1]));
    if (Corr_Iso_same[izt] == NULL) {
@@ -57,17 +53,7 @@ int main()
       std::cout << "tree 2 fail" << std::endl;
       exit(EXIT_FAILURE);
     }
-
-    Corr_AntiIso_same[izt] = (TH2F*)corr->Get(Form("AntiIsoCorrelation_ztmin%1.0f_ztmax%1.0f",10*ztbins[izt],10*ztbins[izt+1]));
-    if (Corr_AntiIso_same[izt] == NULL) {
-      std::cout << "tree 1 fail" << std::endl;
-      exit(EXIT_FAILURE);}
-
-    Corr_AntiIso_mix[izt] = (TH2F*)mix->Get(Form("AntiIsoCorrelation_ztmin%1.0f_ztmax%1.0f",10*ztbins[izt],10*ztbins[izt+1]));
-    if (Corr_Iso_mix[izt] == NULL) {
-      std::cout << "tree 2 fail" << std::endl;
-      exit(EXIT_FAILURE);
-    }
+    std::cout<<"Same Event Entries"<<Corr_Iso_same[izt]->GetEntries()<<std::endl;
 
     //Normalize Mixing to 1 at ∆eta∆phi = 0,0
     TAxis *mix_Iso_xaxis = Corr_Iso_mix[izt]->GetXaxis();
@@ -79,35 +65,23 @@ int main()
     Double_t Iso_norm = 1/mix_Iso_integ;
     Corr_Iso_mix[izt]->Scale(Iso_norm);
 
-    TAxis *mix_AntiIso_xaxis = Corr_AntiIso_mix[izt]->GetXaxis();
-    Int_t mix_AntiIso_bin_phi = mix_AntiIso_xaxis->FindBin(0.0);
-    TAxis *mix_AntiIso_yaxis = Corr_AntiIso_mix[izt]->GetYaxis();
-    Int_t mix_AntiIso_bin_eta = mix_AntiIso_yaxis->FindBin(0.0);
-    Double_t mix_AntiIso_integ = Corr_AntiIso_mix[izt]->Integral(mix_AntiIso_bin_phi,mix_AntiIso_bin_phi,mix_AntiIso_bin_eta,mix_AntiIso_bin_eta);
-    std::cout<<"Anti Iso Mix Integral: "<<mix_AntiIso_integ<<std::endl;
-    Double_t AntiIso_norm = 1/mix_AntiIso_integ;
-    Corr_AntiIso_mix[izt]->Scale(AntiIso_norm);
-
-    //Divide
+      //Divide
     Corr_Iso_same[izt]->Divide(Corr_Iso_mix[izt]);
-    Corr_AntiIso_same[izt]->Divide(Corr_Iso_mix[izt]);
-
+  
     //Phi Projection
     TAxis *same_Iso_yaxis = Corr_Iso_same[izt]->GetYaxis();
     Int_t bin_Iso_eta_neg = same_Iso_yaxis->FindBin(-0.6);
     Int_t bin_Iso_eta_pos = same_Iso_yaxis->FindBin(0.6);
     IsoPhiProj[izt] =Corr_Iso_same[izt]->ProjectionX(Form("Iso_Phi_Projection_ztmin%1.0f_ztmax%1.0f",10*ztbins[izt],10*ztbins[izt+1]),bin_Iso_eta_neg,bin_Iso_eta_pos);
     IsoPhiProj[izt]->SetTitle(Form("Isolated #Delta#phi Projection  %1.0f < z_{T} < %1.0f",10*ztbins[izt],10*ztbins[izt+1]));
-
-    TAxis *same_AntiIso_yaxis = Corr_AntiIso_same[izt]->GetYaxis();
-    Int_t bin_AntiIso_eta_neg = same_AntiIso_yaxis->FindBin(-0.6);
-    Int_t bin_AntiIso_eta_pos = same_AntiIso_yaxis->FindBin(0.6);
-    std::cout<<"Entries: "<<Corr_AntiIso_same[izt]->GetEntries()<<std::endl;
-    AntiIsoPhiProj[izt] =Corr_AntiIso_same[izt]->ProjectionX(Form("Anti_Phi_Projection_ztmin%1.0f_ztmax%1.0f",10*ztbins[izt],10*ztbins[izt+1]),bin_AntiIso_eta_neg,bin_AntiIso_eta_pos);
-    AntiIsoPhiProj[izt]->SetTitle(Form("Anti Isolated #Delta#phi Projection  %1.0f < z_{T} < %1.0f",10*ztbins[izt],10*ztbins[izt+1]));
+    std::cout<<"Entries: "<<Corr_Iso_same[izt]->GetEntries()<<std::endl;
   }
   
   TFile *MyFile = new TFile("Ratio_Correlation.root","RECREATE");
+  if (MyFile == NULL) {
+    std::cout << "myfile fail" << std::endl;
+    exit(EXIT_FAILURE);
+  }
 
   for (int izt = 0; izt<nztbins; izt++){
     Corr_Iso_same[izt]->GetXaxis()->SetTitle("#Delta #phi");
@@ -119,21 +93,9 @@ int main()
   }
 
   for (int izt = 0; izt<nztbins; izt++){
-    Corr_AntiIso_same[izt]->GetXaxis()->SetTitle("#Delta #phi");
-    Corr_AntiIso_same[izt]->GetYaxis()->SetTitle("#Delta #eta");
-    Corr_AntiIso_same[izt]->GetZaxis()->SetTitle("#frac{1}{N_{trig}}#frac{d^2N}{d#Delta #phi d#Delta #eta}");
-    Corr_AntiIso_mix[izt]->GetZaxis()->SetTitleOffset(1.6);
-    Corr_AntiIso_same[izt]->SetTitle(Form("AntiIsolated #gamma-H  %1.0f < z_{T} < %1.0f",10*ztbins[izt],10*ztbins[izt+1]));
-    Corr_AntiIso_same[izt]->Write();
-  }
-
-  for (int izt = 0; izt<nztbins; izt++){
     IsoPhiProj[izt]->Write();
   }
-
-  for (int izt = 0; izt<nztbins; izt++){
-    AntiIsoPhiProj[izt]->Write();
-  }
-
+  corr->Close();
+  mix->Close();
   MyFile->Close();
 }

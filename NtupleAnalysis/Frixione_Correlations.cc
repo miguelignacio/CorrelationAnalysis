@@ -143,8 +143,7 @@ int main(int argc, char *argv[])
               while (*v != ']' && !isdigit(*v)) {
                   v++;
               }
-              
-              nztbins++;
+	      nztbins++;
               
               while (*v != ']' && (isdigit(*v) || *v == '.')) {
                   v++;
@@ -189,7 +188,6 @@ int main(int argc, char *argv[])
               exit(EXIT_FAILURE);
           }
       }
-
       else {
           std::cout << "WARNING: Unrecognized keyvariable " << key << std::endl;
       }
@@ -220,6 +218,14 @@ int main(int argc, char *argv[])
   // Function declarations of h_dPhi_iso and h_dPhi_noniso
   TH1F* h_dPhi_iso[nztbins];
   TH1F* h_dPhi_noniso[nztbins];
+  TH2D* Corr[nztbins];
+  TH2D* IsoCorr[nztbins];
+  TH2D* AntiIsoCorr[nztbins];
+
+  int clusters_passed_iso[nztbins];
+  int clusters_passed_Antiiso[nztbins];
+
+  int n_eta_bins = 56;
   
   // Function initializations of h_dPhi_iso and h_dPhi_noniso for each and every zt bin
   for (int izt = 0; izt<nztbins; izt++){
@@ -229,21 +235,25 @@ int main(int argc, char *argv[])
     h_dPhi_noniso[izt]->SetTitle("; #Delta#phi/#pi [rad]; entries");
     h_dPhi_iso[izt]->Sumw2();
     h_dPhi_noniso[izt]->Sumw2();
+
+    Corr[izt] = new TH2D(Form("Correlation_ztmin%1.0f_ztmax%1.0f",10*ztbins[izt],10*ztbins[izt+1]), 
+			 "Same Event #gamma-H [all] Correlation", 60,-M_PI/2,3*M_PI/2, n_eta_bins, -1.4, 1.4);
+    Corr[izt]->Sumw2();
+    Corr[izt]->SetMinimum(0.);
+    
+    IsoCorr[izt] = new TH2D(Form("IsoCorrelation_ztmin%1.0f_ztmax%1.0f",10*ztbins[izt],10*ztbins[izt+1]), 
+			    "Same Event #gamma-H [Iso] Correlation", 60,-M_PI/2,3*M_PI/2, n_eta_bins, -1.4, 1.4);	
+    IsoCorr[izt]->Sumw2();
+    IsoCorr[izt]->SetMinimum(0.);
+    
+    AntiIsoCorr[izt] = new TH2D(Form("AntiIsoCorrelation_ztmin%1.0f_ztmax%1.0f",10*ztbins[izt],10*ztbins[izt+1]), 
+				"Same Event #gamma-H [AntiIso] Correlation", 60,-M_PI/2,3*M_PI/2, n_eta_bins, -1.4, 1.4);
+    AntiIsoCorr[izt]->Sumw2();
+    AntiIsoCorr[izt]->SetMinimum(0.);
+
+    clusters_passed_iso[izt] = 0;
+    clusters_passed_Antiiso[izt] = 0;
   }
-
-
-  TH2D Corr = TH2D("Correlation", "Same Event #gamma-H [all] Correlation", 60,-M_PI/2,3*M_PI/2, 34, -1.7, 1.7);
-  Corr.Sumw2();
-  Corr.SetMinimum(0.);
-  
-  TH2D IsoCorr = TH2D("Iso_Correlation", "Same Event #gamma-H [Iso] Correlation", 60,-M_PI/2,3*M_PI/2, 34, -1.7, 1.7);
-  IsoCorr.Sumw2();
-  IsoCorr.SetMinimum(0.);
-  
-  TH2D AntiIsoCorr = TH2D("Anti_Iso_Correlation", "Same Event #gamma-H [AntiIso] Correlation", 60,-M_PI/2,3*M_PI/2, 34, -1.7, 1.7);
-  AntiIsoCorr.Sumw2();
-  AntiIsoCorr.SetMinimum(0.);
-  
   
   //histogram2.Sumw2();
   //histogram3.Sumw2();
@@ -268,7 +278,6 @@ int main(int argc, char *argv[])
       exit(EXIT_FAILURE);
     }  
     //_tree_event->Print();
-
 
     //variables
     Double_t primary_vertex[3];
@@ -352,7 +361,7 @@ int main(int argc, char *argv[])
       for (ULong64_t n = 0; n < ncluster; n++) {
 	if( not(cluster_pt[n]>pT_min and cluster_pt[n]<pT_max)) continue; //select pt of photons
 	if( not(cluster_s_nphoton[n][1]>DNN_min and cluster_s_nphoton[n][1]<DNN_max)) continue; //select deep-photons
-	if( not(TMath::Abs(cluster_eta[n])<Eta_max)) continue; //cut edges of detector
+	//if( not(TMath::Abs(cluster_eta[n])<Eta_max)) continue; //cut edges of detector
 	if( not(cluster_ncell[n]>Cluster_min)) continue;   //removes clusters with 1 or 2 cells
 	if( not(cluster_e_cross[n]/cluster_e[n]>EcrossoverE_min)) continue; //removes "spiky" clusters
     
@@ -376,32 +385,36 @@ int main(int argc, char *argv[])
 	  Double_t zt = track_pt[itrack]/cluster_pt[n];
 	  Float_t deta =  cluster_eta[n]-track_eta[itrack];
 	  Float_t dphi =  TVector2::Phi_mpi_pi(cluster_phi[n]-track_phi[itrack])/TMath::Pi();
-	  if(!(TMath::Abs(deta)<deta_max)) continue; // delta eta cut
+	  //if(!(TMath::Abs(deta)<deta_max)) continue; // delta eta cut
 	  if(dphi<-0.5) dphi +=2;
         
 	  Float_t DeltaPhi = cluster_phi[n] - track_phi[itrack];
 	  if (DeltaPhi < -M_PI/2){DeltaPhi += 2*M_PI;}  //if less then -pi/2 add 2pi                                                       
 	  if (DeltaPhi > 3*M_PI/2){DeltaPhi =DeltaPhi -2*M_PI;}
 	  Float_t DeltaEta = cluster_eta[n] - track_eta[itrack];
-	  if ((TMath::Abs(DeltaPhi) < 0.01) && (TMath::Abs(DeltaEta) < 0.01)) continue;
+	  if ((TMath::Abs(DeltaPhi) < 0.1) && (TMath::Abs(DeltaEta) < 0.1)) continue;
+	  //if ((TMath::Abs(DeltaPhi) < 0.01) && (TMath::Abs(DeltaEta) < 0.01)) continue;
 
 // 	  Corr.Fill(DeltaPhi,DeltaEta);
 // 	  if(isolation<iso_max) IsoCorr.Fill(DeltaPhi,DeltaEta);
 // 	  if(isolation>noniso_min) AntiIsoCorr.Fill(DeltaPhi,DeltaEta);
-
-	  Corr.Fill(dphi,deta);
-	  if(isolation<iso_max) IsoCorr.Fill(dphi,deta);
-	  if(isolation>noniso_min && isolation<noniso_max) AntiIsoCorr.Fill(dphi,deta);
-
-
 
       // Loop over zt bins
 	  for(int izt = 0; izt<nztbins ; izt++){
 	    if(zt>ztbins[izt] and  zt<ztbins[izt+1])
 	      {
               // Where the  h_dPhi_iso and h_dPhi_noniso bins are filled
-		if(isolation< iso_max)    h_dPhi_iso[izt]->Fill(dphi);
-		if(isolation> noniso_min && isolation<noniso_max) h_dPhi_noniso[izt]->Fill(dphi);
+		if(isolation< iso_max){
+		  h_dPhi_iso[izt]->Fill(DeltaPhi);
+		  IsoCorr[izt]->Fill(DeltaPhi,DeltaEta);
+		  clusters_passed_iso[izt] += 1;
+		}
+		if(isolation> noniso_min && isolation<noniso_max){
+		  h_dPhi_noniso[izt]->Fill(DeltaPhi);
+		  AntiIsoCorr[izt]->Fill(DeltaPhi,DeltaEta);
+		  clusters_passed_Antiiso[izt] += 1;
+		}
+		Corr[izt]->Fill(DeltaPhi,DeltaEta);
 	      }
 	  } // end loop over bins
 	}//end loop over tracks
@@ -422,19 +435,24 @@ int main(int argc, char *argv[])
     histogram0.Write("DeepPhotonSpectra");
     h_ntrig.Write("ntriggers");
    
+//     for (int izt = 0; izt<nztbins; izt++){
+//       h_dPhi_iso[izt]->SetMinimum(0.0);
+//       h_dPhi_iso[izt]->Write();
+//       h_dPhi_noniso[izt]->SetMinimum(0.0);
+//       h_dPhi_noniso[izt]->Write();
+//     }
     for (int izt = 0; izt<nztbins; izt++){
-      h_dPhi_iso[izt]->SetMinimum(0.0);
-      h_dPhi_iso[izt]->Write();
-      h_dPhi_noniso[izt]->SetMinimum(0.0);
-      h_dPhi_noniso[izt]->Write();  
+      Corr[izt]->Write();
+    }
+    for (int izt = 0; izt<nztbins; izt++){
+      IsoCorr[izt]->Scale(1/(clusters_passed_iso[izt]));
+      IsoCorr[izt]->Write();
+    }
+    for (int izt = 0; izt<nztbins; izt++){
+      AntiIsoCorr[izt]->Scale(1/(clusters_passed_Antiiso[izt]));
+      AntiIsoCorr[izt]->Write();
     }
     fout->Close();     
-      
-    TFile* MyFile = new TFile("def_Better_ISO_Correlation.root","RECREATE");
-    Corr.Write();
-    IsoCorr.Write();
-    AntiIsoCorr.Write();
-    MyFile->Print();
 
   std::cout << " ending " << std::endl;
   return EXIT_SUCCESS;
