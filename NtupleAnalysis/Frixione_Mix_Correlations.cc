@@ -33,7 +33,7 @@ int main(int argc, char *argv[])
 
   // Read configuration file for the DNN_min and DNN_max variables
   FILE* config = fopen("Corr_config.yaml", "r");
-  
+  if (config == NULL)  std::cout<<"no config"<<std::endl;
   // Default values of various variables used in the file (actual values are to be determined by the configuration file)
   // Cut variables
   double DNN_min = 0.55;
@@ -224,9 +224,9 @@ int main(int argc, char *argv[])
   int clusters_passed_iso[nztbins];
   int clusters_passed_Antiiso[nztbins];
 
-  int n_eta_bins = 56;
+  int n_eta_bins = 14;
+  int n_phi_bins = 24;
   
-  // Function initializations of h_dPhi_iso and h_dPhi_noniso for each and every zt bin
   for (int izt = 0; izt<nztbins; izt++){
     h_dPhi_iso[izt] = new TH1F(Form("dPhi_iso_ztmin%1.0f_ztmax%1.0f",10*ztbins[izt],10*ztbins[izt+1]) ,"", n_correlationbins,-0.5,1.5);
     h_dPhi_noniso[izt] = new TH1F(Form("dPhi_noniso_ztmin%1.0f_ztmax%1.0f",10*ztbins[izt], 10*ztbins[izt+1]), "", n_correlationbins,-0.5,1.5);
@@ -237,17 +237,17 @@ int main(int argc, char *argv[])
 
 
     Corr[izt] = new TH2D(Form("Correlation_ztmin%1.0f_ztmax%1.0f",10*ztbins[izt],10*ztbins[izt+1]),
-                         "Mixed Event #gamma-H [all] Correlation", 60,-M_PI/2,3*M_PI/2, n_eta_bins, -1.4, 1.4);
+                         "Mixed Event #gamma-H [all] Correlation", n_phi_bins,-M_PI/2,3*M_PI/2, n_eta_bins, -1.4, 1.4);
     Corr[izt]->Sumw2();
     Corr[izt]->SetMinimum(0.);
 
     IsoCorr[izt] = new TH2D(Form("IsoCorrelation_ztmin%1.0f_ztmax%1.0f",10*ztbins[izt],10*ztbins[izt+1]),
-                            "Mixed Event #gamma-H [Iso] Correlation", 60,-M_PI/2,3*M_PI/2, n_eta_bins, -1.4, 1.4);
+                            "Mixed Event #gamma-H [Iso] Correlation", n_phi_bins,-M_PI/2,3*M_PI/2, n_eta_bins, -1.4, 1.4);
     IsoCorr[izt]->Sumw2();
     IsoCorr[izt]->SetMinimum(0.);
     
     AntiIsoCorr[izt] = new TH2D(Form("AntiIsoCorrelation_ztmin%1.0f_ztmax%1.0f",10*ztbins[izt],10*ztbins[izt+1]),
-                                "Mixed Event #gamma-H [AntiIso] Correlation", 60,-M_PI/2,3*M_PI/2, n_eta_bins, -1.4, 1.4);
+                                "Mixed Event #gamma-H [AntiIso] Correlation", n_phi_bins,-M_PI/2,3*M_PI/2, n_eta_bins, -1.4, 1.4);
     AntiIsoCorr[izt]->Sumw2();
     AntiIsoCorr[izt]->SetMinimum(0.);
 
@@ -269,15 +269,11 @@ int main(int argc, char *argv[])
     }
     file->Print();
     
-    // Get all the TTree variables from the file to open, I guess
     TTree *_tree_event = dynamic_cast<TTree *>(file->Get("_tree_event"));
-
     if (_tree_event == NULL) {
       std::cout << " fail " << std::endl;
       exit(EXIT_FAILURE);
     }  
-    //_tree_event->Print();
-
 
     //variables
     Double_t primary_vertex[3];
@@ -305,7 +301,7 @@ int main(int argc, char *argv[])
     Float_t cluster_lambda_square[NTRACK_MAX][2];   
     Float_t cell_e[17664];
 
-    Long64_t Mix_Events[10];
+    Long64_t Mix_Events[50];
 
     //MC
     unsigned int nmc_truth;
@@ -357,8 +353,8 @@ int main(int argc, char *argv[])
     
     std::cout << " Total Number of entries in TTree: " << _tree_event->GetEntries() << std::endl;
 
-    //    UInt_t ntrack_max = 300;
-    //    UInt_t ncluster_max = 100;
+//     UInt_t ntrack_max = 553;
+//     UInt_t ncluster_max = 150;
 
     UInt_t ntrack_max = 0;
     UInt_t ncluster_max = 0;
@@ -370,7 +366,7 @@ int main(int argc, char *argv[])
       ncluster_max = std::max(ncluster_max, ncluster);
       fprintf(stderr, "\r%s:%d: %llu", __FILE__, __LINE__, i);
     }
-    fprintf(stderr, "\n%s:%d: maximum tracks:%i maximum clusters:%i\n", __FILE__, __LINE__, ntrack_max,ncluster_max);
+     fprintf(stderr, "\n%s:%d: maximum tracks:%i maximum clusters:%i\n", __FILE__, __LINE__, ntrack_max,ncluster_max);
 
     //open hdf5
     const H5std_string hdf5_file_name(argv[iarg+1]);
@@ -427,10 +423,10 @@ int main(int argc, char *argv[])
     Long64_t nentries = _tree_event->GetEntries();
 
     for(Long64_t ievent = 0; ievent < nentries ; ievent++){     
-      //for(Long64_t ievent = 0; ievent < 1000 ; ievent++){
-
+    //for(Long64_t ievent = 0; ievent < 1000 ; ievent++){
       _tree_event->GetEntry(ievent);
       fprintf(stderr, "\r%s:%d: %llu / %llu", __FILE__, __LINE__, ievent, nentries);
+      //fprintf(stderr, "%s:%d: %llu / %llu ENTRIES\n", __FILE__, __LINE__, ievent, nentries);
 
       for (ULong64_t n = 0; n < ncluster; n++) {
 	if( not(cluster_pt[n]>pT_min and cluster_pt[n]<pT_max)) continue; //select pt of photons
@@ -460,7 +456,7 @@ int main(int argc, char *argv[])
 	  Long64_t mix_event = Mix_Events[imix];
 	  if (mix_event == ievent) continue;
 
-	  //read mixed event into hyperslab Place in track loop if high pt cut.
+	  //adjust hyper slab offset for next mixed event
 	  track_offset[0]=mix_event;
 	  track_dataspace.selectHyperslab( H5S_SELECT_SET, track_count, track_offset );
 	  track_dataset.read( track_data_out, PredType::NATIVE_FLOAT, track_memspace, track_dataspace );
@@ -474,34 +470,30 @@ int main(int argc, char *argv[])
 	    if (std::isnan(track_data_out[0][itrack][1])) break;
 	    if((track_quality[itrack]&selection_number)==0) continue; //pass 3 cut
 	    //if (track_data_out[0][itrack][1] < 0.15) continue;
-	    if (track_data_out[0][itrack][1] < 2) continue;
+	    if (track_data_out[0][itrack][1] < 2) continue; //less than 2GeV
 
 	    //veto charged particles from mixed event tracks
 	    //the isolation takes care of the initial culster, but does nothing for mixed event track
-	    bool Mix_HasMatch = false;
+	    bool MixTrack_HasMatch = false;
 	    for (unsigned int l = 0; l < ncluster_max; l++){
 	      if (std::isnan(cluster_data_out[0][l][0])) break;
-	      if (TMath::Abs(cluster_data_out[0][l][2] - track_data_out[0][itrack][5]) < 0.015) {
-		Mix_HasMatch = true;
-		break; }
-	      if (TMath::Abs(cluster_data_out[0][l][3] - track_data_out[0][itrack][6]) < 0.015) {
-		Mix_HasMatch = true;
-		break; }
+	      if (TMath::Abs(cluster_data_out[0][l][2] - track_data_out[0][itrack][5]) < 0.015  && 
+		  TMath::Abs(cluster_data_out[0][l][3] - track_data_out[0][itrack][6]) < 0.015) {
+		MixTrack_HasMatch = true;
+		break; 
+	      }
 	    }
-	    if (Mix_HasMatch) continue;
+	    if (MixTrack_HasMatch) continue;
+	    //fprintf(stderr, "%s:%d: Mixed Event: %llu Track: %llu\n", __FILE__, __LINE__, mix_event, itrack);
 
 	    //FIXME: Lazy implementation from past code. Will use this repositories ∆'s soon
 	    Float_t DeltaPhi = cluster_phi[n] - track_data_out[0][itrack][3];
 	    if (DeltaPhi < -M_PI/2){DeltaPhi += 2*M_PI;}  //if less then -pi/2 add 2pi              
 	    if (DeltaPhi > 3*M_PI/2){DeltaPhi =DeltaPhi -2*M_PI;}
 	    Float_t DeltaEta = cluster_eta[n] - track_data_out[0][itrack][2];
-	    if ((TMath::Abs(DeltaPhi) < 0.1) && (TMath::Abs(DeltaEta) < 0.1)) continue;
+	    if ((TMath::Abs(DeltaPhi) < 0.005) && (TMath::Abs(DeltaEta) < 0.005)) continue;
 
-// 	    Corr.Fill(DeltaPhi,DeltaEta);
-// 	    if(isolation<iso_max) IsoCorr.Fill(DeltaPhi,DeltaEta);
-// 	    if(isolation>noniso_min) AntiIsoCorr.Fill(DeltaPhi,DeltaEta);
-
-	    Double_t zt = track_pt[itrack]/cluster_pt[n];
+	    Double_t zt = track_data_out[0][itrack][1]/cluster_pt[n];
 	    Float_t deta =  cluster_eta[n]-track_data_out[0][itrack][2];;
 	    Float_t dphi =  TVector2::Phi_mpi_pi(cluster_phi[n]-track_data_out[0][itrack][3]);
 	    dphi = dphi/TMath::Pi();
@@ -516,12 +508,10 @@ int main(int argc, char *argv[])
 		  if(isolation< iso_max){
 		    h_dPhi_iso[izt]->Fill(DeltaPhi);
 		    IsoCorr[izt]->Fill(DeltaPhi,DeltaEta);
-		    clusters_passed_iso[izt] += 1;
 		  }
 		  if(isolation> noniso_min && isolation<noniso_max){
 		    h_dPhi_noniso[izt]->Fill(DeltaPhi);
 		    AntiIsoCorr[izt]->Fill(DeltaPhi,DeltaEta);
-		    clusters_passed_Antiiso[izt] += 1;
 		  }
 		  Corr[izt]->Fill(DeltaPhi,DeltaEta);
 		}

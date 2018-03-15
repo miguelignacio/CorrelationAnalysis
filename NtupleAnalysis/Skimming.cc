@@ -207,7 +207,7 @@ int main(int argc, char *argv[])
 
  	std::cout << " Total Number of entries in TTree: " << _tree_event->GetEntries() << std::endl;
 
-	TFile *newfile = new TFile("small.root","recreate");
+	TFile *newfile = new TFile("13f50_small.root","recreate");
 	TTree *newtree = _tree_event->CloneTree(0);
         newtree->Branch("cluster_NN1", cluster_NN1, "cluster_NN1[ncluster]/F");
         newtree->Branch("cluster_NN2", cluster_NN2, "cluster_NN2[ncluster]/F");
