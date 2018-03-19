@@ -201,7 +201,12 @@ int main(int argc, char *argv[])
 	  ncluster_max = std::max(ncluster_max, ncluster);
 	  fprintf(stderr, "\r%s:%d: %llu", __FILE__, __LINE__, i);
 	}
+	ncluster_max = 23;
 	fprintf(stderr, "\n%s:%d: maximum tracks:%i maximum clusters:%i\n", __FILE__, __LINE__, ntrack_max,ncluster_max);
+
+
+	//FIXME:: when mixing with a nother data set, or hdf5 file from other data set, make sure ntrackmax is in bounds
+
 
 	//open hdf5
 

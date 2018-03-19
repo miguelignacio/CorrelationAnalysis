@@ -207,7 +207,9 @@ int main(int argc, char *argv[])
   //TH1D histogram2("histogram2", "", 18, -0.5,1.5);
   TH1D histogram3("histogram3", "", 18, -0.5,1.5);
   TH1D h_ntrig("h_ntrig", "", 2, -0.5,1.0);
-  
+  TH1D h_Iso_triggers("h_Iso_Triggers", "Number of Isolated Photon Triggers", 2, -0.5,1.0);
+  TH1D h_AntiIso_triggers("h_AntiIso_Triggers", "Number of ANTI-Isolated Photon Triggers", 2, -0.5,1.0);
+
   // Create the histogram for the 2D plots
   // TH2D histogram2D0("histogram2D0", "", );
   
@@ -370,11 +372,14 @@ int main(int argc, char *argv[])
 	if(isolation<iso_max){
 	  histogram0.Fill(cluster_pt[n]); //isolated deep-photon pt spectra
 	  h_ntrig.Fill(0);
+	  h_Iso_triggers.Fill(0);
+
 	  ntriggers_iso += 1;
 	}
 	if(isolation>noniso_min && isolation<noniso_max){
 	  h_ntrig.Fill(0.5);
 	  ntriggers_Antiiso += 1;
+	  h_AntiIso_triggers.Fill(0);
 	}
 
 	for (ULong64_t itrack = 0; itrack < ntrack; itrack++) {            
@@ -425,6 +430,8 @@ int main(int argc, char *argv[])
     TFile* fout = new TFile("fout_frixione.root","RECREATE");
     histogram0.Write("DeepPhotonSpectra");
     h_ntrig.Write("ntriggers");
+    h_Iso_triggers.Write("N_Iso_Trigers");
+    h_AntiIso_triggers.Write("N_AntiIso_Trigers");
     std::cout<<"Clusters Passed Iosalation: "<<ntriggers_iso<<std::endl;
 //     for (int izt = 0; izt<nztbins; izt++){
 //       h_dPhi_iso[izt]->SetMinimum(0.0);
