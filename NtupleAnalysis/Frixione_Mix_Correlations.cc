@@ -360,14 +360,14 @@ int main(int argc, char *argv[])
     UInt_t ncluster_max = 0;
 
     fprintf(stderr, "\r%s:%d: %s\n", __FILE__, __LINE__, "Determining ntrack_max and ncluster_max needed for hdf5 hyperslab");
-//     for (Long64_t i = 0; i < _tree_event->GetEntries(); i++) {
-//       _tree_event->GetEntry(i);
-//       ntrack_max = std::max(ntrack_max, ntrack);
-//       ncluster_max = std::max(ncluster_max, ncluster);
-//       fprintf(stderr, "\r%s:%d: %llu", __FILE__, __LINE__, i);
-//     }
-    ntrack_max = 3000;
-    ncluster_max = 23; //FixMe, root and hdf5 files from different data sets may have it be out of bounds
+    for (Long64_t i = 0; i < _tree_event->GetEntries(); i++) {
+      _tree_event->GetEntry(i);
+      ntrack_max = std::max(ntrack_max, ntrack);
+      ncluster_max = std::max(ncluster_max, ncluster);
+      fprintf(stderr, "\r%s:%d: %llu", __FILE__, __LINE__, i);
+    }
+    //ntrack_max = 3000;
+    //ncluster_max = 23; //FixMe, root and hdf5 files from different data sets may have it be out of bounds
     fprintf(stderr, "\n%s:%d: maximum tracks:%i maximum clusters:%i\n", __FILE__, __LINE__, ntrack_max,ncluster_max);
 
     //open hdf5
