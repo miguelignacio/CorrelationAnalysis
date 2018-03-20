@@ -7,6 +7,7 @@
 #include <TCanvas.h>
 #include <TStyle.h>
 #include <TH2D.h>
+#include <TLine.h>
 #include <TLegend.h>
 #include <THStack.h>
 #include <TProfile.h>
@@ -28,7 +29,8 @@ int main()
     exit(EXIT_FAILURE);
     }
 
-  TFile *mix = TFile::Open("fout_mixed_frixione.root");  
+  //TFile *mix = TFile::Open("fout_mixed_frixione.root");  
+  TFile *mix = TFile::Open("fout_fdc_mixed_frixione.root");
   if (mix == NULL) {
     std::cout << " file 2 fail" << std::endl;
     exit(EXIT_FAILURE);
@@ -51,7 +53,7 @@ int main()
   TH1D* IsoPhiProj_LargeEta[nztbins];
   TH1D* AntiIsoPhiProj_LargeEta[nztbins];
 
-
+  //Grab Histos, correct with mixed, project, get pedestal
   for (int izt = 0; izt<nztbins; izt++){
     Corr_Iso_same[izt] = (TH2F*)corr->Get(Form("IsoCorrelation_ztmin%1.0f_ztmax%1.0f",10*ztbins[izt],10*ztbins[izt+1]));
    if (Corr_Iso_same[izt] == NULL) {
@@ -125,6 +127,9 @@ int main()
     std::cout<<"Entries: "<<Corr_Iso_same[izt]->GetEntries()<<std::endl;
     TempIso->Delete();
     TempAntiIso->Delete();
+
+    float IsoZYAM[nztbins];
+    float AntiIsoZYAM[nztbins];
 
   }
   
@@ -201,10 +206,12 @@ int main()
     AntiIsoPhiProj_LargeEta[izt]->Write();
   }
 
-  float scales[7] = {0.1, 0.114, 0.39, 0.13, 0.046, 0.03, 0.0188};
+  //float scales[7] = {0.1, 0.114, 0.39, 0.13, 0.046, 0.03, 0.0188};
+  float scales[7] = {0.1, 0.114, 0.39, 0.13, 0.046, 0.035, 0.024};
 
   for (int izt = 0; izt<nztbins; izt++){
     if(izt == 0) continue;
+
     TCanvas *canvas = new TCanvas("canv","canvas",1600,800);
     gStyle->SetOptStat("");
     canvas->Divide(2);
@@ -230,11 +237,22 @@ int main()
     IsoPhiProj[izt]->GetYaxis()->SetRangeUser(0,scales[izt]);
     IsoPhiProj_LargeEta[izt]->GetYaxis()->SetRangeUser(0,scales[izt]);
     IsoPhiProj[izt]->Draw();
-    IsoPhiProj_LargeEta[izt]->Draw("same");
+    //IsoPhiProj_LargeEta[izt]->Draw("same");
 
     TLegend *Iso_legend = new TLegend(0.75,0.75,0.95,0.85);
     Iso_legend->AddEntry(IsoPhiProj[izt],"|#Delta#eta| < 0.6","p");
-    Iso_legend->AddEntry(IsoPhiProj_LargeEta[izt],"0.6 < |#Delta#eta| < 1.4","l");
+    //Iso_legend->AddEntry(IsoPhiProj_LargeEta[izt],"0.6 < |#Delta#eta| < 1.4","l");
+
+
+    //ZYAM
+    float Iso_ZYAM_Int = (IsoPhiProj[izt]->Integral(11,14))/3;
+    TLine *Iso_ZYAM = new TLine(-M_PI/2,Iso_ZYAM_Int,3*M_PI/2,Iso_ZYAM_Int);
+    Iso_ZYAM->SetLineColorAlpha(kRed, 0.9);
+    Iso_ZYAM->SetLineWidth(4);
+    Iso_ZYAM->Draw("same");
+    IsoPhiProj[izt]->Draw("same");
+
+    Iso_legend->AddEntry(Iso_ZYAM,"ZYAM","l");
     Iso_legend->Draw();
 
     canvas->cd(2);
@@ -258,16 +276,85 @@ int main()
     AntiIsoPhiProj_LargeEta[izt]->Scale(1/1.6);
     AntiIsoPhiProj[izt]->GetYaxis()->SetRangeUser(0,scales[izt]);
     AntiIsoPhiProj_LargeEta[izt]->GetYaxis()->SetRangeUser(0,scales[izt]);
-    AntiIsoPhiProj[izt]->Draw();
-    AntiIsoPhiProj_LargeEta[izt]->Draw("same");
+    AntiIsoPhiProj[izt]->Draw("same");
+    //AntiIsoPhiProj_LargeEta[izt]->Draw("same");
+
+    Double_t AntiIso_ZYAM_Int = (AntiIsoPhiProj[izt]->Integral(11,13))/3;
+    TLine *AntiIso_ZYAM = new TLine(-M_PI/2,AntiIso_ZYAM_Int,3*M_PI/2,AntiIso_ZYAM_Int);
+    AntiIso_ZYAM->SetLineColorAlpha(kRed, 0.9);
+    AntiIso_ZYAM->SetLineWidth(4);
+    AntiIso_ZYAM->Draw("same");
+    AntiIsoPhiProj[izt]->Draw("same");
 
     TLegend *AntiIso_legend = new TLegend(0.68,0.75,0.88,0.85);
     AntiIso_legend->AddEntry(IsoPhiProj[izt],"|#Delta#eta| < 0.6","p");
-    AntiIso_legend->AddEntry(IsoPhiProj_LargeEta[izt],"0.6 < |#Delta#eta| < 1.4","l");
+    //AntiIso_legend->AddEntry(IsoPhiProj_LargeEta[izt],"0.6 < |#Delta#eta| < 1.4","l");
+    AntiIso_legend->AddEntry(AntiIso_ZYAM, "ZYAM","l");
     AntiIso_legend->Draw();
-
+    
     canvas->SaveAs(Form("pics/phi_proj%i.png",izt));
     canvas->Clear();
+  }
+
+  TH1D* Isoped[nztbins];
+  TH1D* Antiped[nztbins];
+
+  for (int izt = 0; izt<nztbins; izt++){
+    if(izt == 0) continue;
+
+    TCanvas *pedcanvas = new TCanvas("pedcanv","pedcanvas",1600,800);
+    gStyle->SetOptStat("");
+    pedcanvas->Divide(2);
+
+    pedcanvas->cd(1);
+    gPad->SetLeftMargin(0.17);
+    gPad->SetRightMargin(0.0);
+
+    Double_t Iso_ZYAM_Int = (IsoPhiProj[izt]->Integral(11,13))/3;
+    for (int i = 1; i <25; i++) {
+      Double_t y = IsoPhiProj[izt]->GetBinContent(i);
+      Double_t y_error = IsoPhiProj[izt]->GetBinError(i);
+      Double_t new_y = y - Iso_ZYAM_Int;
+      Double_t new_y_error = (y-Iso_ZYAM_Int)*y_error/y;
+      IsoPhiProj[izt]->SetBinContent(i,new_y);
+      IsoPhiProj[izt]->SetBinError(i,new_y_error);
+    }
+
+//     Isoped[izt] = new TH1D(Form("Isoped_ztmin%1.0f_ztmax%1.0f",10*ztbins[izt],10*ztbins[izt+1]),"Isoped",24,-M_PI/2,3*M_PI/2);
+//     float Iso_ZYAM_Int = (IsoPhiProj[izt]->Integral(11,13))/3;
+//     for (int i = 1; i <25; i++) Isoped[izt]->SetBinContent(i,Iso_ZYAM_Int);
+//     IsoPhiProj[izt]->Add(Isoped[izt],-1);
+//     IsoPhiProj[izt]->SetTitle(Form("Iso #gamma-h: PEDESTAL SUBTRACTED 10 < p_{T}^{Clus.} < 16 GeV, %1.1f < z_{T} < %1.1f, 0.55 < DNN < 0.85",
+// 				   ztbins[izt],ztbins[izt+1]));
+    IsoPhiProj[izt]->SetTitle(Form("Iso #gamma-h: PEDESTAL SUBTRACTED, %1.1f < z_{T} < %1.1f",ztbins[izt],ztbins[izt+1]));
+    IsoPhiProj[izt]->Draw();
+
+    pedcanvas->cd(2);
+    gPad->SetLeftMargin(0.1);
+    gPad->SetRightMargin(0.07);
+
+    Double_t AntiIso_ZYAM_Int = (AntiIsoPhiProj[izt]->Integral(11,14))/4;
+    for (int i = 1; i <25; i++) {
+      Double_t y = AntiIsoPhiProj[izt]->GetBinContent(i);
+      Double_t y_error = AntiIsoPhiProj[izt]->GetBinError(i);
+      Double_t new_y = y - Iso_ZYAM_Int;
+      Double_t new_y_error = (y-AntiIso_ZYAM_Int)*y_error/y;
+      AntiIsoPhiProj[izt]->SetBinContent(i,new_y);
+      AntiIsoPhiProj[izt]->SetBinError(i,new_y_error);
+    }
+
+//     Antiped[izt] = new TH1D(Form("Antiped_ztmin%1.0f_ztmax%1.0f",10*ztbins[izt],10*ztbins[izt+1]),"Antiped",24,-M_PI/2,3*M_PI/2);
+//     Double_t AntiIso_ZYAM_Int = (AntiIsoPhiProj[izt]->Integral(11,13))/3;
+//     for (int i = 1; i <25; i++) Antiped[izt]->SetBinContent(i,AntiIso_ZYAM_Int);
+//     AntiIsoPhiProj[izt]->Add(Antiped[izt],-1);
+//     AntiIsoPhiProj[izt]->SetTitle(Form("AntiIso #gamma-h: PEDESTAL SUBTRACTED 10 < p_{T}^{Clus.} < 16 GeV, %1.1f < z_{T} < %1.1f, 0.55 < DNN < 0.85",
+//  			      ztbins[izt],ztbins[izt+1]));
+
+    AntiIsoPhiProj[izt]->SetTitle(Form("AntiIso #gamma-h: PEDESTAL SUBTRACTED, %1.1f < z_{T} < %1.1f",ztbins[izt],ztbins[izt+1]));
+    AntiIsoPhiProj[izt]->Draw();
+
+    pedcanvas->SaveAs(Form("pics/PEDEST_phi_proj%i.png",izt));
+    pedcanvas->Clear();
   }
 
   MyFile->Close();
