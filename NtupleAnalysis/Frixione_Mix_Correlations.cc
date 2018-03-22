@@ -346,18 +346,18 @@ int main(int argc, char *argv[])
 //     UInt_t ntrack_max = 553;
 //     UInt_t ncluster_max = 150;
 
-    UInt_t ntrack_max = 0;
-    UInt_t ncluster_max = 0;
+     UInt_t ntrack_max = 0;
+     UInt_t ncluster_max = 0;
 
-    fprintf(stderr, "\r%s:%d: %s\n", __FILE__, __LINE__, "Determining ntrack_max and ncluster_max needed for hdf5 hyperslab");
-    for (Long64_t i = 0; i < _tree_event->GetEntries(); i++) {
-      _tree_event->GetEntry(i);
-      ntrack_max = std::max(ntrack_max, ntrack);
-      ncluster_max = std::max(ncluster_max, ncluster);
-      fprintf(stderr, "\r%s:%d: %llu", __FILE__, __LINE__, i);
-    }
-    //ntrack_max = 3000;
-    //ncluster_max = 23; //FixMe, root and hdf5 files from different data sets may have it be out of bounds
+//     fprintf(stderr, "\r%s:%d: %s\n", __FILE__, __LINE__, "Determining ntrack_max and ncluster_max needed for hdf5 hyperslab");
+//     for (Long64_t i = 0; i < _tree_event->GetEntries(); i++) {
+//       _tree_event->GetEntry(i);
+//       ntrack_max = std::max(ntrack_max, ntrack);
+//       ncluster_max = std::max(ncluster_max, ncluster);
+//       fprintf(stderr, "\r%s:%d: %llu", __FILE__, __LINE__, i);
+//     }
+    ntrack_max = 3000;
+    ncluster_max = 23; //FixMe, root and hdf5 files from different data sets may have it be out of bounds
     fprintf(stderr, "\n%s:%d: maximum tracks:%i maximum clusters:%i\n", __FILE__, __LINE__, ntrack_max,ncluster_max);
 
     //open hdf5: Define size of data from file, explicitly allocate memory in hdf5 space and array size
@@ -460,7 +460,8 @@ int main(int argc, char *argv[])
 	  for (ULong64_t itrack = 0; itrack < ntrack_max; itrack++) {
 	    if (std::isnan(track_data_out[0][itrack][1])) break;
 	    if((track_quality[itrack]&selection_number)==0) continue; //pass 3 cut
-	    if (track_data_out[0][itrack][1] < 2) continue; //less than 2GeV
+	    //if (track_data_out[0][itrack][1] < 2) continue; //less than 2GeV
+	    if (track_data_out[0][itrack][1] < 1) continue; //less than 1GeV
 
 	    //veto charged particles from mixed event tracks
 	    bool MixTrack_HasMatch = false;

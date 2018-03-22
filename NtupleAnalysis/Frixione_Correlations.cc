@@ -36,7 +36,7 @@ int main(int argc, char *argv[])
   
   // Default values of various variables used in the file (actual values are to be determined by the configuration file)
   // Cut variables
-  double DNN_min = 0.75;
+  double DNN_min = 0.55;
   double DNN_max = 0.85;
   double pT_min = 8;
   double pT_max = 16;
@@ -63,8 +63,9 @@ int main(int argc, char *argv[])
   int n_correlationbins = 18;
     
   // Which branch should be used to determine whether a cluster should fall into iso, noniso, or neither
-  isolationDet determiner = CLUSTER_ISO_TPC_04;
-  
+  //isolationDet determiner = CLUSTER_ISO_TPC_04;
+  isolationDet determiner = CLUSTER_ISO_ITS_04;
+
   // Loop through config file
   char line[MAX_INPUT_LENGTH];
   while (fgets(line, MAX_INPUT_LENGTH, config) != NULL) {
@@ -358,30 +359,33 @@ int main(int argc, char *argv[])
  
       for (ULong64_t n = 0; n < ncluster; n++) {
 	if( not(cluster_pt[n]>pT_min and cluster_pt[n]<pT_max)) continue; //select pt of photons
-	if( not(cluster_s_nphoton[n][1]>DNN_min and cluster_s_nphoton[n][1]<DNN_max)) continue; //select deep-photons
+	//if( not(cluster_s_nphoton[n][1]>DNN_min and cluster_s_nphoton[n][1]<DNN_max)) continue; //select deep-photons
 	//if( not(TMath::Abs(cluster_eta[n])<Eta_max)) continue; //cut edges of detector
 	if( not(cluster_ncell[n]>Cluster_min)) continue;   //removes clusters with 1 or 2 cells
 	if( not(cluster_e_cross[n]/cluster_e[n]>EcrossoverE_min)) continue; //removes "spiky" clusters
-    
+
 	float isolation;
 	if (determiner == CLUSTER_ISO_TPC_04) isolation = cluster_iso_tpc_04[n];
 	else if (determiner == CLUSTER_ISO_ITS_04) isolation = cluster_iso_its_04[n];
 	else if (determiner == CLUSTER_FRIXIONE_TPC_04_02) isolation = cluster_frixione_tpc_04_02[n];
 	else isolation = cluster_frixione_its_04_02[n];
 	
+	//if(isolation>iso_max) continue;    
 	if(isolation<iso_max){
+	  if ((cluster_s_nphoton[n][1] > DNN_min) && (cluster_s_nphoton[n][1]<DNN_max)){
 	  histogram0.Fill(cluster_pt[n]); //isolated deep-photon pt spectra
 	  h_ntrig.Fill(0);
 	  h_Iso_triggers.Fill(0);
-
 	  ntriggers_iso += 1;
+	  }
 	}
-	if(isolation>noniso_min && isolation<noniso_max){
+	//if(isolation>noniso_min && isolation<noniso_max){
+	if(isolation<iso_max){
+	  //if (not(cluster_s_nphoton[n][1] > 0.0 && cluster_s_nphoton[n][1] < 0.3)) continue; 
 	  h_ntrig.Fill(0.5);
 	  ntriggers_Antiiso += 1;
 	  h_AntiIso_triggers.Fill(0);
 	}
-
 	for (ULong64_t itrack = 0; itrack < ntrack; itrack++) {            
 	  if(track_pt[itrack] < 2) continue;
 	  if((track_quality[itrack]&selection_number)==0) continue; //select only tracks that pass selection 3
@@ -397,19 +401,26 @@ int main(int argc, char *argv[])
 	  Float_t DeltaEta = cluster_eta[n] - track_eta[itrack];
 	  //if ((TMath::Abs(DeltaPhi) < 0.1) && (TMath::Abs(DeltaEta) < 0.1)) continue;
 	  if ((TMath::Abs(DeltaPhi) < 0.005) && (TMath::Abs(DeltaEta) < 0.005)) continue;
+	  //if (sqrt(DeltaPhi*DeltaPhi + DeltaEta*DeltaEta) < 0.4) continue;
 
-      // Loop over zt bins
+	  // Loop over zt bins
 	  for(int izt = 0; izt<nztbins ; izt++){
 	    if(zt>ztbins[izt] and  zt<ztbins[izt+1])
 	      {
               // Where the  h_dPhi_iso and h_dPhi_noniso bins are filled
-		if(isolation< iso_max){
-		  h_dPhi_iso[izt]->Fill(DeltaPhi);
-		  IsoCorr[izt]->Fill(DeltaPhi,DeltaEta);
+		//FIXME: Remove
+		if(isolation<iso_max){
+		  if ((cluster_s_nphoton[n][1] > DNN_min) && (cluster_s_nphoton[n][1]<DNN_max)){
+		    h_dPhi_iso[izt]->Fill(DeltaPhi);
+		    IsoCorr[izt]->Fill(DeltaPhi,DeltaEta);
+		  }
 		}
-		if(isolation> noniso_min && isolation<noniso_max){
+		//if(isolation> noniso_min && isolation<noniso_max){
+		if(isolation<iso_max){
+		  if ((cluster_s_nphoton[n][1]>0.0) && (cluster_s_nphoton[n][1]<0.3)){
 		  h_dPhi_noniso[izt]->Fill(DeltaPhi);
 		  AntiIsoCorr[izt]->Fill(DeltaPhi,DeltaEta);
+		  }
 		}
 		Corr[izt]->Fill(DeltaPhi,DeltaEta);
 	      }
@@ -427,7 +438,7 @@ int main(int argc, char *argv[])
     // Write to fout
 
     //TFile* fout = new TFile(Form("fout_Corr_config%s.root", opened_files.c_str()),"RECREATE");
-    TFile* fout = new TFile("fout_frixione.root","RECREATE");
+    TFile* fout = new TFile("fout_largeDNNBkgrnd.root","RECREATE");
     histogram0.Write("DeepPhotonSpectra");
     h_ntrig.Write("ntriggers");
     h_Iso_triggers.Write("N_Iso_Trigers");
