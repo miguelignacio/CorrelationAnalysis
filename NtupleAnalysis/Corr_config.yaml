@@ -1,4 +1,4 @@
-pT_min:                       10
+pT_min:                       14
 pT_max:                       16
 DNN_min:                      0.55
 DNN_max:                      0.85

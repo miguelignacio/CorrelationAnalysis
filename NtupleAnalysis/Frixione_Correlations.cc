@@ -211,6 +211,9 @@ int main(int argc, char *argv[])
   TH1D h_Iso_triggers("h_Iso_Triggers", "Number of Isolated Photon Triggers", 2, -0.5,1.0);
   TH1D h_AntiIso_triggers("h_AntiIso_Triggers", "Number of ANTI-Isolated Photon Triggers", 2, -0.5,1.0);
 
+  TH2D* PtIsoDist = new TH2D("PtIsoDist","Cluster Pt Spectrum For Isolation (its_04) bins 0.55 < DNN < 0.85",24,10,16,5,-0.5,2);
+  TH2D* LowDNN_PtIsoDist = new TH2D("LowDNN_PtIsoDist","Cluster Pt Spectrum For Isolation (its_04) bins 0.0 < DNN < 0.3",24,10,16,5,-0.5,2);
+
   // Create the histogram for the 2D plots
   // TH2D histogram2D0("histogram2D0", "", );
   
@@ -373,21 +376,30 @@ int main(int argc, char *argv[])
 	//if(isolation>iso_max) continue;    
 	if(isolation<iso_max){
 	  if ((cluster_s_nphoton[n][1] > DNN_min) && (cluster_s_nphoton[n][1]<DNN_max)){
-	  histogram0.Fill(cluster_pt[n]); //isolated deep-photon pt spectra
-	  h_ntrig.Fill(0);
-	  h_Iso_triggers.Fill(0);
-	  ntriggers_iso += 1;
+	    histogram0.Fill(cluster_pt[n]); //isolated deep-photon pt spectra
+	    h_ntrig.Fill(0);
+	    h_Iso_triggers.Fill(0);
+	    ntriggers_iso += 1;
+	    //look at pt Distrobution in Isolation bins
+	    for (double Iso_bin = -0.5; Iso_bin < iso_max; Iso_bin += 0.5){
+	      if (isolation > Iso_bin && isolation < Iso_bin+0.5) PtIsoDist->Fill(cluster_pt[n],isolation);
+	    }
 	  }
 	}
 	//if(isolation>noniso_min && isolation<noniso_max){
 	if(isolation<iso_max){
-	  //if (not(cluster_s_nphoton[n][1] > 0.0 && cluster_s_nphoton[n][1] < 0.3)) continue; 
-	  h_ntrig.Fill(0.5);
-	  ntriggers_Antiiso += 1;
-	  h_AntiIso_triggers.Fill(0);
+	  if ((cluster_s_nphoton[n][1]>0.0) && (cluster_s_nphoton[n][1]<0.3)){
+	    h_ntrig.Fill(0.5);
+	    ntriggers_Antiiso += 1;
+	    h_AntiIso_triggers.Fill(0);
+	    //look at pt Distrobution in Isolation bins
+	    for (double Iso_bin = -0.5; Iso_bin < iso_max; Iso_bin += 0.5){
+	      if (isolation > Iso_bin && isolation < Iso_bin+0.5) LowDNN_PtIsoDist->Fill(cluster_pt[n],isolation);
+	    }
+	  }
 	}
 	for (ULong64_t itrack = 0; itrack < ntrack; itrack++) {            
-	  if(track_pt[itrack] < 2) continue;
+	  if(track_pt[itrack] < 1) continue; //1GeV Tracks
 	  if((track_quality[itrack]&selection_number)==0) continue; //select only tracks that pass selection 3
 	  Double_t zt = track_pt[itrack]/cluster_pt[n];
 	  Float_t deta =  cluster_eta[n]-track_eta[itrack];
@@ -407,8 +419,6 @@ int main(int argc, char *argv[])
 	  for(int izt = 0; izt<nztbins ; izt++){
 	    if(zt>ztbins[izt] and  zt<ztbins[izt+1])
 	      {
-              // Where the  h_dPhi_iso and h_dPhi_noniso bins are filled
-		//FIXME: Remove
 		if(isolation<iso_max){
 		  if ((cluster_s_nphoton[n][1] > DNN_min) && (cluster_s_nphoton[n][1]<DNN_max)){
 		    h_dPhi_iso[izt]->Fill(DeltaPhi);
@@ -438,18 +448,16 @@ int main(int argc, char *argv[])
     // Write to fout
 
     //TFile* fout = new TFile(Form("fout_Corr_config%s.root", opened_files.c_str()),"RECREATE");
-    TFile* fout = new TFile("fout_largeDNNBkgrnd.root","RECREATE");
+    TFile* fout = new TFile("fout_LowDNN_BKGRND.root","RECREATE");
     histogram0.Write("DeepPhotonSpectra");
     h_ntrig.Write("ntriggers");
     h_Iso_triggers.Write("N_Iso_Trigers");
     h_AntiIso_triggers.Write("N_AntiIso_Trigers");
     std::cout<<"Clusters Passed Iosalation: "<<ntriggers_iso<<std::endl;
-//     for (int izt = 0; izt<nztbins; izt++){
-//       h_dPhi_iso[izt]->SetMinimum(0.0);
-//       h_dPhi_iso[izt]->Write();
-//       h_dPhi_noniso[izt]->SetMinimum(0.0);
-//       h_dPhi_noniso[izt]->Write();
-//     }
+
+    PtIsoDist->Write();
+    LowDNN_PtIsoDist->Write();
+
     for (int izt = 0; izt<nztbins; izt++){
       Corr[izt]->Write();
     }

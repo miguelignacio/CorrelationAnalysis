@@ -23,7 +23,7 @@ int main()
 //   }
 
   //TFile *corr = TFile::Open((TString)argv[1]);
-  TFile *corr = TFile::Open("fout_largeDNNBkgrnd.root");
+  TFile *corr = TFile::Open("fout_LOWDNNBkgrnd.root");
   //TFile *corr = TFile::Open("fout_AntiIso_NoDNN.root");
   if (corr == NULL) {
     std::cout << "file 1 fail" << std::endl;
@@ -81,7 +81,7 @@ TFile *mix = TFile::Open("fout_fdc_mixed_frixione.root");
       exit(EXIT_FAILURE);
     }
 
-    //Normalize Mixing to 1 at âˆ†etaâˆ†phi = 0,0
+    //Normalize Mixing to 1 at œôø¦etaœôø¦phi = 0,0
     TAxis *mix_xaxis = Corr_Iso_mix[izt]->GetXaxis();
     Int_t mix_bin_phi = mix_xaxis->FindBin(0.0);
     TAxis *mix_yaxis = Corr_Iso_mix[izt]->GetYaxis();
