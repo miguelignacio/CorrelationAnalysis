@@ -59,6 +59,11 @@ int main(int argc, char *argv[])
   ztbins = new float[nztbins+1];
   ztbins[0] = 0.0; ztbins[1] = 0.1; ztbins[2] = 0.2; ztbins[3] = 0.4; ztbins[4] = 0.6; ztbins[5] = 0.8; ztbins[6] = 1.0; ztbins[7] = 1.2;
    
+  int nptbins = 4;
+  float* ptbins;
+  ptbins = new float[nptbins+1];
+  ptbins[0] = 10.0; ptbins[1] = 11.5; ptbins[2] = 13; ptbins[3] = 14.5; ptbins[4] = 16;
+
   int n_correlationbins = 18;
     
   // Which branch should be used for isolation
@@ -165,7 +170,40 @@ int main(int argc, char *argv[])
           for (int i = 0; i <= nztbins; i++)
               std::cout << ztbins[i] << ", ";
           std::cout << "}\n";
-          }
+      }
+
+
+      else if (strcmp(key, "Pt_bins") == 0) {
+	nptbins = -1;
+	for (const char *v = value; *v != ']';) {
+	  while (*v != ']' && !isdigit(*v)) {
+	    v++;
+	  }
+	  nptbins++;
+
+	  while (*v != ']' && (isdigit(*v) || *v == '.')) {
+	    v++;
+	  }
+	}
+	ptbins = new float[nptbins + 1];
+	int i = 0;
+	for (const char *v = value; *v != ']' ;) {
+	  while (*v != ']' && !isdigit(*v)) {
+	    v++;
+	  }
+	  ptbins[i] = atof(v);
+	  i++;
+	  while (*v != ']' && (isdigit(*v) || *v == '.')) {
+	    v++;
+	  }
+	}
+	std::cout << "Number of Pt bins: " << nptbins << std::endl << "Pt bins: {";
+	for (int i = 0; i <= nptbins; i++)
+	  std::cout << ptbins[i] << ", ";
+	std::cout << "}\n";
+      }
+
+
       else if (strcmp(key, "Cluster_isolation_determinant") == 0) {
 	if (strcmp(value, "cluster_iso_tpc_04") == 0){
               determiner = CLUSTER_ISO_TPC_04;
@@ -198,54 +236,51 @@ int main(int argc, char *argv[])
     std::cout << "zt bound: " << ztbins[i] << std::endl;
   }
 
+  for (int i = 0; i <= nptbins; i++){
+    std::cout << "pt bound: " << ptbins[i] << std::endl;
+  }
+
   // Create the TCanvas and the histograms
   TCanvas canvas("canvas", "");
   TH1D histogram0("histogram0", "", 16, 8.0, 16.0);
   TH1D histogram3("histogram3", "", 18, -0.5,1.5);
-  TH1D h_ntrig("h_ntrig", "", 2, -0.5,1.0);    
 
-  // Function declarations of h_dPhi_iso and h_dPhi_noniso
-  TH1F* h_dPhi_iso[nztbins];
-  TH1F* h_dPhi_noniso[nztbins];
-  TH2D* Corr[nztbins];
-  TH2D* IsoCorr[nztbins];
-  TH2D* AntiIsoCorr[nztbins];
+  TH1D h_Iso_triggers("h_Iso_Triggers", "Number of Isolated Photon Triggers", 2, -0.5,1.0);
+  TH1D h_AntiIso_triggers("h_AntiIso_Triggers", "Number of ANTI-Isolated Photon Triggers", 2, -0.5,1.0);
 
-  int clusters_passed_iso[nztbins];
-  int clusters_passed_Antiiso[nztbins];
+  TH2D* Corr[nztbins*nptbins];
+  TH2D* IsoCorr[nztbins*nptbins];
+  TH2D* AntiIsoCorr[nztbins*nptbins];
 
   int n_eta_bins = 14;
   int n_phi_bins = 24;
 
   TH2D* PhiValues = new TH2D("PhiValues_Near_Detaphi2","Trackphi vs. Clusterphi",n_phi_bins,-M_PI/2,3*M_PI/2,n_phi_bins,-M_PI/2,3*M_PI/2);    
+  std::cout << "just befor Histos " << std::endl;
 
-  for (int izt = 0; izt<nztbins; izt++){
-    h_dPhi_iso[izt] = new TH1F(Form("dPhi_iso_ztmin%1.0f_ztmax%1.0f",10*ztbins[izt],10*ztbins[izt+1]) ,"", n_correlationbins,-0.5,1.5);
-    h_dPhi_noniso[izt] = new TH1F(Form("dPhi_noniso_ztmin%1.0f_ztmax%1.0f",10*ztbins[izt], 10*ztbins[izt+1]), "", n_correlationbins,-0.5,1.5);
-    h_dPhi_iso[izt]->SetTitle("; #Delta#phi/#pi [rad]; entries");
-    h_dPhi_noniso[izt]->SetTitle("; #Delta#phi/#pi [rad]; entries");
-    h_dPhi_iso[izt]->Sumw2();
-    h_dPhi_noniso[izt]->Sumw2();
+  for (int ipt = 0; ipt <nptbins; ipt++) {
+    for (int izt = 0; izt<nztbins; izt++){
+      
+      Corr[izt+ipt*nztbins] = new TH2D(Form("Correlation_ptmin%1.0f_ptmax%1.0f_ztmin%1.0f_ztmax%1.0f",ptbins[ipt],ptbins[ipt+1],
+      10*ztbins[izt],10*ztbins[izt+1]),"Mixed Event #gamma-H [all] Correlation", n_phi_bins,-M_PI/2,3*M_PI/2, n_eta_bins, -1.4, 1.4);
+     
+      Corr[izt+ipt*nztbins]->Sumw2();
+      Corr[izt+ipt*nztbins]->SetMinimum(0.);
+      
+      IsoCorr[izt+ipt*nztbins] = new TH2D(Form("IsoCorrelation_ptmin%1.0f_ptmax%1.0f_ztmin%1.0f_ztmax%1.0f",ptbins[ipt],ptbins[ipt+1],
+	    10*ztbins[izt],10*ztbins[izt+1]),"Mixed Event #gamma-H [Iso] Correlation", n_phi_bins,-M_PI/2,3*M_PI/2, n_eta_bins, -1.4, 1.4);
 
-
-    Corr[izt] = new TH2D(Form("Correlation_ztmin%1.0f_ztmax%1.0f",10*ztbins[izt],10*ztbins[izt+1]),
-                         "Mixed Event #gamma-H [all] Correlation", n_phi_bins,-M_PI/2,3*M_PI/2, n_eta_bins, -1.4, 1.4);
-    Corr[izt]->Sumw2();
-    Corr[izt]->SetMinimum(0.);
-
-    IsoCorr[izt] = new TH2D(Form("IsoCorrelation_ztmin%1.0f_ztmax%1.0f",10*ztbins[izt],10*ztbins[izt+1]),
-                            "Mixed Event #gamma-H [Iso] Correlation", n_phi_bins,-M_PI/2,3*M_PI/2, n_eta_bins, -1.4, 1.4);
-    IsoCorr[izt]->Sumw2();
-    IsoCorr[izt]->SetMinimum(0.);
-    
-    AntiIsoCorr[izt] = new TH2D(Form("AntiIsoCorrelation_ztmin%1.0f_ztmax%1.0f",10*ztbins[izt],10*ztbins[izt+1]),
-                                "Mixed Event #gamma-H [AntiIso] Correlation", n_phi_bins,-M_PI/2,3*M_PI/2, n_eta_bins, -1.4, 1.4);
-    AntiIsoCorr[izt]->Sumw2();
-    AntiIsoCorr[izt]->SetMinimum(0.);
-
-    clusters_passed_iso[izt] = 0;
-    clusters_passed_Antiiso[izt] = 0;
-}
+      IsoCorr[izt+ipt*nztbins]->Sumw2();
+      IsoCorr[izt+ipt*nztbins]->SetMinimum(0.);
+      
+      AntiIsoCorr[izt+ipt*nztbins] = new TH2D(Form("AntiIsoCorrelation_ptmin%1.0f_ptmax%1.0f_ztmin%1.0f_ztmax%1.0f",ptbins[ipt],ptbins[ipt+1],
+      10*ztbins[izt],10*ztbins[izt+1]),"Mixed Event #gamma-H [AntiIso] Correlation", n_phi_bins,-M_PI/2,3*M_PI/2, n_eta_bins, -1.4, 1.4);
+      
+      AntiIsoCorr[izt+ipt*nztbins]->Sumw2();
+      AntiIsoCorr[izt+ipt*nztbins]->SetMinimum(0.);
+      
+    }//zt bins
+  }//pt bins
   
   //histogram2.Sumw2();
   //histogram3.Sumw2();
@@ -364,8 +399,6 @@ int main(int argc, char *argv[])
 
     //open hdf5: Define size of data from file, explicitly allocate memory in hdf5 space and array size
     const H5std_string hdf5_file_name(argv[iarg+1]);
-    //FIXME: Can parse the string s.t. remove .root and simply add .hdf5
-    //FIXME: This will obviously require stringent naming conventions 
 
     const H5std_string track_ds_name( "track" );
     H5File h5_file( hdf5_file_name, H5F_ACC_RDONLY );
@@ -417,7 +450,7 @@ int main(int argc, char *argv[])
     Long64_t nentries = _tree_event->GetEntries();
 
     for(Long64_t ievent = 0; ievent < nentries ; ievent++){     
-    //for(Long64_t ievent = 0; ievent < 1000 ; ievent++){
+      //for(Long64_t ievent = 0; ievent < 1000 ; ievent++){
       _tree_event->GetEntry(ievent);
       fprintf(stderr, "\r%s:%d: %llu / %llu", __FILE__, __LINE__, ievent, nentries);
 
@@ -439,14 +472,11 @@ int main(int argc, char *argv[])
 	//isolation
 	if(isolation<iso_max){
 	  if (cluster_s_nphoton[n][1] > DNN_min && cluster_s_nphoton[n][1] < DNN_max){ //sel deep photons
-	    histogram0.Fill(cluster_pt[n]);
-	    h_ntrig.Fill(0);
 	  }
 	}
 	//background
 	if(isolation<iso_max){
 	  if (cluster_s_nphoton[n][1] > 0.0 && cluster_s_nphoton[n][1] < 0.3){ //sel merged clusters for background
-	    h_ntrig.Fill(0.5);
 	  }
 	}
 	for (Long64_t imix = 0; imix < 50; imix++){
@@ -465,9 +495,10 @@ int main(int argc, char *argv[])
 	  const int TrackCutBit =16;
 	  for (ULong64_t itrack = 0; itrack < ntrack_max; itrack++) {
 	    if (std::isnan(track_data_out[0][itrack][1])) break;
-	    if((track_quality[itrack]&selection_number)==0) continue; //pass 3 cut
-	    //if (track_data_out[0][itrack][1] < 2) continue; //less than 2GeV
-	    if (track_data_out[0][itrack][1] < 1) continue; //less than 1GeV
+	    if ((int(track_data_out[0][itrack][4]+0.5)&selection_number)==0) continue;
+	    //if ((int(track_data_out[0][itrack][4]+ 0.5)&TrackCutBit)==0) continue;
+	    if (track_data_out[0][itrack][1] < 0.5) continue; //less than 1GeV
+	    if (abs(track_data_out[0][itrack][2]) > 0.8) continue;
 
 	    //veto charged particles from mixed event tracks
 	    bool MixTrack_HasMatch = false;
@@ -493,39 +524,35 @@ int main(int argc, char *argv[])
 	      PhiValues->Fill(cluster_phi[n],track_data_out[0][itrack][3]);
 	    }
 
-	    Double_t zt = track_data_out[0][itrack][1]/cluster_pt[n];
-	    Float_t deta =  cluster_eta[n]-track_data_out[0][itrack][2];;
-	    Float_t dphi =  TVector2::Phi_mpi_pi(cluster_phi[n]-track_data_out[0][itrack][3]);
-	    dphi = dphi/TMath::Pi();
-	    //if(!(TMath::Abs(deta)<0.6)) continue; //deta cut
-	    if(dphi<-0.5) dphi +=2;
+ 	    Double_t zt = track_data_out[0][itrack][1]/cluster_pt[n];
+// 	    Float_t deta =  cluster_eta[n]-track_data_out[0][itrack][2];;
+// 	    Float_t dphi =  TVector2::Phi_mpi_pi(cluster_phi[n]-track_data_out[0][itrack][3]);
+// 	    dphi = dphi/TMath::Pi();
+// 	    //if(!(TMath::Abs(deta)<0.6)) continue; //deta cut
+// 	    if(dphi<-0.5) dphi +=2;
 
-	    for(int izt = 0; izt<nztbins ; izt++){
-	      if(zt>ztbins[izt] and  zt<ztbins[izt+1])
-		{
-		  // Where the  h_dPhi_iso and h_dPhi_noniso bins are filled
-		  if(isolation< iso_max){
-		    if (cluster_s_nphoton[n][1] > DNN_min && cluster_s_nphoton[n][1] < DNN_max){
-		      h_dPhi_iso[izt]->Fill(DeltaPhi);
-		      IsoCorr[izt]->Fill(DeltaPhi,DeltaEta);
+	    for (int ipt = 0; ipt < nptbins; ipt++){
+	      if (cluster_pt[n] >ptbins[ipt] && cluster_pt[n] <ptbins[ipt+1]){
+		for(int izt = 0; izt<nztbins ; izt++){
+		  if(zt>ztbins[izt] and  zt<ztbins[izt+1]){
+		    if(isolation< iso_max){
+		      if (cluster_s_nphoton[n][1] > DNN_min && cluster_s_nphoton[n][1] < DNN_max){
+			IsoCorr[izt+ipt*nztbins]->Fill(DeltaPhi,DeltaEta);
+		      }
 		    }
-		  }
-		  if(isolation<iso_max){
-		    if (cluster_s_nphoton[n][1] > 0.0 && cluster_s_nphoton[n][1] < 0.3){ //sel deep photons 
-		      h_dPhi_noniso[izt]->Fill(DeltaPhi);
-		      AntiIsoCorr[izt]->Fill(DeltaPhi,DeltaEta);
+		    if(isolation<iso_max){
+		      if (cluster_s_nphoton[n][1] > 0.0 && cluster_s_nphoton[n][1] < 0.3){ //sel deep photons 
+			AntiIsoCorr[izt+ipt*nztbins]->Fill(DeltaPhi,DeltaEta);
+		      }
 		    }
-		  }
-		  Corr[izt]->Fill(DeltaPhi,DeltaEta);
-		}//if in zt bin
-	    } // end loop over zt bins
+		    Corr[izt+ipt*nztbins]->Fill(DeltaPhi,DeltaEta);
+		  }//if in zt bin
+		} // end loop over zt bins
+	      }//end if in pt bin
+	    }//end pt loop bin
 	  }//end loop over tracks
 	}//end loop over mixed events
       }//end loop on clusters. 
-      
-      if (ievent % 25000 == 0) {
-	histogram0.Draw("e1x0");
-	canvas.Update();      }
       
     } //end loop over events
     
@@ -533,25 +560,18 @@ int main(int argc, char *argv[])
 
 
     // Write to fout    
-    TFile* fout = new TFile("fout_largDNN_Mix.root","RECREATE");
+    TFile* fout = new TFile("fout_largDNN_Mix_PT_BINS.root","RECREATE");
     histogram0.Write("DeepPhotonSpectra");
-    h_ntrig.Write("ntriggers");
-    
-    for (int izt = 0; izt<nztbins; izt++){
-      h_dPhi_iso[izt]->SetMinimum(0.0);
-      h_dPhi_iso[izt]->Write();
-      h_dPhi_noniso[izt]->SetMinimum(0.0);
-      h_dPhi_noniso[izt]->Write();  
-    }
-    for (int izt = 0; izt<nztbins; izt++){
-      Corr[izt]->Write();
-    }
-    for (int izt = 0; izt<nztbins; izt++){ 
-      IsoCorr[izt]->Write();
-    }
-    for (int izt = 0; izt<nztbins; izt++){
-      AntiIsoCorr[izt]->Write();
-
+    for (int ipt = 0; ipt<nptbins; ipt++){    
+      for (int izt = 0; izt<nztbins; izt++){
+	Corr[izt+ipt*nztbins]->Write();
+      }
+      for (int izt = 0; izt<nztbins; izt++){ 
+	IsoCorr[izt+ipt*nztbins]->Write();
+      }
+      for (int izt = 0; izt<nztbins; izt++){
+	AntiIsoCorr[izt+ipt*nztbins]->Write();	
+      }
     }
     fout->Close();     
     

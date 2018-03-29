@@ -59,6 +59,11 @@ int main(int argc, char *argv[])
   ztbins = new float[nztbins+1];
   ztbins[0] = 0.0; ztbins[1] = 0.1; ztbins[2] = 0.2; ztbins[3] = 0.4; ztbins[4] = 0.6; ztbins[5] = 0.8; ztbins[6] = 1.0; ztbins[7] = 1.2;
    
+  int nptbins = 4;
+  float* ptbins;
+  ptbins = new float[nptbins+1];
+  ptbins[0] = 10.0; ptbins[1] = 11.5; ptbins[2] = 13; ptbins[3] = 14.5; ptbins[4] = 16;
+
   // Number of bins in correlation functions
   int n_correlationbins = 18;
     
@@ -167,6 +172,37 @@ int main(int argc, char *argv[])
               std::cout << ztbins[i] << ", ";
           std::cout << "}\n";
           }
+
+      else if (strcmp(key, "Pt_bins") == 0) {
+        nptbins = -1;
+        for (const char *v = value; *v != ']';) {
+          while (*v != ']' && !isdigit(*v)) {
+            v++;
+          }
+          nptbins++;
+
+          while (*v != ']' && (isdigit(*v) || *v == '.')) {
+            v++;
+          }
+        }
+        ptbins = new float[nptbins + 1];
+        int i = 0;
+        for (const char *v = value; *v != ']' ;) {
+          while (*v != ']' && !isdigit(*v)) {
+            v++;
+          }
+          ptbins[i] = atof(v);
+          i++;
+          while (*v != ']' && (isdigit(*v) || *v == '.')) {
+            v++;
+          }
+        }
+	std::cout << "Number of Pt bins: " << nptbins << std::endl << "Pt bins: {";
+        for (int i = 0; i <= nptbins; i++)
+	  std::cout << ptbins[i] << ", ";
+	std::cout << "}\n";
+      }
+
       else if (strcmp(key, "Cluster_isolation_determinant") == 0) {
           if (strcmp(value, "cluster_iso_tpc_04") == 0){
               determiner = CLUSTER_ISO_TPC_04;
@@ -199,13 +235,12 @@ int main(int argc, char *argv[])
     std::cout << "zt bound: " << ztbins[i] << std::endl;
   }
 
-  //TApplication application("", &dummyc, dummyv);
-  
-  // Create the TCanvas and the histograms
+  for (int i = 0; i <= nptbins; i++){
+    std::cout << "pt bound: " << ptbins[i] << std::endl;
+  }
+
   TCanvas canvas("canvas", "");
   TH1D histogram0("histogram0", "", 16, 8.0, 16.0);
-  //TH2D histogram1("histogram1", "", 30, -1.5, 1.5, 18, -0.5, 1.5);
-  //TH1D histogram2("histogram2", "", 18, -0.5,1.5);
   TH1D histogram3("histogram3", "", 18, -0.5,1.5);
   TH1D h_ntrig("h_ntrig", "", 2, -0.5,1.0);
   TH1D h_Iso_triggers("h_Iso_Triggers", "Number of Isolated Photon Triggers", 2, -0.5,1.0);
@@ -214,19 +249,11 @@ int main(int argc, char *argv[])
   TH2D* PtIsoDist = new TH2D("PtIsoDist","Cluster Pt Spectrum For Isolation (its_04) bins 0.55 < DNN < 0.85",24,10,16,5,-0.5,2);
   TH2D* LowDNN_PtIsoDist = new TH2D("LowDNN_PtIsoDist","Cluster Pt Spectrum For Isolation (its_04) bins 0.0 < DNN < 0.3",24,10,16,5,-0.5,2);
 
-  // Create the histogram for the 2D plots
-  // TH2D histogram2D0("histogram2D0", "", );
-  
-  // Zt bins
-  //const int nztbins = 7;
-  //const float ztbins[nztbins+1] = {0.0, 0.1, 0.2, 0.4, 0.6, 0.8, 1.0, 1.2};
-  
   // Function declarations of h_dPhi_iso and h_dPhi_noniso
-  TH1F* h_dPhi_iso[nztbins];
-  TH1F* h_dPhi_noniso[nztbins];
-  TH2D* Corr[nztbins];
-  TH2D* IsoCorr[nztbins];
-  TH2D* AntiIsoCorr[nztbins];
+
+  TH2D* Corr[nztbins*nptbins];
+  TH2D* IsoCorr[nztbins*nptbins];
+  TH2D* AntiIsoCorr[nztbins*nptbins];
 
   float ntriggers_iso = 0;
   float ntriggers_Antiiso = 0;
@@ -234,31 +261,29 @@ int main(int argc, char *argv[])
   int n_eta_bins = 14;
   int n_phi_bins = 24;
   
-  // Function initializations of h_dPhi_iso and h_dPhi_noniso for each and every zt bin
-  for (int izt = 0; izt<nztbins; izt++){
-    h_dPhi_iso[izt] = new TH1F(Form("dPhi_iso_ztmin%1.0f_ztmax%1.0f",10*ztbins[izt],10*ztbins[izt+1]) ,"", n_correlationbins,-0.5,1.5);
-    h_dPhi_noniso[izt] = new TH1F(Form("dPhi_noniso_ztmin%1.0f_ztmax%1.0f",10*ztbins[izt], 10*ztbins[izt+1]), "", n_correlationbins,-0.5,1.5);
-    h_dPhi_iso[izt]->SetTitle("; #Delta#phi/#pi [rad]; entries");
-    h_dPhi_noniso[izt]->SetTitle("; #Delta#phi/#pi [rad]; entries");
-    h_dPhi_iso[izt]->Sumw2();
-    h_dPhi_noniso[izt]->Sumw2();
+  for (int ipt = 0; ipt <nptbins; ipt++) {
+    for (int izt = 0; izt<nztbins; izt++){
 
-    Corr[izt] = new TH2D(Form("Correlation_ztmin%1.0f_ztmax%1.0f",10*ztbins[izt],10*ztbins[izt+1]), 
-			 "Same Event #gamma-H [all] Correlation", n_phi_bins,-M_PI/2,3*M_PI/2, n_eta_bins, -1.4, 1.4);
-    Corr[izt]->Sumw2();
-    Corr[izt]->SetMinimum(0.);
-    
-    IsoCorr[izt] = new TH2D(Form("IsoCorrelation_ztmin%1.0f_ztmax%1.0f",10*ztbins[izt],10*ztbins[izt+1]), 
-			    "Same Event #gamma-H [Iso] Correlation", n_phi_bins,-M_PI/2,3*M_PI/2, n_eta_bins, -1.4, 1.4);	
-    IsoCorr[izt]->Sumw2();
-    IsoCorr[izt]->SetMinimum(0.);
-    
-    AntiIsoCorr[izt] = new TH2D(Form("AntiIsoCorrelation_ztmin%1.0f_ztmax%1.0f",10*ztbins[izt],10*ztbins[izt+1]), 
-				"Same Event #gamma-H [AntiIso] Correlation", n_phi_bins,-M_PI/2,3*M_PI/2, n_eta_bins, -1.4, 1.4);
-    AntiIsoCorr[izt]->Sumw2();
-    AntiIsoCorr[izt]->SetMinimum(0.);
+      Corr[izt+ipt*nztbins] = new TH2D(Form("Correlation_ptmin%1.0f_ptmax%1.0f_ztmin%1.0f_ztmax%1.0f",ptbins[ipt],ptbins[ipt+1],
+      10*ztbins[izt],10*ztbins[izt+1]),"Mixed Event #gamma-H [all] Correlation", n_phi_bins,-M_PI/2,3*M_PI/2, n_eta_bins, -1.4, 1.4);
 
-  }
+      Corr[izt+ipt*nztbins]->Sumw2();
+      Corr[izt+ipt*nztbins]->SetMinimum(0.);
+
+      IsoCorr[izt+ipt*nztbins] = new TH2D(Form("IsoCorrelation_ptmin%1.0f_ptmax%1.0f_ztmin%1.0f_ztmax%1.0f",ptbins[ipt],ptbins[ipt+1],
+      10*ztbins[izt],10*ztbins[izt+1]),"Mixed Event #gamma-H [Iso] Correlation", n_phi_bins,-M_PI/2,3*M_PI/2,n_eta_bins, -1.4, 1.4);
+
+      IsoCorr[izt+ipt*nztbins]->Sumw2();
+      IsoCorr[izt+ipt*nztbins]->SetMinimum(0.);
+
+      AntiIsoCorr[izt+ipt*nztbins] = new TH2D(Form("AntiIsoCorrelation_ptmin%1.0f_ptmax%1.0f_ztmin%1.0f_ztmax%1.0f",ptbins[ipt],ptbins[ipt+1],
+      10*ztbins[izt],10*ztbins[izt+1]),"Mixed Event #gamma-H [AntiIso] Correlation", n_phi_bins,-M_PI/2,3*M_PI/2, n_eta_bins, -1.4, 1.4);
+
+      AntiIsoCorr[izt+ipt*nztbins]->Sumw2();
+      AntiIsoCorr[izt+ipt*nztbins]->SetMinimum(0.);
+
+    }//zt bins
+  }//pt bins                           
   
   //histogram2.Sumw2();
   //histogram3.Sumw2();
@@ -363,7 +388,7 @@ int main(int argc, char *argv[])
       for (ULong64_t n = 0; n < ncluster; n++) {
 	if( not(cluster_pt[n]>pT_min and cluster_pt[n]<pT_max)) continue; //select pt of photons
 	//if( not(cluster_s_nphoton[n][1]>DNN_min and cluster_s_nphoton[n][1]<DNN_max)) continue; //select deep-photons
-	//if( not(TMath::Abs(cluster_eta[n])<Eta_max)) continue; //cut edges of detector
+	if( not(TMath::Abs(cluster_eta[n])<Eta_max)) continue; //cut edges of detector
 	if( not(cluster_ncell[n]>Cluster_min)) continue;   //removes clusters with 1 or 2 cells
 	if( not(cluster_e_cross[n]/cluster_e[n]>EcrossoverE_min)) continue; //removes "spiky" clusters
 
@@ -377,7 +402,6 @@ int main(int argc, char *argv[])
 	if(isolation<iso_max){
 	  if ((cluster_s_nphoton[n][1] > DNN_min) && (cluster_s_nphoton[n][1]<DNN_max)){
 	    histogram0.Fill(cluster_pt[n]); //isolated deep-photon pt spectra
-	    h_ntrig.Fill(0);
 	    h_Iso_triggers.Fill(0);
 	    ntriggers_iso += 1;
 	    //look at pt Distrobution in Isolation bins
@@ -401,6 +425,7 @@ int main(int argc, char *argv[])
 	for (ULong64_t itrack = 0; itrack < ntrack; itrack++) {            
 	  if(track_pt[itrack] < 1) continue; //1GeV Tracks
 	  if((track_quality[itrack]&selection_number)==0) continue; //select only tracks that pass selection 3
+	  if(abs(track_eta[itrack]) > 0.8) continue;
 	  Double_t zt = track_pt[itrack]/cluster_pt[n];
 	  Float_t deta =  cluster_eta[n]-track_eta[itrack];
 	  Float_t dphi =  TVector2::Phi_mpi_pi(cluster_phi[n]-track_phi[itrack])/TMath::Pi();
@@ -415,40 +440,35 @@ int main(int argc, char *argv[])
 	  if ((TMath::Abs(DeltaPhi) < 0.005) && (TMath::Abs(DeltaEta) < 0.005)) continue;
 	  //if (sqrt(DeltaPhi*DeltaPhi + DeltaEta*DeltaEta) < 0.4) continue;
 
-	  // Loop over zt bins
-	  for(int izt = 0; izt<nztbins ; izt++){
-	    if(zt>ztbins[izt] and  zt<ztbins[izt+1])
-	      {
-		if(isolation<iso_max){
-		  if ((cluster_s_nphoton[n][1] > DNN_min) && (cluster_s_nphoton[n][1]<DNN_max)){
-		    h_dPhi_iso[izt]->Fill(DeltaPhi);
-		    IsoCorr[izt]->Fill(DeltaPhi,DeltaEta);
+	  for (int ipt = 0; ipt < nptbins; ipt++){
+	    if (cluster_pt[n] >ptbins[ipt] && cluster_pt[n] <ptbins[ipt+1]){
+	      for(int izt = 0; izt<nztbins ; izt++){
+		if(zt>ztbins[izt] and  zt<ztbins[izt+1]){
+		  if(isolation< iso_max){
+		    if (cluster_s_nphoton[n][1] > DNN_min && cluster_s_nphoton[n][1] < DNN_max){
+		      IsoCorr[izt+ipt*nztbins]->Fill(DeltaPhi,DeltaEta);
+		    }
 		  }
-		}
-		//if(isolation> noniso_min && isolation<noniso_max){
-		if(isolation<iso_max){
-		  if ((cluster_s_nphoton[n][1]>0.0) && (cluster_s_nphoton[n][1]<0.3)){
-		  h_dPhi_noniso[izt]->Fill(DeltaPhi);
-		  AntiIsoCorr[izt]->Fill(DeltaPhi,DeltaEta);
+		  if(isolation<iso_max){
+		    if (cluster_s_nphoton[n][1] > 0.0 && cluster_s_nphoton[n][1] < 0.3){ //sel deep photons                                          
+		      AntiIsoCorr[izt+ipt*nztbins]->Fill(DeltaPhi,DeltaEta);
+		    }
 		  }
-		}
-		Corr[izt]->Fill(DeltaPhi,DeltaEta);
-	      }
-	  } // end loop over bins
+		  Corr[izt+ipt*nztbins]->Fill(DeltaPhi,DeltaEta);
+		}//if in zt bin                                                                                                                      
+	      } // end loop over zt bins                                                                                                             
+	    }//end if in pt bin                                                                                                                      
+	  }//end pt loop bin   
+                                 
 	}//end loop over tracks
       }//end loop on clusters. 
-      if (ievent % 25000 == 0) {
-	histogram0.Draw("e1x0");
-	canvas.Update();
-      }
-    } //end loop over events
-
+    } //end loop over events  
   }//end loop over samples
 
     // Write to fout
 
     //TFile* fout = new TFile(Form("fout_Corr_config%s.root", opened_files.c_str()),"RECREATE");
-    TFile* fout = new TFile("fout_LowDNN_BKGRND.root","RECREATE");
+    TFile* fout = new TFile("fout_LowDNN_bkgd_pT_Bins.root","RECREATE");
     histogram0.Write("DeepPhotonSpectra");
     h_ntrig.Write("ntriggers");
     h_Iso_triggers.Write("N_Iso_Trigers");
@@ -458,16 +478,16 @@ int main(int argc, char *argv[])
     PtIsoDist->Write();
     LowDNN_PtIsoDist->Write();
 
-    for (int izt = 0; izt<nztbins; izt++){
-      Corr[izt]->Write();
-    }
-    for (int izt = 0; izt<nztbins; izt++){
-      IsoCorr[izt]->Scale(1.0/(ntriggers_iso));
-      IsoCorr[izt]->Write();
-    }
-    for (int izt = 0; izt<nztbins; izt++){
-      AntiIsoCorr[izt]->Scale(1.0/(ntriggers_Antiiso));
-      AntiIsoCorr[izt]->Write();
+    for (int ipt = 0; ipt<nptbins; ipt++){
+      for (int izt = 0; izt<nztbins; izt++){
+        Corr[izt+ipt*nztbins]->Write();
+      }
+      for (int izt = 0; izt<nztbins; izt++){
+        IsoCorr[izt+ipt*nztbins]->Write();
+      }
+      for (int izt = 0; izt<nztbins; izt++){
+        AntiIsoCorr[izt+ipt*nztbins]->Write();
+      }
     }
     fout->Close();     
 
