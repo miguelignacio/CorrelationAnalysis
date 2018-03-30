@@ -41,7 +41,7 @@ int main()
   int nztbins = 7;
   float* ztbins;
   ztbins = new float[nztbins+1];
-  ztbins[0] = 0.0; ztbins[1] = 0.1; ztbins[2] = 0.2; ztbins[3] = 0.4; ztbins[4] = 0.6; ztbins[5] = 0.8; ztbins[6] = 1.0; ztbins[7] = 1.2;
+  ztbins[0] = 0.05; ztbins[1] = 0.1; ztbins[2] = 0.2; ztbins[3] = 0.4; ztbins[4] = 0.6; ztbins[5] = 0.8; ztbins[6] = 1.0; ztbins[7] = 1.2;
 
   int nptbins = 4;
   float* ptbins;
@@ -60,6 +60,8 @@ int main()
   TH1D* IsoPhiProj_LargeEta[nztbins*nptbins];
   TH1D* AntiIsoPhiProj_LargeEta[nztbins*nptbins];
 
+  TH1D* N_Iso_Triggers[nptbins];
+  TH1D* N_BKGD_Triggers[nptbins];
   //Grab Histos, correct with mixed, project, get pedestal
 
   for(int ipt = 0; ipt < nptbins; ipt++){
@@ -149,15 +151,17 @@ int main()
     std::cout<<"Entries: "<<Corr_Iso_same[izt+ipt*nztbins]->GetEntries()<<std::endl;
     TempIso->Delete();
     TempAntiIso->Delete();
-    }
-    std::cout<<"Got through first pT bin "<<std::endl;
+    
+    }//zt bins
+    N_Iso_Triggers[ipt] = (TH1D*)corr->Get(Form("N_Iso_Trig_ptmin%1.0f_ptmax%1.0f",ptbins[ipt],ptbins[ipt+1]));
+    N_BKGD_Triggers[ipt] = (TH1D*)corr->Get(Form("N_Low_DNN_Triggers_ptmin%1.0f_ptmax%1.0f",ptbins[ipt],ptbins[ipt+1]));
   }
   
   TFile *MyFile = new TFile("Ratio_Correlation.root","RECREATE");
   TCanvas *test = new TCanvas("","test");
 
   for (int ipt = 0; ipt <nptbins; ipt++){
-    TCanvas *Isocanvas = new TCanvas("Isocanv","Isocanvas",1350,950); 
+    TCanvas *Isocanvas = new TCanvas("Isocanv","Isocanvas",1350,1150); 
     Isocanvas->Divide(3,2);
     for (int izt = 0; izt<nztbins; izt++){
       //if(izt == 0) continue;
@@ -165,7 +169,7 @@ int main()
       gPad->SetLeftMargin(0.17);
       gPad->SetRightMargin(0.0);
 
-      Corr_Iso_same[izt+ipt*nztbins]->SetTitle(Form("Iso #gamma-h: %1.1f < p_{T}^{Clus.} <%1.1f GeV, %1.1f < z_{T} < %1.1f, 0.55 < DNN < 0.85",
+      Corr_Iso_same[izt+ipt*nztbins]->SetTitle(Form("Iso #gamma-h: %1.1f < p_{T}^{Clus.} <%1.1f GeV, %1.2f < z_{T} < %1.2f, 0.55 < DNN < 0.85",
 						    ptbins[ipt],ptbins[ipt+1],ztbins[izt],ztbins[izt+1]));
       Corr_Iso_same[izt+ipt*nztbins]->GetXaxis()->SetTitle("#Delta #phi");
       Corr_Iso_same[izt+ipt*nztbins]->GetYaxis()->SetTitle("#Delta #eta");
@@ -179,9 +183,10 @@ int main()
     Isocanvas->Clear();
     //FIXME: Maybe change to 1.0f
   }
-  TCanvas *AntiIsocanvas = new TCanvas("AntiIsocanv","AntiIsocanvas",1350,950);
+
 
   for (int ipt = 0; ipt < nptbins; ipt++){
+    TCanvas *AntiIsocanvas = new TCanvas("AntiIsocanv","AntiIsocanvas",1350,950);
     AntiIsocanvas->Divide(3,2);
     for (int izt = 0; izt<nztbins; izt++){
       gStyle->SetOptStat("");
@@ -189,7 +194,7 @@ int main()
       gPad->SetRightMargin(0.0);
       
       Corr_AntiIso_same[izt+ipt*nztbins]->SetTitle(
-      Form("~Background #gamma-h: %1.1f < p_{T}^{Clus.} <%1.1f GeV, %1.1f < z_{T} < %1.1f, 0.0 < DNN < 0.3",
+      Form("~Background #gamma-h: %1.1f < p_{T}^{Clus.} <%1.1f GeV, %1.2f < z_{T} < %1.2f, 0.0 < DNN < 0.3",
       ptbins[ipt],ptbins[ipt+1],ztbins[izt],ztbins[izt+1]));
       
       Corr_AntiIso_same[izt+ipt*nztbins]->GetXaxis()->SetTitle("#Delta #phi");
@@ -207,7 +212,7 @@ int main()
   for (int ipt = 0; ipt < nptbins; ipt++){
     for (int izt = 0; izt<nztbins; izt++){
       IsoPhiProj[izt+ipt*nztbins]->SetTitle(
-      Form("Isolated #Delta#phi Projection  %1.1f < p_{T}^{Clus.} <%1.1f GeV  %1.0f < z_{T} < %1.0f, 0.55 < DNN < 0.85, |#Delta#eta| < 0.6",
+      Form("Isolated #Delta#phi Projection  %1.1f < p_{T}^{Clus.} <%1.1f GeV  %1.2f < z_{T} < %1.2f, 0.55 < DNN < 0.85, |#Delta#eta| < 0.6",
       ptbins[ipt],ptbins[ipt+1],10*ztbins[izt],10*ztbins[izt+1]));
       
       IsoPhiProj[izt+ipt*nztbins]->SetMinimum(0.0);
@@ -218,7 +223,7 @@ int main()
   for (int ipt = 0; ipt < nptbins; ipt++){
     for (int izt = 0; izt<nztbins; izt++){
       AntiIsoPhiProj[izt+ipt*nztbins]->SetTitle(
-      Form("~Background #Delta#phi %1.1f < p_{T}^{Clus.} <%1.1f GeV %1.0f < z_{T} < %1.0f, 0.0 < DNN < 0.3, |#Delta#eta| < 0.6", 
+      Form("~Background #Delta#phi %1.1f < p_{T}^{Clus.} <%1.1f GeV %1.2f < z_{T} < %1.2f, 0.0 < DNN < 0.3, |#Delta#eta| < 0.6", 
       ptbins[ipt],ptbins[ipt+1],10*ztbins[izt],10*ztbins[izt+1]));
 
       AntiIsoPhiProj[izt+ipt*nztbins]->SetMinimum(0.0);
@@ -229,7 +234,7 @@ int main()
   for (int ipt = 0; ipt < nptbins; ipt++){
     for (int izt = 0; izt<nztbins; izt++){
       IsoPhiProj_LargeEta[izt+ipt*nztbins]->SetTitle(
-      Form("Isolated #Delta#phi %1.1f < p_{T}^{Clus.} <%1.1f GeV %1.0f < z_{T} < %1.0f, 0.55 < DNN < 0.85, 0.8 < |#Delta#eta| < 1.4",
+      Form("Isolated #Delta#phi %1.1f < p_{T}^{Clus.} <%1.1f GeV %1.2f < z_{T} < %1.2f, 0.55 < DNN < 0.85, 0.8 < |#Delta#eta| < 1.4",
       ptbins[ipt],ptbins[ipt+1],10*ztbins[izt],10*ztbins[izt+1]));
 
       IsoPhiProj_LargeEta[izt+ipt*nztbins]->SetMinimum(0.0);
@@ -240,32 +245,50 @@ int main()
   for (int ipt = 0; ipt < nptbins; ipt++){
     for (int izt = 0; izt<nztbins; izt++){
       AntiIsoPhiProj_LargeEta[izt+ipt*nztbins]->SetTitle(
-      Form("~Background #Delta#phi %1.1f < p_{T}^{Clus.} <%1.1f GeV %1.0f < z_{T} < %1.0f, 0.0 < DNN < 0.3, 0.8 < |#Delta#eta| < 1.4",
+      Form("~Background #Delta#phi %1.1f < p_{T}^{Clus.} <%1.1f GeV %1.2f < z_{T} < %1.2f, 0.0 < DNN < 0.3, 0.8 < |#Delta#eta| < 1.4",
       ptbins[ipt],ptbins[ipt+1], 10*ztbins[izt],10*ztbins[izt+1]));
 
       AntiIsoPhiProj_LargeEta[izt+ipt*nztbins]->SetMinimum(0.0);
       //AntiIsoPhiProj_LargeEta[izt+ipt*nztbins]->Write();
     }
   }
-  float scales[7] = {0.7, 0.5, 0.39, 0.13, 0.046, 0.035, 0.024};
 
+  //PHI PROJECTION AND PLOT ZYAM
   for (int ipt = 0; ipt < nptbins; ipt++){
 
     TCanvas *canvas = new TCanvas("canv","canvas",2000,1500);
     gStyle->SetOptStat("");
     canvas->Divide(4,3);
     
-    for (int izt = 0; izt<nztbins; izt++){
+    double ntriggers = N_Iso_Triggers[ipt]->GetEntries();
+    double nbkgd = N_BKGD_Triggers[ipt]->GetEntries();
+
+    for (int izt = 0; izt<nztbins-1; izt++){
       canvas->cd(izt*2+1);
       gPad->SetLeftMargin(0.15);
       gPad->SetRightMargin(0.0);
       gPad->SetBottomMargin(0.1);
+      //gStyle->SetTitleSize(10,"t");
+
+      //scale first
+      IsoPhiProj[izt+ipt*nztbins]->Scale(1.0/1.2);
+      IsoPhiProj_LargeEta[izt+ipt*nztbins]->Scale(1.0/1.2);
+      IsoPhiProj[izt+ipt*nztbins]->Scale(1.0/ntriggers);
+
+      AntiIsoPhiProj[izt+ipt*nztbins]->Scale(1/1.2);
+      AntiIsoPhiProj_LargeEta[izt+ipt*nztbins]->Scale(1/1.2);
+      AntiIsoPhiProj[izt+ipt*nztbins]->Scale(1.0/nbkgd);
+
+      float max1 = IsoPhiProj[izt+ipt*nztbins]->GetMaximum();
+      float max2 = AntiIsoPhiProj[izt+ipt*nztbins]->GetMaximum();
+      float Ymax = 1.2*TMath::Max(max1,max2);
+
       IsoPhiProj_LargeEta[izt+ipt*nztbins]->SetLineColor(kRed);
-      IsoPhiProj[izt+ipt*nztbins]->SetMarkerStyle(20);
+      IsoPhiProj[izt+ipt*nztbins]->SetMarkerStyle(1);
       IsoPhiProj[izt+ipt*nztbins]->SetMarkerSize(1);
       IsoPhiProj[izt+ipt*nztbins]->SetMarkerColor(kBlue);
       IsoPhiProj[izt+ipt*nztbins]->SetTitle(
-      Form("Iso #gamma-h: %1.1f < p_{T}^{Clus.} <%1.1f GeV,  %1.1f < z_{T} < %1.1f, 0.55 < DNN < 0.85", 
+      Form("Iso #gamma-h: %1.1f < p_{T}^{Clus.} <%1.1f GeV,  %1.2f < z_{T} < %1.2f, 0.55 < DNN < 0.85", 
       ptbins[ipt],ptbins[ipt+1],ztbins[izt],ztbins[izt+1]));
       
       IsoPhiProj[izt+ipt*nztbins]->SetXTitle("d#phi [rad]");
@@ -274,17 +297,13 @@ int main()
       IsoPhiProj[izt+ipt*nztbins]->GetYaxis()->CenterTitle();
       IsoPhiProj[izt+ipt*nztbins]->GetYaxis()->SetTitleOffset(2.2);
       
-      IsoPhiProj[izt+ipt*nztbins]->Scale(1.0/1.2);
-      IsoPhiProj_LargeEta[izt+ipt*nztbins]->Scale(1.0/1.2);
-      IsoPhiProj[izt+ipt*nztbins]->GetYaxis()->SetRangeUser(0,scales[izt]);
-      IsoPhiProj_LargeEta[izt+ipt*nztbins]->GetYaxis()->SetRangeUser(0,scales[izt]);
+      IsoPhiProj[izt+ipt*nztbins]->GetYaxis()->SetRangeUser(0,Ymax);
       IsoPhiProj[izt+ipt*nztbins]->Draw();
       //IsoPhiProj_LargeEta[izt+ipt*nztbins]->Draw("same");
       
       TLegend *Iso_legend = new TLegend(0.75,0.75,0.95,0.85);
       Iso_legend->AddEntry(IsoPhiProj[izt+ipt*nztbins],"|#Delta#eta| < 0.6","p");
-      //Iso_legend->AddEntry(IsoPhiProj_LargeEta[izt+ipt*nztbins],"0.6 < |#Delta#eta| < 1.4","l");
-      
+      //Iso_legend->AddEntry(IsoPhiProj_LargeEta[izt+ipt*nztbins],"0.6 < |#Delta#eta| < 1.4","l");      
       
       //ZYAM
       float Iso_ZYAM_Int = (IsoPhiProj[izt+ipt*nztbins]->Integral(11,13))/3;
@@ -302,11 +321,11 @@ int main()
       gPad->SetRightMargin(0.15);
       
       AntiIsoPhiProj_LargeEta[izt+ipt*nztbins]->SetLineColor(kRed);
-      AntiIsoPhiProj[izt+ipt*nztbins]->SetMarkerStyle(20);
+      AntiIsoPhiProj[izt+ipt*nztbins]->SetMarkerStyle(1);
       AntiIsoPhiProj[izt+ipt*nztbins]->SetMarkerSize(1);
       AntiIsoPhiProj[izt+ipt*nztbins]->SetMarkerColor(kBlue);
       AntiIsoPhiProj[izt+ipt*nztbins]->SetTitle(
-      Form("~Background #gamma-h: %1.1f < p_{T}^{Clus.} <%1.1f GeV, %1.1f < z_{T} < %1.1f, 0.0 < DNN < 0.3",
+      Form("~Background #gamma-h: %1.1f < p_{T}^{Clus.} <%1.1f GeV, %1.2f < z_{T} < %1.2f, 0.0 < DNN < 0.3",
       ptbins[ipt],ptbins[ipt+1],ztbins[izt],ztbins[izt+1]));
       
       AntiIsoPhiProj[izt+ipt*nztbins]->SetXTitle("d#phi [rad]");
@@ -315,11 +334,8 @@ int main()
       AntiIsoPhiProj[izt+ipt*nztbins]->GetXaxis()->CenterTitle();
       AntiIsoPhiProj[izt+ipt*nztbins]->GetYaxis()->CenterTitle();
       
-      AntiIsoPhiProj[izt+ipt*nztbins]->Scale(1/1.2);
-      AntiIsoPhiProj_LargeEta[izt+ipt*nztbins]->Scale(1/1.2);
-      AntiIsoPhiProj[izt+ipt*nztbins]->GetYaxis()->SetRangeUser(0,scales[izt]);
-      AntiIsoPhiProj[izt+ipt*nztbins]->Draw("same");
-      //AntiIsoPhiProj_LargeEta[izt+ipt*nztbins]->GetYaxis()->SetRangeUser(0,scales[izt]);      
+      AntiIsoPhiProj[izt+ipt*nztbins]->GetYaxis()->SetRangeUser(0,Ymax);
+      AntiIsoPhiProj[izt+ipt*nztbins]->Draw();
       //AntiIsoPhiProj_LargeEta[izt+ipt*nztbins]->Draw("same");
       
       Double_t AntiIso_ZYAM_Int = (AntiIsoPhiProj[izt+ipt*nztbins]->Integral(11,13))/3;
@@ -335,11 +351,10 @@ int main()
       AntiIso_legend->AddEntry(AntiIso_ZYAM, "ZYAM","l");
       AntiIso_legend->Draw();
     }  
-    //canvas->SaveAs(Form("pics/phi_proj_pt_%1.0f_%1.0f_zt_%1.0f_%1.0f.png",ptbins[ipt],ptbins[ipt+1],10*ztbins[izt],10*ztbins[izt+1]));
     canvas->SaveAs(Form("pics/phi_proj_pt_%1.0f_%1.0f.png",ptbins[ipt],ptbins[ipt+1]));      
-// canvas->Clear();
-    
   }
+
+  //SUBTRACT ZYAM
 
   TH1D *IsoPhiPEDSUB[nztbins*nptbins];
   TH1D *AntiIsoPhiPEDSUB[nztbins*nptbins];
@@ -350,9 +365,10 @@ int main()
     
     TCanvas *pedcanvas = new TCanvas("pedcanv","pedcanvas",1600,800);
     gStyle->SetOptStat("");
-    pedcanvas->Divide(4,3);
+    pedcanvas->Divide(3,2);
     
     for (int izt = 0; izt<nztbins; izt++){      
+    //for (int izt = 0; izt<4; izt++){      
       pedcanvas->cd(izt*2+1);
       gPad->SetLeftMargin(0.17);
       gPad->SetRightMargin(0.0);
@@ -362,14 +378,15 @@ int main()
 	Double_t y = IsoPhiProj[izt+ipt*nztbins]->GetBinContent(i);
 	Double_t y_error = IsoPhiProj[izt+ipt*nztbins]->GetBinError(i);
 	Double_t new_y = y - Iso_ZYAM_Int;
-	Double_t new_y_error = (y-Iso_ZYAM_Int)*y_error/y;
+	//Double_t new_y_error = (y-Iso_ZYAM_Int)*y_error/y;
+	Double_t new_y_error = y_error;
 	IsoPhiProj[izt+ipt*nztbins]->SetBinContent(i,new_y);
 	IsoPhiProj[izt+ipt*nztbins]->SetBinError(i,new_y_error);
       }
       
       //    IsoPhiProj[izt+ipt*nztbins]->Add(IsoPhiProj_LargeEta[izt],-1);
       IsoPhiProj[izt+ipt*nztbins]->SetTitle(
-      Form("Iso #gamma-h: %1.1f < p_{T}^{Clus.} <%1.1f GeV %1.1f < z_{T} < %1.1f",
+      Form("Iso #gamma-h: %1.1f < p_{T}^{Clus.} <%1.1f GeV %1.2f < z_{T} < %1.2f",
       ptbins[ipt],ptbins[ipt+1],ztbins[izt],ztbins[izt+1]));
       IsoPhiProj[izt+ipt*nztbins]->Draw();
       
@@ -382,18 +399,20 @@ int main()
 	Double_t y = AntiIsoPhiProj[izt+ipt*nztbins]->GetBinContent(i);
 	Double_t y_error = AntiIsoPhiProj[izt+ipt*nztbins]->GetBinError(i);
 	Double_t new_y = y - AntiIso_ZYAM_Int;
-	Double_t new_y_error = (y-AntiIso_ZYAM_Int)*y_error/y;
+	//Double_t new_y_error = (y-AntiIso_ZYAM_Int)*y_error/y;
+	Double_t new_y_error = y_error;
 	AntiIsoPhiProj[izt+ipt*nztbins]->SetBinContent(i,new_y);
 	AntiIsoPhiProj[izt+ipt*nztbins]->SetBinError(i,new_y_error);
       }
       
       //AntiIsoPhiProj[izt+ipt*nztbins]->Add(AntiIsoPhiProj_LargeEta[izt],-1);
       AntiIsoPhiProj[izt+ipt*nztbins]->SetTitle(
-      Form("Iso BKGD #gamma-h%1.1f < p_{T}^{Clus.} <%1.1f GeV ,%1.1f < z_{T} < %1.1f",
+      Form("Iso BKGD #gamma-h%1.1f < p_{T}^{Clus.} <%1.1f GeV ,%1.2f < z_{T} < %1.2f",
       ptbins[ipt],ptbins[ipt+1],10*ztbins[izt],10*ztbins[izt+1]));
 
       AntiIsoPhiProj[izt+ipt*nztbins]->Draw();
      
+ //save
       IsoPhiPEDSUB[izt+ipt*nztbins] = IsoPhiProj[izt+ipt*nztbins];
       IsoPhiPEDSUB[izt+ipt*nztbins]->SetName(
       Form("IsoPhiPEDSUB_%1.0fpt%1.0f_%1.0fzT%1.0f",ptbins[ipt],ptbins[ipt+1],10*ztbins[izt],10*ztbins[izt+1]));
@@ -401,30 +420,34 @@ int main()
       AntiIsoPhiPEDSUB[izt+ipt*nztbins] = AntiIsoPhiProj[izt+ipt*nztbins];
       AntiIsoPhiPEDSUB[izt+ipt*nztbins]->SetName(
       Form("AntiIsoPhiPEDSUB_%1.0fpt%1.0f_%1.0fzT%1.0f",ptbins[ipt],ptbins[ipt+1],10*ztbins[izt],10*ztbins[izt+1]));
+
       IsoPhiPEDSUB[izt+ipt*nztbins]->Write();
     }
     pedcanvas->SaveAs(Form("pics/PED_SUB%1.0f_%1.0f.png",ptbins[ipt],ptbins[ipt+1]));
   }
-
   for (int ipt = 0; ipt < nptbins; ipt++){
     for (int izt = 0; izt <nztbins; izt++){
       //if (izt == 0) continue;
       AntiIsoPhiPEDSUB[izt+ipt*nztbins]->Write();
     }
   }
-   
+
+  //OVERLAY AND PURITY SCALE
   for (int ipt = 0; ipt < nptbins; ipt++){
-    double ntriggers = 10110;
-    double purity = 0.4;
+    double ntriggers = N_Iso_Triggers[ipt]->GetEntries();
+    double nbkgd = N_BKGD_Triggers[ipt]->GetEntries();
+    double purity = 0.35; //to match Alwina and Miguel's purity studies
     TCanvas *OLcanvas = new TCanvas("OLcanv","OLcanvas",1000,800);
-    OLcanvas->Divide(3,2);
+    OLcanvas->Divide(2,2);
     
-    for (int izt = 0; izt<nztbins-1; izt++){
+    //for (int izt = 0; izt<nztbins-1; izt++){
+    for (int izt = 0; izt<4; izt++){
       //if (izt ==0) continue;
       gStyle->SetOptStat("");
       OLcanvas->cd(izt+1); //FIXME:might break if izt=0
       gPad->SetLeftMargin(0.135);
       gPad->SetRightMargin(0.0);
+
       IsoPhiProj[izt+ipt*nztbins]->GetYaxis()->SetTitleOffset(1.85);
       double IsoErrors[24];
       double AntiIsoErrors[24];
@@ -432,31 +455,48 @@ int main()
 	IsoErrors[i] = IsoPhiProj[izt+ipt*nztbins]->GetBinError(i);
 	AntiIsoErrors[i] = AntiIsoPhiProj[izt+ipt*nztbins]->GetBinError(i);
       }
-      IsoPhiProj[izt+ipt*nztbins]->Scale(ntriggers);
-      AntiIsoPhiProj[izt+ipt*nztbins]->Scale(ntriggers*(1-purity));
       TLegend *Overlay_legend = new TLegend(0.45,0.75,0.95,0.88);
+
       Overlay_legend->AddEntry(IsoPhiProj[izt+ipt*nztbins], "Isolated 0.55 < DNN < 0.85","p");
       Overlay_legend->AddEntry(AntiIsoPhiProj[izt+ipt*nztbins], "Isolated 0.0 < DNN < 0.3","l");
+
       AntiIsoPhiProj[izt+ipt*nztbins]->SetTitle(
-      Form("Iso & BKGD #gamma-h: ZYAM Subtracted, %1.1f < p_{T}^{Clus.} <%1.1f GeV, %1.1f < z_{T} < %1.1f",
+      Form("Iso & BKGD #gamma-h: ZYAM Subtracted, %1.1f < p_{T}^{Clus.} <%1.1f GeV, %1.2f < z_{T} < %1.2f",
       ptbins[ipt],ptbins[ipt+1],ztbins[izt],ztbins[izt+1]));
-    
+
       IsoPhiProj[izt+ipt*nztbins]->SetTitle(
-      Form("Iso & ~BKGD #gamma-h: ZYAM Subtracted, %1.1f < p_{T}^{Clus.} <%1.1f GeV ,%1.1f < z_{T} < %1.1f",
+      Form("Iso & ~BKGD #gamma-h: ZYAM Subtracted, %1.1f < p_{T}^{Clus.} <%1.1f GeV ,%1.2f < z_{T} < %1.2f",
       ptbins[ipt],ptbins[ipt+1],ztbins[izt],ztbins[izt+1]));
     
-      AntiIsoPhiProj[izt+ipt*nztbins]->SetMarkerStyle(2);
+      AntiIsoPhiProj[izt+ipt*nztbins]->SetMarkerStyle(1);
       AntiIsoPhiProj[izt+ipt*nztbins]->SetMarkerColor(kRed);
       AntiIsoPhiProj[izt+ipt*nztbins]->SetLineColor(kRed);
       IsoPhiProj[izt+ipt*nztbins]->SetYTitle("#frac{1}{N_{Trig}} #frac{d^{2}N}{d#phid#eta}");
       //IsoPhiProj[izt+ipt*nztbins]->GetYaxis()->SetRangeUser(-50,800);
-      IsoPhiProj[izt+ipt*nztbins]->Scale(1.0/(purity*ntriggers));
-      AntiIsoPhiProj[izt+ipt*nztbins]->Scale(1.0/(purity*ntriggers));
-      for (int i = 1; i <25; i++) {
-	IsoPhiProj[izt+ipt*nztbins]->SetBinError(i,IsoErrors[i]);
-	AntiIsoPhiProj[izt+ipt*nztbins]->SetBinError(i,AntiIsoErrors[i]);
+
+      //Get Per Trigger Yeilds
+//       IsoPhiProj[izt+ipt*nztbins]->Scale(1.0/ntriggers);
+//       AntiIsoPhiProj[izt+ipt*nztbins]->Scale(1.0/nbkgd);
+
+      //Scale according to purity
+      //IsoPhiProj[izt+ipt*nztbins]->Scale(ntriggers);
+      AntiIsoPhiProj[izt+ipt*nztbins]->Scale((1-purity));
+
+      float Ymax = 0.0;
+      for (int izt = 0; izt<nztbins-1; izt++){
+	float max1 = IsoPhiProj[izt+ipt*nztbins]->GetMaximum();
+	float max2 = AntiIsoPhiProj[izt+ipt*nztbins]->GetMaximum();
+	float temp = TMath::Max(max1,max2);
+	if (Ymax < temp) Ymax = temp;
       }
-      if (izt > 2 ) AntiIsoPhiProj[izt]->Draw("same");
+
+
+      for (int i = 1; i <25; i++) {
+ 	IsoPhiProj[izt+ipt*nztbins]->SetBinError(i,IsoErrors[i]);
+ 	AntiIsoPhiProj[izt+ipt*nztbins]->SetBinError(i,AntiIsoErrors[i]);
+      }
+
+      IsoPhiProj[izt+ipt*nztbins]->GetYaxis()->SetRangeUser(-0.025,0.15);
       IsoPhiProj[izt+ipt*nztbins]->Draw("same");
       AntiIsoPhiProj[izt+ipt*nztbins]->Draw("same");
       Overlay_legend->Draw("same");
@@ -467,19 +507,28 @@ int main()
 
     for (int ipt = 0; ipt < nptbins; ipt++){
     TCanvas *PSubcanvas = new TCanvas("PSubcanv","PSubcanvas",1000,800);
-    PSubcanvas->Divide(3,2);
-      for (int izt = 0; izt<nztbins-2; izt++){
+    PSubcanvas->Divide(2,2);
+    //for (int izt = 0; izt<nztbins; izt++){
+    for (int izt = 0; izt<4; izt++){
 	gStyle->SetOptStat("");
 	PSubcanvas->cd(izt+1); //FIXME:might break if izt=0   
-	IsoPhiProj[izt+ipt*nztbins]->Add(AntiIsoPhiProj[izt+ipt*nztbins],-1);
 	gPad->SetLeftMargin(0.135);
 	gPad->SetRightMargin(0.0);
 	IsoPhiProj[izt+ipt*nztbins]->SetTitle(
-        Form("Isolated #gamma-h: BKGD Subtracted, %1.1f < p_{T}^{Clus.} <%1.1f GeV, %1.1f < z_{T} < %1.1f",
+        Form("Isolated #gamma-h: BKGD Subtracted, %1.1f < p_{T}^{Clus.} <%1.1f GeV, %1.2f < z_{T} < %1.2f",
 	ptbins[ipt],ptbins[ipt+1],ztbins[izt],ztbins[izt+1]));
 
+	double IsoErrors[24];
+	for (int i = 1; i <25; i++) {
+	  double temp_iso = IsoPhiProj[izt+ipt*nztbins]->GetBinError(i); 
+	  double temp_bkgd = AntiIsoPhiProj[izt+ipt*nztbins]->GetBinError(i);
+	  IsoErrors[i] = sqrt(pow(temp_iso,2)+pow(temp_bkgd,2)-(2*temp_iso*temp_bkgd));
+	}
+	for (int i = 1; i <25; i++) {
+	  IsoPhiProj[izt+ipt*nztbins]->SetBinError(i,IsoErrors[i]);
+	}
+	IsoPhiProj[izt+ipt*nztbins]->Add(AntiIsoPhiProj[izt+ipt*nztbins],-1);
 	IsoPhiProj[izt+ipt*nztbins]->Draw("same");
-	//AntiIsoPhiProj[izt]->Draw("same");
       }
       PSubcanvas->SaveAs(Form("pics/PSubtracted_pt_%1.0f_%1.0f.png",ptbins[ipt],ptbins[ipt+1]));
       //PSubcanvas->Clear();

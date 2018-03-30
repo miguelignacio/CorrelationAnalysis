@@ -243,8 +243,6 @@ int main(int argc, char *argv[])
   TH1D histogram0("histogram0", "", 16, 8.0, 16.0);
   TH1D histogram3("histogram3", "", 18, -0.5,1.5);
   TH1D h_ntrig("h_ntrig", "", 2, -0.5,1.0);
-  TH1D h_Iso_triggers("h_Iso_Triggers", "Number of Isolated Photon Triggers", 2, -0.5,1.0);
-  TH1D h_AntiIso_triggers("h_AntiIso_Triggers", "Number of ANTI-Isolated Photon Triggers", 2, -0.5,1.0);
 
   TH2D* PtIsoDist = new TH2D("PtIsoDist","Cluster Pt Spectrum For Isolation (its_04) bins 0.55 < DNN < 0.85",24,10,16,5,-0.5,2);
   TH2D* LowDNN_PtIsoDist = new TH2D("LowDNN_PtIsoDist","Cluster Pt Spectrum For Isolation (its_04) bins 0.0 < DNN < 0.3",24,10,16,5,-0.5,2);
@@ -255,6 +253,9 @@ int main(int argc, char *argv[])
   TH2D* IsoCorr[nztbins*nptbins];
   TH2D* AntiIsoCorr[nztbins*nptbins];
 
+  TH1D* h_Iso_triggers[nptbins];
+  TH1D* h_AntiIso_triggers[nptbins];
+
   float ntriggers_iso = 0;
   float ntriggers_Antiiso = 0;
   
@@ -262,6 +263,14 @@ int main(int argc, char *argv[])
   int n_phi_bins = 24;
   
   for (int ipt = 0; ipt <nptbins; ipt++) {
+    h_Iso_triggers[ipt] = new TH1D(
+    Form("N_Iso_Trig_ptmin%1.0f_ptmax%1.0f",ptbins[ipt],ptbins[ipt+1]),
+    "Number of Isolated Photon Triggers", 2, -0.5,1.0);
+
+    h_AntiIso_triggers[ipt] = new TH1D(
+    Form("N_Low_DNN_Triggers_ptmin%1.0f_ptmax%1.0f",ptbins[ipt],ptbins[ipt+1]),
+    "Number of Isolated Low DNN Photon Triggers", 2, -0.5,1.0);
+
     for (int izt = 0; izt<nztbins; izt++){
 
       Corr[izt+ipt*nztbins] = new TH2D(Form("Correlation_ptmin%1.0f_ptmax%1.0f_ztmin%1.0f_ztmax%1.0f",ptbins[ipt],ptbins[ipt+1],
@@ -381,7 +390,7 @@ int main(int argc, char *argv[])
     std::cout << " Total Number of entries in TTree: " << nentries << std::endl;
 
     for(Long64_t ievent = 0; ievent < nentries ; ievent++){     
-      //for(Long64_t ievent = 0; ievent < 1000 ; ievent++){
+    //for(Long64_t ievent = 0; ievent < 1000 ; ievent++){
       _tree_event->GetEntry(ievent);
       fprintf(stderr, "\r%s:%d: %llu / %llu", __FILE__, __LINE__, ievent, nentries);
  
@@ -397,16 +406,21 @@ int main(int argc, char *argv[])
 	else if (determiner == CLUSTER_ISO_ITS_04) isolation = cluster_iso_its_04[n];
 	else if (determiner == CLUSTER_FRIXIONE_TPC_04_02) isolation = cluster_frixione_tpc_04_02[n];
 	else isolation = cluster_frixione_its_04_02[n];
+	if (isolation>iso_max) continue;
 	
 	//if(isolation>iso_max) continue;    
 	if(isolation<iso_max){
 	  if ((cluster_s_nphoton[n][1] > DNN_min) && (cluster_s_nphoton[n][1]<DNN_max)){
 	    histogram0.Fill(cluster_pt[n]); //isolated deep-photon pt spectra
-	    h_Iso_triggers.Fill(0);
 	    ntriggers_iso += 1;
-	    //look at pt Distrobution in Isolation bins
+	    //look at pt Distribution in Isolation bins
 	    for (double Iso_bin = -0.5; Iso_bin < iso_max; Iso_bin += 0.5){
 	      if (isolation > Iso_bin && isolation < Iso_bin+0.5) PtIsoDist->Fill(cluster_pt[n],isolation);
+	    }
+	    for (int ipt = 0; ipt < nptbins; ipt++){
+	      if (cluster_pt[n] >ptbins[ipt] && cluster_pt[n] <ptbins[ipt+1]){
+	      h_Iso_triggers[ipt]->Fill(0);
+	      }
 	    }
 	  }
 	}
@@ -415,15 +429,19 @@ int main(int argc, char *argv[])
 	  if ((cluster_s_nphoton[n][1]>0.0) && (cluster_s_nphoton[n][1]<0.3)){
 	    h_ntrig.Fill(0.5);
 	    ntriggers_Antiiso += 1;
-	    h_AntiIso_triggers.Fill(0);
 	    //look at pt Distrobution in Isolation bins
 	    for (double Iso_bin = -0.5; Iso_bin < iso_max; Iso_bin += 0.5){
 	      if (isolation > Iso_bin && isolation < Iso_bin+0.5) LowDNN_PtIsoDist->Fill(cluster_pt[n],isolation);
 	    }
+	    for (int ipt = 0; ipt < nptbins; ipt++){
+              if (cluster_pt[n] >ptbins[ipt] && cluster_pt[n] <ptbins[ipt+1]){
+		h_AntiIso_triggers[ipt]->Fill(0);
+	      } 
+	    }  
 	  }
 	}
 	for (ULong64_t itrack = 0; itrack < ntrack; itrack++) {            
-	  if(track_pt[itrack] < 1) continue; //1GeV Tracks
+	  if(track_pt[itrack] < 0.5) continue; //1GeV Tracks
 	  if((track_quality[itrack]&selection_number)==0) continue; //select only tracks that pass selection 3
 	  if(abs(track_eta[itrack]) > 0.8) continue;
 	  Double_t zt = track_pt[itrack]/cluster_pt[n];
@@ -471,13 +489,18 @@ int main(int argc, char *argv[])
     TFile* fout = new TFile("fout_LowDNN_bkgd_pT_Bins.root","RECREATE");
     histogram0.Write("DeepPhotonSpectra");
     h_ntrig.Write("ntriggers");
-    h_Iso_triggers.Write("N_Iso_Trigers");
-    h_AntiIso_triggers.Write("N_AntiIso_Trigers");
     std::cout<<"Clusters Passed Iosalation: "<<ntriggers_iso<<std::endl;
 
     PtIsoDist->Write();
     LowDNN_PtIsoDist->Write();
 
+    for (int ipt = 0; ipt<nptbins; ipt++){
+      h_Iso_triggers[ipt]->Write();
+    }
+    for (int ipt = 0; ipt<nptbins; ipt++){
+      h_AntiIso_triggers[ipt]->Write();
+    }
+    
     for (int ipt = 0; ipt<nptbins; ipt++){
       for (int izt = 0; izt<nztbins; izt++){
         Corr[izt+ipt*nztbins]->Write();
