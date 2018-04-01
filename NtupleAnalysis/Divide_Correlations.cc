@@ -5,6 +5,7 @@
 #include <TROOT.h>
 #include <TApplication.h>
 #include <TCanvas.h>
+#include <TGraph.h>
 #include <TStyle.h>
 #include <TH2D.h>
 #include <TLine.h>
@@ -152,7 +153,7 @@ int main()
     TempIso->Delete();
     TempAntiIso->Delete();
     
-    }//zt bins
+    }//zt bin
     N_Iso_Triggers[ipt] = (TH1D*)corr->Get(Form("N_Iso_Trig_ptmin%1.0f_ptmax%1.0f",ptbins[ipt],ptbins[ipt+1]));
     N_BKGD_Triggers[ipt] = (TH1D*)corr->Get(Form("N_Low_DNN_Triggers_ptmin%1.0f_ptmax%1.0f",ptbins[ipt],ptbins[ipt+1]));
   }
@@ -160,10 +161,36 @@ int main()
   TFile *MyFile = new TFile("Ratio_Correlation.root","RECREATE");
   TCanvas *test = new TCanvas("","test");
 
+  {
+    float N_Isos[4];
+    float N_BKGD[4];
+    float npts[4];
+    
+    for (int ipt = 0; ipt < nptbins; ipt ++){
+      std::cout<<"Iso_Triggers between"<<ptbins[ipt]<<"and"<<ptbins[ipt+1]<<": "<<N_Iso_Triggers[ipt]->GetEntries()<<std::endl;
+      std::cout<<"BKGD_Triggers between"<<ptbins[ipt]<<"and"<<ptbins[ipt+1]<<": "<<N_BKGD_Triggers[ipt]->GetEntries()<<std::endl;
+      N_Isos[ipt] = N_Iso_Triggers[ipt]->GetEntries();
+      N_BKGD[ipt] = N_BKGD_Triggers[ipt]->GetEntries();
+      npts[ipt] = ptbins[ipt+1]-0.75;
+    }
+    
+    TGraph* gr1 = new TGraph(4,npts,N_Isos);
+    gr1->SetTitle("N Triggers vs p_{T} bin");
+    gr1->SetMarkerStyle(7);
+    TGraph* gr2 = new TGraph(4,npts,N_BKGD);
+    gr2->SetLineColor(kRed);
+    gr2->SetMarkerStyle(7);
+    gr1->Draw();
+    gr2->Draw("same");
+    
+    test->SaveAs("pics/N_Triggers.png");
+  }
+
   for (int ipt = 0; ipt <nptbins; ipt++){
     TCanvas *Isocanvas = new TCanvas("Isocanv","Isocanvas",1350,1150); 
     Isocanvas->Divide(3,2);
     for (int izt = 0; izt<nztbins; izt++){
+      //for (int izt = 0; izt<4; izt++){
       //if(izt == 0) continue;
       gStyle->SetOptStat("");
       gPad->SetLeftMargin(0.17);
@@ -173,7 +200,7 @@ int main()
 						    ptbins[ipt],ptbins[ipt+1],ztbins[izt],ztbins[izt+1]));
       Corr_Iso_same[izt+ipt*nztbins]->GetXaxis()->SetTitle("#Delta #phi");
       Corr_Iso_same[izt+ipt*nztbins]->GetYaxis()->SetTitle("#Delta #eta");
-      Corr_Iso_same[izt+ipt*nztbins]->GetZaxis()->SetTitle("#frac{1}{N_{trig}}#frac{d^{2}N}{d#phi d#eta}");
+      Corr_Iso_same[izt+ipt*nztbins]->GetZaxis()->SetTitle("#frac{d^{2}N}{d#phi d#eta}");
       Corr_Iso_same[izt+ipt*nztbins]->GetZaxis()->SetTitleOffset(2.5);
       Corr_Iso_same[izt+ipt*nztbins]->Write();
       Isocanvas->cd(izt+1);
@@ -188,7 +215,7 @@ int main()
   for (int ipt = 0; ipt < nptbins; ipt++){
     TCanvas *AntiIsocanvas = new TCanvas("AntiIsocanv","AntiIsocanvas",1350,950);
     AntiIsocanvas->Divide(3,2);
-    for (int izt = 0; izt<nztbins; izt++){
+    for (int izt = 0; izt<nztbins-1; izt++){
       gStyle->SetOptStat("");
       gPad->SetLeftMargin(0.17);
       gPad->SetRightMargin(0.0);
@@ -365,9 +392,9 @@ int main()
     
     TCanvas *pedcanvas = new TCanvas("pedcanv","pedcanvas",1600,800);
     gStyle->SetOptStat("");
-    pedcanvas->Divide(3,2);
+    pedcanvas->Divide(4,3);
     
-    for (int izt = 0; izt<nztbins; izt++){      
+    for (int izt = 0; izt<nztbins-1; izt++){      
     //for (int izt = 0; izt<4; izt++){      
       pedcanvas->cd(izt*2+1);
       gPad->SetLeftMargin(0.17);
@@ -428,20 +455,20 @@ int main()
   for (int ipt = 0; ipt < nptbins; ipt++){
     for (int izt = 0; izt <nztbins; izt++){
       //if (izt == 0) continue;
-      AntiIsoPhiPEDSUB[izt+ipt*nztbins]->Write();
+      //AntiIsoPhiPEDSUB[izt+ipt*nztbins]->Write();
     }
   }
-
+  std::cout<<"test"<<std::endl;
   //OVERLAY AND PURITY SCALE
   for (int ipt = 0; ipt < nptbins; ipt++){
     double ntriggers = N_Iso_Triggers[ipt]->GetEntries();
     double nbkgd = N_BKGD_Triggers[ipt]->GetEntries();
     double purity = 0.35; //to match Alwina and Miguel's purity studies
     TCanvas *OLcanvas = new TCanvas("OLcanv","OLcanvas",1000,800);
-    OLcanvas->Divide(2,2);
+    OLcanvas->Divide(3,2);
     
-    //for (int izt = 0; izt<nztbins-1; izt++){
-    for (int izt = 0; izt<4; izt++){
+    for (int izt = 0; izt<nztbins-1; izt++){
+      //for (int izt = 0; izt<4; izt++){
       //if (izt ==0) continue;
       gStyle->SetOptStat("");
       OLcanvas->cd(izt+1); //FIXME:might break if izt=0
@@ -507,9 +534,9 @@ int main()
 
     for (int ipt = 0; ipt < nptbins; ipt++){
     TCanvas *PSubcanvas = new TCanvas("PSubcanv","PSubcanvas",1000,800);
-    PSubcanvas->Divide(2,2);
-    //for (int izt = 0; izt<nztbins; izt++){
-    for (int izt = 0; izt<4; izt++){
+    PSubcanvas->Divide(3,2);
+    for (int izt = 0; izt<nztbins; izt++){
+      //for (int izt = 0; izt<4; izt++){
 	gStyle->SetOptStat("");
 	PSubcanvas->cd(izt+1); //FIXME:might break if izt=0   
 	gPad->SetLeftMargin(0.135);

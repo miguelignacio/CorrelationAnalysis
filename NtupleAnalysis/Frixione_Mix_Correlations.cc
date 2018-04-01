@@ -59,10 +59,10 @@ int main(int argc, char *argv[])
   ztbins = new float[nztbins+1];
   ztbins[0] = 0.0; ztbins[1] = 0.1; ztbins[2] = 0.2; ztbins[3] = 0.4; ztbins[4] = 0.6; ztbins[5] = 0.8; ztbins[6] = 1.0; ztbins[7] = 1.2;
    
-  int nptbins = 4;
+  int nptbins = 3;
   float* ptbins;
   ptbins = new float[nptbins+1];
-  ptbins[0] = 10.0; ptbins[1] = 11.5; ptbins[2] = 13; ptbins[3] = 14.5; ptbins[4] = 16;
+  ptbins[0] = 10.0; ptbins[1] = 11.5; ptbins[2] = 13; ptbins[3] = 16; //ptbins[4] = 16;
 
   int n_correlationbins = 18;
     
@@ -410,12 +410,12 @@ int main(int argc, char *argv[])
     DataSpace cluster_dataspace = cluster_dataset.getSpace();
 
     //Define array hyperslab will be read into
-    float track_data_out[1][ntrack_max][7];
+    float track_data_out[1][ntrack_max][10];
     float cluster_data_out[1][ncluster_max][5];
 
     //Define hyperslab size and offset in  FILE;
     hsize_t track_offset[3] = {0, 0, 0};
-    hsize_t track_count[3] = {1, ntrack_max, 7};
+    hsize_t track_count[3] = {1, ntrack_max, 10};
     hsize_t cluster_offset[3] = {0, 0, 0};
     hsize_t cluster_count[3] = {1, ncluster_max, 5};
 
@@ -425,7 +425,7 @@ int main(int argc, char *argv[])
 
     //Define the memory dataspace to place hyperslab
     const int RANK_OUT = 3; //# of Dimensions
-    hsize_t track_dimsm[3] = {1, ntrack_max, 7};
+    hsize_t track_dimsm[3] = {1, ntrack_max, 10};
     DataSpace track_memspace( RANK_OUT, track_dimsm );
     hsize_t cluster_dimsm[3] = {1, ncluster_max, 5};
     DataSpace cluster_memspace( RANK_OUT, cluster_dimsm );
@@ -435,7 +435,7 @@ int main(int argc, char *argv[])
     hsize_t cluster_offset_out[3] = {0};
 
     //define Dimensions of array, for writing slab to array
-    hsize_t track_count_out[3] = {1, ntrack_max, 7};
+    hsize_t track_count_out[3] = {1, ntrack_max, 10};
     hsize_t cluster_count_out[3] = {1, ncluster_max, 5};
 
     //define space in memory for hyperslab, then write from file to memory
@@ -459,8 +459,7 @@ int main(int argc, char *argv[])
 	//if( not(cluster_s_nphoton[n][1]>DNN_min and cluster_s_nphoton[n][1]<DNN_max)) continue; //select deep-photons
 	if( not(TMath::Abs(cluster_eta[n])<Eta_max)) continue; //cut edges of detector
 	if( not(cluster_ncell[n]>Cluster_min)) continue;   //removes clusters with 1 or 2 cells
-	if( not(cluster_e_cross[n]/cluster_e[n]>EcrossoverE_min)) continue; //removes "spiky" clusters
-    
+	if( not(cluster_e_cross[n]/cluster_e[n]>EcrossoverE_min)) continue; //removes "spiky" clusters    
 	
 	//determiner: which frixione variable based on Corr_config.yaml
 	float isolation;
@@ -492,25 +491,33 @@ int main(int argc, char *argv[])
 	  cluster_dataspace.selectHyperslab( H5S_SELECT_SET, cluster_count, cluster_offset );
 	  cluster_dataset.read( cluster_data_out, PredType::NATIVE_FLOAT, cluster_memspace, cluster_dataspace );
 
+	  //MIXED associated
 	  const int TrackCutBit =16;
 	  for (ULong64_t itrack = 0; itrack < ntrack_max; itrack++) {
 	    if (std::isnan(track_data_out[0][itrack][1])) break;
-	    if ((int(track_data_out[0][itrack][4]+0.5)&selection_number)==0) continue;
-	    //if ((int(track_data_out[0][itrack][4]+ 0.5)&TrackCutBit)==0) continue;
+	    //if ((int(track_data_out[0][itrack][4]+0.5)&selection_number)==0) continue;
+	    if ((int(track_data_out[0][itrack][4]+ 0.5)&TrackCutBit)==0) continue; //selection 16
 	    if (track_data_out[0][itrack][1] < 0.5) continue; //less than 1GeV
+	    if (track_data_out[0][itrack][1] > 30) continue; //less than 1GeV
 	    if (abs(track_data_out[0][itrack][2]) > 0.8) continue;
+	    if (track_data_out[0][itrack][7] < 4) continue;
+	    if ((track_data_out[0][itrack][8]/track_data_out[0][itrack][7]) > 36) continue;
+	    if( not(TMath::Abs(track_data_out[0][itrack][9])<0.0231+0.0315/TMath::Power(track_data_out[0][itrack][4],1.3 ))) continue;
+	    //FIXME add track criteria
 
+	    double dRmin = 1.0;
 	    //veto charged particles from mixed event tracks
 	    bool MixTrack_HasMatch = false;
 	    for (unsigned int l = 0; l < ncluster_max; l++){
 	      if (std::isnan(cluster_data_out[0][l][0])) break;
-	      if (TMath::Abs(cluster_data_out[0][l][2] - track_data_out[0][itrack][5]) < 0.015  && 
-		  TMath::Abs(cluster_data_out[0][l][3] - track_data_out[0][itrack][6]) < 0.015) {
-		MixTrack_HasMatch = true;
+		float dphi = TMath::Abs(cluster_data_out[0][l][2] - track_data_out[0][itrack][5]);
+		float deta = TMath::Abs(cluster_data_out[0][l][3] - track_data_out[0][itrack][6]);
+		float dR = sqrt(dphi*dphi + deta*deta);
+		if (dR < dRmin)	MixTrack_HasMatch = true;
 		break; 
-	      }
 	    }
 	    if (MixTrack_HasMatch) continue;
+	    
 	    //fprintf(stderr, "%s:%d: Mixed Event: %llu Track: %llu\n", __FILE__, __LINE__, mix_event, itrack);
 
 	    Float_t DeltaPhi = cluster_phi[n] - track_data_out[0][itrack][3];
