@@ -59,10 +59,11 @@ int main(int argc, char *argv[])
   ztbins = new float[nztbins+1];
   ztbins[0] = 0.0; ztbins[1] = 0.1; ztbins[2] = 0.2; ztbins[3] = 0.4; ztbins[4] = 0.6; ztbins[5] = 0.8; ztbins[6] = 1.0; ztbins[7] = 1.2;
    
-  int nptbins = 4;
+  int nptbins = 3;
   float* ptbins;
   ptbins = new float[nptbins+1];
-  ptbins[0] = 10.0; ptbins[1] = 11.5; ptbins[2] = 13; ptbins[3] = 14.5; ptbins[4] = 16;
+  //ptbins[0] = 10.0; ptbins[1] = 11.5; ptbins[2] = 13; ptbins[3] = 14.5; ptbins[4] = 16;
+  ptbins[0] = 10.0; ptbins[1] = 11; ptbins[2] = 12.5; ptbins[3] = 16;
 
   // Number of bins in correlation functions
   int n_correlationbins = 18;
@@ -264,29 +265,29 @@ int main(int argc, char *argv[])
   
   for (int ipt = 0; ipt <nptbins; ipt++) {
     h_Iso_triggers[ipt] = new TH1D(
-    Form("N_Iso_Trig_ptmin%1.0f_ptmax%1.0f",ptbins[ipt],ptbins[ipt+1]),
+    Form("N_DNN%i_Triggers_pT%1.0f_%1.0f",1,ptbins[ipt],ptbins[ipt+1]),
     "Number of Isolated Photon Triggers", 2, -0.5,1.0);
 
     h_AntiIso_triggers[ipt] = new TH1D(
-    Form("N_Low_DNN_Triggers_ptmin%1.0f_ptmax%1.0f",ptbins[ipt],ptbins[ipt+1]),
+    Form("N_DNN%i_Triggers_pT%1.0f_%1.0f",2,ptbins[ipt],ptbins[ipt+1]),
     "Number of Isolated Low DNN Photon Triggers", 2, -0.5,1.0);
 
     for (int izt = 0; izt<nztbins; izt++){
 
-      Corr[izt+ipt*nztbins] = new TH2D(Form("Correlation_ptmin%1.0f_ptmax%1.0f_ztmin%1.0f_ztmax%1.0f",ptbins[ipt],ptbins[ipt+1],
-      10*ztbins[izt],10*ztbins[izt+1]),"Mixed Event #gamma-H [all] Correlation", n_phi_bins,-M_PI/2,3*M_PI/2, n_eta_bins, -1.4, 1.4);
+      Corr[izt+ipt*nztbins] = new TH2D(Form("Correlation__pT%1.0f_%1.0f__zT%1.0f_zT%1.0f",ptbins[ipt],ptbins[ipt+1],
+      10*ztbins[izt],10*ztbins[izt+1]),"#gamma-H [all] Correlation", n_phi_bins,-M_PI/2,3*M_PI/2, n_eta_bins, -1.4, 1.4);
 
       Corr[izt+ipt*nztbins]->Sumw2();
       Corr[izt+ipt*nztbins]->SetMinimum(0.);
 
-      IsoCorr[izt+ipt*nztbins] = new TH2D(Form("IsoCorrelation_ptmin%1.0f_ptmax%1.0f_ztmin%1.0f_ztmax%1.0f",ptbins[ipt],ptbins[ipt+1],
-      10*ztbins[izt],10*ztbins[izt+1]),"Mixed Event #gamma-H [Iso] Correlation", n_phi_bins,-M_PI/2,3*M_PI/2,n_eta_bins, -1.4, 1.4);
+      IsoCorr[izt+ipt*nztbins] = new TH2D(Form("DNN%i_Correlation__pT%1.0f_%1.0f__zT%1.0f_zT%1.0f",1,ptbins[ipt],ptbins[ipt+1],
+      10*ztbins[izt],10*ztbins[izt+1]),"#gamma-H [Iso] Correlation", n_phi_bins,-M_PI/2,3*M_PI/2,n_eta_bins, -1.4, 1.4);
 
       IsoCorr[izt+ipt*nztbins]->Sumw2();
       IsoCorr[izt+ipt*nztbins]->SetMinimum(0.);
 
-      AntiIsoCorr[izt+ipt*nztbins] = new TH2D(Form("AntiIsoCorrelation_ptmin%1.0f_ptmax%1.0f_ztmin%1.0f_ztmax%1.0f",ptbins[ipt],ptbins[ipt+1],
-      10*ztbins[izt],10*ztbins[izt+1]),"Mixed Event #gamma-H [AntiIso] Correlation", n_phi_bins,-M_PI/2,3*M_PI/2, n_eta_bins, -1.4, 1.4);
+      AntiIsoCorr[izt+ipt*nztbins] = new TH2D(Form("DNN%i_Correlation__pT%1.0f_%1.0f__zT%1.0f_zT%1.0f",2,ptbins[ipt],ptbins[ipt+1],
+      10*ztbins[izt],10*ztbins[izt+1]),"#gamma-H [AntiIso] Correlation", n_phi_bins,-M_PI/2,3*M_PI/2, n_eta_bins, -1.4, 1.4);
 
       AntiIsoCorr[izt+ipt*nztbins]->Sumw2();
       AntiIsoCorr[izt+ipt*nztbins]->SetMinimum(0.);
@@ -324,6 +325,9 @@ int main(int argc, char *argv[])
     Float_t track_eta[NTRACK_MAX];
     Float_t track_phi[NTRACK_MAX];
     UChar_t track_quality[NTRACK_MAX];
+    UChar_t track_its_ncluster[NTRACK_MAX];
+    Float_t track_its_chi_square[NTRACK_MAX];
+    Float_t track_dca_xy[NTRACK_MAX];
 
     UInt_t ncluster;
     Float_t cluster_e[NTRACK_MAX];
@@ -367,6 +371,9 @@ int main(int argc, char *argv[])
     _tree_event->SetBranchAddress("track_eta", track_eta);
     _tree_event->SetBranchAddress("track_phi", track_phi);
     _tree_event->SetBranchAddress("track_quality", track_quality);
+    _tree_event->SetBranchAddress("track_its_ncluster", &track_its_ncluster);
+    _tree_event->SetBranchAddress("track_its_chi_square", &track_its_chi_square);
+    _tree_event->SetBranchAddress("track_dca_xy", &track_dca_xy);
 
     _tree_event->SetBranchAddress("ncluster", &ncluster);
     _tree_event->SetBranchAddress("cluster_e", cluster_e);
@@ -440,10 +447,16 @@ int main(int argc, char *argv[])
 	    }  
 	  }
 	}
+	const int TrackCutBit =16;
 	for (ULong64_t itrack = 0; itrack < ntrack; itrack++) {            
 	  if(track_pt[itrack] < 0.5) continue; //1GeV Tracks
-	  if((track_quality[itrack]&selection_number)==0) continue; //select only tracks that pass selection 3
+	  if(track_pt[itrack] > 30) continue;
+	  if((track_quality[itrack]&TrackCutBit)==0) continue; //select only tracks that pass selection 3
 	  if(abs(track_eta[itrack]) > 0.8) continue;
+	  if( not(track_its_ncluster[itrack]>4)) continue;
+	  if( not(track_its_chi_square[itrack]/track_its_ncluster[itrack] <36)) continue;
+	  if( not(TMath::Abs(track_dca_xy[itrack])<0.0231+0.0315/TMath::Power(track_pt[itrack],1.3 ))) continue;
+
 	  Double_t zt = track_pt[itrack]/cluster_pt[n];
 	  Float_t deta =  cluster_eta[n]-track_eta[itrack];
 	  Float_t dphi =  TVector2::Phi_mpi_pi(cluster_phi[n]-track_phi[itrack])/TMath::Pi();
@@ -468,14 +481,14 @@ int main(int argc, char *argv[])
 		    }
 		  }
 		  if(isolation<iso_max){
-		    if (cluster_s_nphoton[n][1] > 0.0 && cluster_s_nphoton[n][1] < 0.3){ //sel deep photons                                          
+		    if (cluster_s_nphoton[n][1] > 0.0 && cluster_s_nphoton[n][1] < 0.3){ //sel deep photons                                       
 		      AntiIsoCorr[izt+ipt*nztbins]->Fill(DeltaPhi,DeltaEta);
 		    }
 		  }
 		  Corr[izt+ipt*nztbins]->Fill(DeltaPhi,DeltaEta);
-		}//if in zt bin                                                                                                                      
-	      } // end loop over zt bins                                                                                                             
-	    }//end if in pt bin                                                                                                                      
+		}//if in zt bin                                                                                               
+	      } // end loop over zt bins                                                                         
+	    }//end if in pt bin                                                                                                  
 	  }//end pt loop bin   
                                  
 	}//end loop over tracks
@@ -486,7 +499,7 @@ int main(int argc, char *argv[])
     // Write to fout
 
     //TFile* fout = new TFile(Form("fout_Corr_config%s.root", opened_files.c_str()),"RECREATE");
-    TFile* fout = new TFile("fout_LowDNN_bkgd_pT_Bins.root","RECREATE");
+    TFile* fout = new TFile("fout_lowDNN.root","RECREATE");
     histogram0.Write("DeepPhotonSpectra");
     h_ntrig.Write("ntriggers");
     std::cout<<"Clusters Passed Iosalation: "<<ntriggers_iso<<std::endl;

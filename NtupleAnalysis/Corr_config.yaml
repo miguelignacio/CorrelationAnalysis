@@ -5,7 +5,7 @@ DNN_max:                      0.85
 Eta_max:                      0.6
 Cluster_min:                  2
 EcrossoverE_min:              0.03
-iso_max:                      2.0
+iso_max:                      1.0
 noniso_min:                   5.0
 noniso_max:                   10.0
 deta_max:                     0.6

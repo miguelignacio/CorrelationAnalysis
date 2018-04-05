@@ -62,7 +62,7 @@ int main(int argc, char *argv[])
   int nptbins = 3;
   float* ptbins;
   ptbins = new float[nptbins+1];
-  ptbins[0] = 10.0; ptbins[1] = 11.5; ptbins[2] = 13; ptbins[3] = 16; //ptbins[4] = 16;
+  ptbins[0] = 10.0; ptbins[1] = 11; ptbins[2] = 12.5; ptbins[3] = 16; //ptbins[4] = 16;
 
   int n_correlationbins = 18;
     
@@ -261,19 +261,19 @@ int main(int argc, char *argv[])
   for (int ipt = 0; ipt <nptbins; ipt++) {
     for (int izt = 0; izt<nztbins; izt++){
       
-      Corr[izt+ipt*nztbins] = new TH2D(Form("Correlation_ptmin%1.0f_ptmax%1.0f_ztmin%1.0f_ztmax%1.0f",ptbins[ipt],ptbins[ipt+1],
+      Corr[izt+ipt*nztbins] = new TH2D(Form("Correlation__pT%1.0f_%1.0f__zT%1.0f_zT%1.0f",ptbins[ipt],ptbins[ipt+1],
       10*ztbins[izt],10*ztbins[izt+1]),"Mixed Event #gamma-H [all] Correlation", n_phi_bins,-M_PI/2,3*M_PI/2, n_eta_bins, -1.4, 1.4);
      
       Corr[izt+ipt*nztbins]->Sumw2();
       Corr[izt+ipt*nztbins]->SetMinimum(0.);
       
-      IsoCorr[izt+ipt*nztbins] = new TH2D(Form("IsoCorrelation_ptmin%1.0f_ptmax%1.0f_ztmin%1.0f_ztmax%1.0f",ptbins[ipt],ptbins[ipt+1],
+      IsoCorr[izt+ipt*nztbins] = new TH2D(Form("DNN%i_Correlation__pT%1.0f_%1.0f__zT%1.0f_zT%1.0f",1,ptbins[ipt],ptbins[ipt+1],
 	    10*ztbins[izt],10*ztbins[izt+1]),"Mixed Event #gamma-H [Iso] Correlation", n_phi_bins,-M_PI/2,3*M_PI/2, n_eta_bins, -1.4, 1.4);
 
       IsoCorr[izt+ipt*nztbins]->Sumw2();
       IsoCorr[izt+ipt*nztbins]->SetMinimum(0.);
       
-      AntiIsoCorr[izt+ipt*nztbins] = new TH2D(Form("AntiIsoCorrelation_ptmin%1.0f_ptmax%1.0f_ztmin%1.0f_ztmax%1.0f",ptbins[ipt],ptbins[ipt+1],
+      AntiIsoCorr[izt+ipt*nztbins] = new TH2D(Form("DNN%i_Correlation__pT%1.0f_%1.0f__zT%1.0f_zT%1.0f",2,ptbins[ipt],ptbins[ipt+1],
       10*ztbins[izt],10*ztbins[izt+1]),"Mixed Event #gamma-H [AntiIso] Correlation", n_phi_bins,-M_PI/2,3*M_PI/2, n_eta_bins, -1.4, 1.4);
       
       AntiIsoCorr[izt+ipt*nztbins]->Sumw2();
@@ -395,6 +395,9 @@ int main(int argc, char *argv[])
 //     }
     ntrack_max = 3000;
     ncluster_max = 23; //FixMe, root and hdf5 files from different data sets may have it be out of bounds
+
+    fprintf(stderr, "\n%s:%d: %s", __FILE__, __LINE__, "USING HARDCODED HDF5 DIMENSIONS");
+
     fprintf(stderr, "\n%s:%d: maximum tracks:%i maximum clusters:%i\n", __FILE__, __LINE__, ntrack_max,ncluster_max);
 
     //open hdf5: Define size of data from file, explicitly allocate memory in hdf5 space and array size
@@ -468,16 +471,6 @@ int main(int argc, char *argv[])
 	else if (determiner == CLUSTER_FRIXIONE_TPC_04_02) isolation = cluster_frixione_tpc_04_02[n];
 	else isolation = cluster_frixione_its_04_02[n];
         
-	//isolation
-	if(isolation<iso_max){
-	  if (cluster_s_nphoton[n][1] > DNN_min && cluster_s_nphoton[n][1] < DNN_max){ //sel deep photons
-	  }
-	}
-	//background
-	if(isolation<iso_max){
-	  if (cluster_s_nphoton[n][1] > 0.0 && cluster_s_nphoton[n][1] < 0.3){ //sel merged clusters for background
-	  }
-	}
 	for (Long64_t imix = 0; imix < 50; imix++){
 	  Long64_t mix_event = Mix_Events[imix];
 	  if (mix_event == ievent) continue;
@@ -526,22 +519,13 @@ int main(int argc, char *argv[])
 	    Float_t DeltaEta = cluster_eta[n] - track_data_out[0][itrack][2];
 	    if ((TMath::Abs(DeltaPhi) < 0.005) && (TMath::Abs(DeltaEta) < 0.005)) continue;
 
-	    //Debugging peak at Deltaphi 2
-	    if(DeltaPhi > 1.8326 && DeltaPhi < 2.3562){
-	      PhiValues->Fill(cluster_phi[n],track_data_out[0][itrack][3]);
-	    }
-
  	    Double_t zt = track_data_out[0][itrack][1]/cluster_pt[n];
-// 	    Float_t deta =  cluster_eta[n]-track_data_out[0][itrack][2];;
-// 	    Float_t dphi =  TVector2::Phi_mpi_pi(cluster_phi[n]-track_data_out[0][itrack][3]);
-// 	    dphi = dphi/TMath::Pi();
-// 	    //if(!(TMath::Abs(deta)<0.6)) continue; //deta cut
-// 	    if(dphi<-0.5) dphi +=2;
 
 	    for (int ipt = 0; ipt < nptbins; ipt++){
 	      if (cluster_pt[n] >ptbins[ipt] && cluster_pt[n] <ptbins[ipt+1]){
 		for(int izt = 0; izt<nztbins ; izt++){
 		  if(zt>ztbins[izt] and  zt<ztbins[izt+1]){
+
 		    if(isolation< iso_max){
 		      if (cluster_s_nphoton[n][1] > DNN_min && cluster_s_nphoton[n][1] < DNN_max){
 			IsoCorr[izt+ipt*nztbins]->Fill(DeltaPhi,DeltaEta);
@@ -567,7 +551,7 @@ int main(int argc, char *argv[])
 
 
     // Write to fout    
-    TFile* fout = new TFile("fout_largDNN_Mix_PT_BINS.root","RECREATE");
+    TFile* fout = new TFile("fout_lowDNN_Mix.root","RECREATE");
     histogram0.Write("DeepPhotonSpectra");
     for (int ipt = 0; ipt<nptbins; ipt++){    
       for (int izt = 0; izt<nztbins; izt++){

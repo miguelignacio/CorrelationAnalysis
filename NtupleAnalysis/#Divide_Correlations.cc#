@@ -95,7 +95,7 @@ int main()
 	exit(EXIT_FAILURE);
       }
 
-    //Normalize Mixing to 1 at âˆ†etaâˆ†phi = 0,0
+    //Normalize Mixing to 1 at œôø¦etaœôø¦phi = 0,0
     TAxis *mix_xaxis = Corr_Iso_mix[izt+ipt*nztbins]->GetXaxis();
     Int_t mix_bin_phi = mix_xaxis->FindBin(0.0);
     TAxis *mix_yaxis = Corr_Iso_mix[izt+ipt*nztbins]->GetYaxis();
