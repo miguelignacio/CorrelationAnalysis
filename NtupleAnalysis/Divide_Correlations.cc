@@ -540,7 +540,6 @@ int main()
       Form("Iso & BKGD #gamma-h: No ZYAM, No Mixing, %1.1f < p_{T}^{Clus.} <%1.1f GeV ,%1.2f < z_{T} < %1.2f",
       ptbins[ipt],ptbins[ipt+1],ztbins[izt],ztbins[izt+1]));
 
-    
       AntiIsoPhiProj[izt+ipt*nztbins]->SetMarkerStyle(1);
       AntiIsoPhiProj[izt+ipt*nztbins]->SetMarkerColor(kRed);
       AntiIsoPhiProj[izt+ipt*nztbins]->SetLineColor(kRed);
