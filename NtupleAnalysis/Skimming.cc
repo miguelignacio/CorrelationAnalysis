@@ -107,14 +107,13 @@ int main(int argc, char *argv[])
         }
         file->Print();
 
-        TTree *_tree_event = NULL;
-        _tree_event = dynamic_cast<TTree *> (dynamic_cast<TDirectoryFile *>   (file->Get("AliAnalysisTaskNTGJ"))->Get("_tree_event"));
-	if (_tree_event == NULL) {
-	  _tree_event = dynamic_cast<TTree *> (file->Get("_tree_event"));
+         TTree *_tree_event = NULL;
+         _tree_event = dynamic_cast<TTree *> (dynamic_cast<TDirectoryFile *>   (file->Get("AliAnalysisTaskNTGJ"))->Get("_tree_event"));
+	 //	  _tree_event = dynamic_cast<TTree *> (file->Get("_tree_event"));
 	  if (_tree_event == NULL) {
 	      std::cout << " fail " << std::endl;
 	      exit(EXIT_FAILURE);
-	  }
+	      //}
         }  
 
 
@@ -207,7 +206,7 @@ int main(int argc, char *argv[])
 
  	std::cout << " Total Number of entries in TTree: " << _tree_event->GetEntries() << std::endl;
 
-	TFile *newfile = new TFile("small.root","recreate");
+	TFile *newfile = new TFile("13dsmall.root","recreate");
 	TTree *newtree = _tree_event->CloneTree(0);
         newtree->Branch("cluster_NN1", cluster_NN1, "cluster_NN1[ncluster]/F");
         newtree->Branch("cluster_NN2", cluster_NN2, "cluster_NN2[ncluster]/F");
@@ -284,7 +283,7 @@ int main(int argc, char *argv[])
 	      if( not(cell_e[c_id] >0.100)) continue;
 	      eta_center =+ cell_e[c_id]* c_eta_array[c_id];
 	      phi_center =+ cell_e[c_id]* c_phi_array[c_id];
-	      sumw       =+ cell_e[c_id];
+	      sumw       = + cell_e[c_id];
 	    }
 	    eta_center = eta_center/sumw;
 	    phi_center = phi_center/sumw;
