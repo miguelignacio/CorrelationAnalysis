@@ -271,7 +271,7 @@ int main(int argc, char *argv[])
     for (int izt = 0; izt<nztbins; izt++){
       Uncorrelated_lowpT[izt] = new TH1D(
       Form("Uncorrelated_LowpT__zT%1.0f_%1.0f",10*ztbins[izt],10*ztbins[izt+1]),
-      Form("Uncorrelated Low p_{T}^{Clus.} 1-2 GeV z_{T} %1.2f-f%1.2f",ztbins[izt],ztbins[izt+1]), 
+      Form("Uncorrelated Low p_{T}^{Clus.} 1-2 GeV z_{T} %1.2f-%1.2f",ztbins[izt],ztbins[izt+1]), 
       n_phi_bins,-M_PI/2,3*M_PI/2);
     }
 
@@ -429,7 +429,7 @@ int main(int argc, char *argv[])
 	//if(isolation>iso_max) continue;    
 	if (cluster_pt[n]>pT_min and cluster_pt[n]<pT_max){
 	if(isolation<iso_max){
-	  if ((cluster_s_nphoton[n][1] > DNN_min) && (cluster_s_nphoton[n][1]<DNN_max)){
+	  if ((cluster_s_nphoton[n][1] > 1) && (cluster_s_nphoton[n][1]<2)){
 	    histogram0.Fill(cluster_pt[n]); //isolated deep-photon pt spectra
 	    ntriggers_iso += 1;
 	    //look at pt Distribution in Isolation bins
