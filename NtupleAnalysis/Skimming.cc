@@ -106,15 +106,21 @@ int main(int argc, char *argv[])
             exit(EXIT_FAILURE);
         }
         file->Print();
+	std::cout<<"About to get TTree" << std::endl;
 
-         TTree *_tree_event = NULL;
-         _tree_event = dynamic_cast<TTree *> (dynamic_cast<TDirectoryFile *>   (file->Get("AliAnalysisTaskNTGJ"))->Get("_tree_event"));
-	 //	  _tree_event = dynamic_cast<TTree *> (file->Get("_tree_event"));
+
+        TTree *_tree_event = NULL;
+        _tree_event = dynamic_cast<TTree *> (dynamic_cast<TDirectoryFile *>   (file->Get("AliAnalysisTaskNTGJ"))->Get("_tree_event"));
+	if (_tree_event == NULL) {
+	  std::cout << "First try did not got (AliAnalysisTaskNTGJ does not exist, trying again" << std::endl;
+	  _tree_event = dynamic_cast<TTree *> (file->Get("_tree_event"));
+
 	  if (_tree_event == NULL) {
 	      std::cout << " fail " << std::endl;
 	      exit(EXIT_FAILURE);
 	      //}
         }  
+        //_tree_event->Print();
 
 
    	UInt_t ncluster;
@@ -196,11 +202,19 @@ int main(int argc, char *argv[])
 	_tree_event->SetBranchStatus("track*",1);
         _tree_event->SetBranchStatus("*mc*", 1);
         _tree_event->SetBranchStatus("*vertex*",1);
+        _tree_event->SetBranchStatus("*trigger*",1);
+        _tree_event->SetBranchStatus("*period*",1);
+        _tree_event->SetBranchStatus("*bunch*",1);
+        _tree_event->SetBranchStatus("*number*",1);
+        _tree_event->SetBranchStatus("*time*",1);
+        _tree_event->SetBranchStatus("*pileup*",1);
+	_tree_event->SetBranchStatus("*event*",1);
+
         _tree_event->SetBranchStatus("*centrality*",1);
 	_tree_event->SetBranchStatus("*multiplicity*",1);
         _tree_event->SetBranchStatus("run_number",1);
         _tree_event->SetBranchStatus("*Mix*",1);
-	_tree_event->SetBranchStatus("*jet*",0);
+	_tree_event->SetBranchStatus("*jet*",1);
 	_tree_event->SetBranchStatus("*muon*",0);
 
 
