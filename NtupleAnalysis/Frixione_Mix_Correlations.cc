@@ -86,7 +86,7 @@ int main(int argc, char *argv[])
       value[0] = '\0';
       sscanf(line, "%[^:]:%[ \t]%100[^\n]", key, dummy, value);
       
-      // Use if statements to detect, based on key, which variable the line's content should be used to fill and fill that variable
+      //Read Config File: Detect Keys
       if (strcmp(key, "DNN_min") == 0) {
           // Assign DNN_min to the double-converted version of value
           DNN_min = atof(value);
@@ -95,52 +95,52 @@ int main(int argc, char *argv[])
       else if (strcmp(key, "DNN_max") == 0) {
           // Assign DNN_max to the double-converted version of value
           DNN_max = atof(value);
-          std::cout << "DNN_max is " << DNN_max << std::endl;
-      }
+          std::cout << "DNN_max is " << DNN_max << std::endl; }
+
       else if (strcmp(key, "pT_min") == 0) {
           pT_min = atof(value);
-          std::cout << "pT_min is " << pT_min << std::endl;
-      }
+          std::cout << "pT_min is " << pT_min << std::endl; }
+
       else if (strcmp(key, "pT_max") == 0) {
           pT_max = atof(value);
-          std::cout << "pT_max is " << pT_max << std::endl;
-      }
+          std::cout << "pT_max is " << pT_max << std::endl; }
+
       else if (strcmp(key, "Eta_max") == 0) {
           Eta_max = atof(value);
-          std::cout << "Eta_max is " << Eta_max << std::endl;
-      }
+          std::cout << "Eta_max is " << Eta_max << std::endl; }
+
       else if (strcmp(key, "Cluster_min") == 0) {
           Cluster_min = atof(value);
-          std::cout << "Cluster_min is " << Cluster_min << std::endl;
-      }
+          std::cout << "Cluster_min is " << Cluster_min << std::endl; }
+
       else if (strcmp(key, "EcrossoverE_min") == 0) {
           EcrossoverE_min = atof(value);
-          std::cout << "EcrossoverE_min is " << EcrossoverE_min << std::endl;
-      }
+          std::cout << "EcrossoverE_min is " << EcrossoverE_min << std::endl; }
+
       else if (strcmp(key, "iso_max") == 0) {
           iso_max = atof(value);
-          std::cout << "iso_max is " << iso_max << std::endl;
-      }
+          std::cout << "iso_max is " << iso_max << std::endl; }
+
       else if (strcmp(key, "noniso_min") == 0) {
           noniso_min = atof(value);
-          std::cout << "noniso_min is " << noniso_min << std::endl;
-      }
+          std::cout << "noniso_min is " << noniso_min << std::endl; }
+
       else if (strcmp(key, "noniso_max") == 0) {
           noniso_max = atof(value);
-          std::cout << "noniso_max is " << noniso_max << std::endl;
-      }
+          std::cout << "noniso_max is " << noniso_max << std::endl; }
+
       else if (strcmp(key, "deta_max") == 0) {
           deta_max = atof(value);
-          std::cout << "deta_max is " << deta_max << std::endl;
-      }
+          std::cout << "deta_max is " << deta_max << std::endl; }
+
       else if (strcmp(key, "Correlation_func_bins") == 0) {
           n_correlationbins = atoi(value);
-          std::cout << "Bins in a correlation function: " << n_correlationbins << std::endl;
-      }
+          std::cout << "Bins in a correlation function: " << n_correlationbins << std::endl; }
+
       else if (strcmp(key, "track_selection_num") == 0) {
           selection_number = atoi(value);
-          std::cout << "Number of Selection that tracks must pass: " << selection_number << std::endl;
-      }
+          std::cout << "Number of Selection that tracks must pass: " << selection_number << std::endl; }
+
       else if (strcmp(key, "Zt_bins") == 0) {
           nztbins = -1;
           for (const char *v = value; *v != ']';) {
@@ -254,9 +254,6 @@ int main(int argc, char *argv[])
 
   int n_eta_bins = 14;
   int n_phi_bins = 24;
-
-  TH2D* PhiValues = new TH2D("PhiValues_Near_Detaphi2","Trackphi vs. Clusterphi",n_phi_bins,-M_PI/2,3*M_PI/2,n_phi_bins,-M_PI/2,3*M_PI/2);    
-  std::cout << "just befor Histos " << std::endl;
 
   for (int ipt = 0; ipt <nptbins; ipt++) {
     for (int izt = 0; izt<nztbins; izt++){
@@ -490,7 +487,7 @@ int main(int argc, char *argv[])
 	    if (std::isnan(track_data_out[0][itrack][1])) break;
 	    //if ((int(track_data_out[0][itrack][4]+0.5)&selection_number)==0) continue;
 	    if ((int(track_data_out[0][itrack][4]+ 0.5)&TrackCutBit)==0) continue; //selection 16
-	    if (track_data_out[0][itrack][1] < 0.5) continue; //less than 1GeV
+	    if (track_data_out[0][itrack][1] < 1) continue; //less than 1GeV
 	    if (track_data_out[0][itrack][1] > 30) continue; //less than 1GeV
 	    if (abs(track_data_out[0][itrack][2]) > 0.8) continue;
 	    if (track_data_out[0][itrack][7] < 4) continue;
