@@ -466,7 +466,7 @@ int main(int argc, char *argv[])
 	}
 	const int TrackCutBit =16;
 	for (ULong64_t itrack = 0; itrack < ntrack; itrack++) {            
-	  if(track_pt[itrack] < 0.5) continue; //1GeV Tracks
+	  if(track_pt[itrack] < 1) continue; //1GeV Tracks
 	  if(track_pt[itrack] > 30) continue;
 	  if((track_quality[itrack]&TrackCutBit)==0) continue; //select only tracks that pass selection 3
 	  if(abs(track_eta[itrack]) > 0.8) continue;
