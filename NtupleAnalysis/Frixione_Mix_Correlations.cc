@@ -59,10 +59,10 @@ int main(int argc, char *argv[])
   ztbins = new float[nztbins+1];
   ztbins[0] = 0.0; ztbins[1] = 0.1; ztbins[2] = 0.2; ztbins[3] = 0.4; ztbins[4] = 0.6; ztbins[5] = 0.8; ztbins[6] = 1.0; ztbins[7] = 1.2;
    
-  int nptbins = 4;
+  int nptbins = 3;
   float* ptbins;
   ptbins = new float[nptbins+1];
-  ptbins[0] = 10.0; ptbins[1] = 11.5; ptbins[2] = 13; ptbins[3] = 14.5; ptbins[4] = 16;
+  ptbins[0] = 10.0; ptbins[1] = 11; ptbins[2] = 12.5; ptbins[3] = 16; //ptbins[4] = 16;
 
   int n_correlationbins = 18;
     
@@ -244,7 +244,9 @@ int main(int argc, char *argv[])
   TCanvas canvas("canvas", "");
   TH1D histogram0("histogram0", "", 16, 8.0, 16.0);
   TH1D histogram3("histogram3", "", 18, -0.5,1.5);
-  TH1D h_ntrig("h_ntrig", "", 2, -0.5,1.0);    
+
+  TH1D h_Iso_triggers("h_Iso_Triggers", "Number of Isolated Photon Triggers", 2, -0.5,1.0);
+  TH1D h_AntiIso_triggers("h_AntiIso_Triggers", "Number of ANTI-Isolated Photon Triggers", 2, -0.5,1.0);
 
   TH2D* Corr[nztbins*nptbins];
   TH2D* IsoCorr[nztbins*nptbins];
@@ -259,19 +261,19 @@ int main(int argc, char *argv[])
   for (int ipt = 0; ipt <nptbins; ipt++) {
     for (int izt = 0; izt<nztbins; izt++){
       
-      Corr[izt+ipt*nztbins] = new TH2D(Form("Correlation_ptmin%1.0f_ptmax%1.0f_ztmin%1.0f_ztmax%1.0f",ptbins[ipt],ptbins[ipt+1],
+      Corr[izt+ipt*nztbins] = new TH2D(Form("Correlation__pT%1.0f_%1.0f__zT%1.0f_zT%1.0f",ptbins[ipt],ptbins[ipt+1],
       10*ztbins[izt],10*ztbins[izt+1]),"Mixed Event #gamma-H [all] Correlation", n_phi_bins,-M_PI/2,3*M_PI/2, n_eta_bins, -1.4, 1.4);
      
       Corr[izt+ipt*nztbins]->Sumw2();
       Corr[izt+ipt*nztbins]->SetMinimum(0.);
       
-      IsoCorr[izt+ipt*nztbins] = new TH2D(Form("IsoCorrelation_ptmin%1.0f_ptmax%1.0f_ztmin%1.0f_ztmax%1.0f",ptbins[ipt],ptbins[ipt+1],
+      IsoCorr[izt+ipt*nztbins] = new TH2D(Form("DNN%i_Correlation__pT%1.0f_%1.0f__zT%1.0f_zT%1.0f",1,ptbins[ipt],ptbins[ipt+1],
 	    10*ztbins[izt],10*ztbins[izt+1]),"Mixed Event #gamma-H [Iso] Correlation", n_phi_bins,-M_PI/2,3*M_PI/2, n_eta_bins, -1.4, 1.4);
 
       IsoCorr[izt+ipt*nztbins]->Sumw2();
       IsoCorr[izt+ipt*nztbins]->SetMinimum(0.);
       
-      AntiIsoCorr[izt+ipt*nztbins] = new TH2D(Form("AntiIsoCorrelation_ptmin%1.0f_ptmax%1.0f_ztmin%1.0f_ztmax%1.0f",ptbins[ipt],ptbins[ipt+1],
+      AntiIsoCorr[izt+ipt*nztbins] = new TH2D(Form("DNN%i_Correlation__pT%1.0f_%1.0f__zT%1.0f_zT%1.0f",2,ptbins[ipt],ptbins[ipt+1],
       10*ztbins[izt],10*ztbins[izt+1]),"Mixed Event #gamma-H [AntiIso] Correlation", n_phi_bins,-M_PI/2,3*M_PI/2, n_eta_bins, -1.4, 1.4);
       
       AntiIsoCorr[izt+ipt*nztbins]->Sumw2();
@@ -378,93 +380,80 @@ int main(int argc, char *argv[])
     
     std::cout << " Total Number of entries in TTree: " << _tree_event->GetEntries() << std::endl;
 
-    //define Mixing agnostic Variables
-    UInt_t ntrack_max = 0;
-    UInt_t ncluster_max = 0;
-    
-    //     UInt_t ntrack_max = 553;
-    //     UInt_t ncluster_max = 150;
-    
-    
-    //     fprintf(stderr, "\r%s:%d: %s\n", __FILE__, __LINE__, "Determining ntrack_max and ncluster_max needed for hdf5 hyperslab");
-    //     for (Long64_t i = 0; i < _tree_event->GetEntries(); i++) {
-    //       _tree_event->GetEntry(i);
-    //       ntrack_max = std::max(ntrack_max, ntrack);
-    //       ncluster_max = std::max(ncluster_max, ncluster);
-    //       fprintf(stderr, "\r%s:%d: %llu", __FILE__, __LINE__, i);
-    //     }
+//     UInt_t ntrack_max = 553;
+//     UInt_t ncluster_max = 150;
 
+     UInt_t ntrack_max = 0;
+     UInt_t ncluster_max = 0;
+
+//     fprintf(stderr, "\r%s:%d: %s\n", __FILE__, __LINE__, "Determining ntrack_max and ncluster_max needed for hdf5 hyperslab");
+//     for (Long64_t i = 0; i < _tree_event->GetEntries(); i++) {
+//       _tree_event->GetEntry(i);
+//       ntrack_max = std::max(ntrack_max, ntrack);
+//       ncluster_max = std::max(ncluster_max, ncluster);
+//       fprintf(stderr, "\r%s:%d: %llu", __FILE__, __LINE__, i);
+//     }
     ntrack_max = 3000;
     ncluster_max = 23; //FixMe, root and hdf5 files from different data sets may have it be out of bounds
+
+    fprintf(stderr, "\n%s:%d: %s", __FILE__, __LINE__, "USING HARDCODED HDF5 DIMENSIONS");
+
     fprintf(stderr, "\n%s:%d: maximum tracks:%i maximum clusters:%i\n", __FILE__, __LINE__, ntrack_max,ncluster_max);
 
-    //Required in case of mixing
-    
-      float track_data_out[1][ntrack_max][7];
-      float cluster_data_out[1][ncluster_max][5];
-      
-      //Define hyperslab size and offset in  FILE;
-      hsize_t track_offset[3] = {0, 0, 0};
-      hsize_t track_count[3] = {1, ntrack_max, 7};
-      hsize_t cluster_offset[3] = {0, 0, 0};
-      hsize_t cluster_count[3] = {1, ncluster_max, 5};
-      
-      //Define the memory dataspace to place hyperslab
-      const int RANK_OUT = 3; //# of Dimensions
-      hsize_t track_dimsm[3] = {1, ntrack_max, 7};
-      DataSpace track_memspace( RANK_OUT, track_dimsm );
-      hsize_t cluster_dimsm[3] = {1, ncluster_max, 5};
-      DataSpace cluster_memspace( RANK_OUT, cluster_dimsm );
-      
-      //Define memory offset for hypreslab starting at begining:
-      hsize_t track_offset_out[3] = {0};
-      hsize_t cluster_offset_out[3] = {0};
-      
-      //define Dimensions of array, for writing slab to array
-      hsize_t track_count_out[3] = {1, ntrack_max, 7};
-      hsize_t cluster_count_out[3] = {1, ncluster_max, 5};
-     
-    
-    bool Run_Mixing = false;
-    for (int iarg = 1; iarg < argc; iarg+=2) {
-	std::string fn = argv[iarg];
-	if(fn.substr(fn.find_last_of(".") + 1) == "hdf5") Run_Mixing = true;
-      }
+    //open hdf5: Define size of data from file, explicitly allocate memory in hdf5 space and array size
+    const H5std_string hdf5_file_name(argv[iarg+1]);
 
-    //    if (Run_Mixing){
+    const H5std_string track_ds_name( "track" );
+    H5File h5_file( hdf5_file_name, H5F_ACC_RDONLY );
+    DataSet track_dataset = h5_file.openDataSet( track_ds_name );
+    DataSpace track_dataspace = track_dataset.getSpace();
 
-      //open hdf5: Define size of data from file, explicitly allocate memory in hdf5 space and array size
-      const H5std_string hdf5_file_name(argv[iarg+1]);
-      H5File h5_file( hdf5_file_name, H5F_ACC_RDONLY );
+    const H5std_string cluster_ds_name( "cluster" );
+    DataSet cluster_dataset = h5_file.openDataSet( cluster_ds_name );
+    DataSpace cluster_dataspace = cluster_dataset.getSpace();
 
-      const H5std_string track_ds_name( "track" );
-      DataSet track_dataset = h5_file.openDataSet( track_ds_name );
-      DataSpace track_dataspace = track_dataset.getSpace();
-      
-      const H5std_string cluster_ds_name( "cluster" );
-      DataSet cluster_dataset = h5_file.openDataSet( cluster_ds_name );
-      DataSpace cluster_dataspace = cluster_dataset.getSpace();
-      
-      track_dataspace.selectHyperslab( H5S_SELECT_SET, track_count, track_offset );
-      cluster_dataspace.selectHyperslab( H5S_SELECT_SET, cluster_count, cluster_offset );
-      fprintf(stderr, "%s:%d: %s\n", __FILE__, __LINE__, "select Hyperslab OK");
-      
-      //define space in memory for hyperslab, then write from file to memory
-      track_memspace.selectHyperslab( H5S_SELECT_SET, track_count_out, track_offset_out );
-      track_dataset.read( track_data_out, PredType::NATIVE_FLOAT, track_memspace, track_dataspace );
-      fprintf(stderr, "%s:%d: %s\n", __FILE__, __LINE__, "track dataset read into array: OK");
-      
-      cluster_memspace.selectHyperslab( H5S_SELECT_SET, cluster_count_out, cluster_offset_out );
-      cluster_dataset.read( cluster_data_out, PredType::NATIVE_FLOAT, cluster_memspace, cluster_dataspace );
-      fprintf(stderr, "%s:%d: %s\n", __FILE__, __LINE__, "cluster dataset read into array: OK");
+    //Define array hyperslab will be read into
+    float track_data_out[1][ntrack_max][10];
+    float cluster_data_out[1][ncluster_max][5];
 
-      // }//if run mixing
+    //Define hyperslab size and offset in  FILE;
+    hsize_t track_offset[3] = {0, 0, 0};
+    hsize_t track_count[3] = {1, ntrack_max, 10};
+    hsize_t cluster_offset[3] = {0, 0, 0};
+    hsize_t cluster_count[3] = {1, ncluster_max, 5};
+
+    track_dataspace.selectHyperslab( H5S_SELECT_SET, track_count, track_offset );
+    cluster_dataspace.selectHyperslab( H5S_SELECT_SET, cluster_count, cluster_offset );
+    fprintf(stderr, "%s:%d: %s\n", __FILE__, __LINE__, "select Hyperslab OK");
+
+    //Define the memory dataspace to place hyperslab
+    const int RANK_OUT = 3; //# of Dimensions
+    hsize_t track_dimsm[3] = {1, ntrack_max, 10};
+    DataSpace track_memspace( RANK_OUT, track_dimsm );
+    hsize_t cluster_dimsm[3] = {1, ncluster_max, 5};
+    DataSpace cluster_memspace( RANK_OUT, cluster_dimsm );
+
+    //Define memory offset for hypreslab starting at begining:
+    hsize_t track_offset_out[3] = {0};
+    hsize_t cluster_offset_out[3] = {0};
+
+    //define Dimensions of array, for writing slab to array
+    hsize_t track_count_out[3] = {1, ntrack_max, 10};
+    hsize_t cluster_count_out[3] = {1, ncluster_max, 5};
+
+    //define space in memory for hyperslab, then write from file to memory
+    track_memspace.selectHyperslab( H5S_SELECT_SET, track_count_out, track_offset_out );
+    track_dataset.read( track_data_out, PredType::NATIVE_FLOAT, track_memspace, track_dataspace );
+    fprintf(stderr, "%s:%d: %s\n", __FILE__, __LINE__, "track dataset read into array: OK");
+
+    cluster_memspace.selectHyperslab( H5S_SELECT_SET, cluster_count_out, cluster_offset_out );
+    cluster_dataset.read( cluster_data_out, PredType::NATIVE_FLOAT, cluster_memspace, cluster_dataspace );
+    fprintf(stderr, "%s:%d: %s\n", __FILE__, __LINE__, "cluster dataset read into array: OK");
 
     Long64_t nentries = _tree_event->GetEntries();
 
-
-    //for(Long64_t ievent = 0; ievent < nentries ; ievent++){     
-    for(Long64_t ievent = 0; ievent < 1000 ; ievent++){
+    for(Long64_t ievent = 0; ievent < nentries ; ievent++){     
+      //for(Long64_t ievent = 0; ievent < 1000 ; ievent++){
       _tree_event->GetEntry(ievent);
       fprintf(stderr, "\r%s:%d: %llu / %llu", __FILE__, __LINE__, ievent, nentries);
 
@@ -473,8 +462,7 @@ int main(int argc, char *argv[])
 	//if( not(cluster_s_nphoton[n][1]>DNN_min and cluster_s_nphoton[n][1]<DNN_max)) continue; //select deep-photons
 	if( not(TMath::Abs(cluster_eta[n])<Eta_max)) continue; //cut edges of detector
 	if( not(cluster_ncell[n]>Cluster_min)) continue;   //removes clusters with 1 or 2 cells
-	if( not(cluster_e_cross[n]/cluster_e[n]>EcrossoverE_min)) continue; //removes "spiky" clusters
-    
+	if( not(cluster_e_cross[n]/cluster_e[n]>EcrossoverE_min)) continue; //removes "spiky" clusters    
 	
 	//determiner: which frixione variable based on Corr_config.yaml
 	float isolation;
@@ -483,61 +471,46 @@ int main(int argc, char *argv[])
 	else if (determiner == CLUSTER_FRIXIONE_TPC_04_02) isolation = cluster_frixione_tpc_04_02[n];
 	else isolation = cluster_frixione_its_04_02[n];
         
-	//isolation
-	if(isolation<iso_max){
-	  if (cluster_s_nphoton[n][1] > DNN_min && cluster_s_nphoton[n][1] < DNN_max){ //sel deep photons
-	    histogram0.Fill(cluster_pt[n]);
-	    h_ntrig.Fill(0);
-	  }
-	}
-	//background
-	if(isolation<iso_max){
-	  if (cluster_s_nphoton[n][1] > 0.0 && cluster_s_nphoton[n][1] < 0.3){ //sel merged clusters for background
-	    h_ntrig.Fill(0.5);
-	  }
-	}
-
-	//if RunMixing false, mixingno = 49
-	for (Long64_t imix = 0; (imix < 50); imix++){
+	for (Long64_t imix = 0; imix < 50; imix++){
 	  Long64_t mix_event = Mix_Events[imix];
+	  if (mix_event == ievent) continue;
 
-	  
-	  //  if (Run_Mixing){
-	  {
-	    if (mix_event == ievent) continue;
-	    //adjust offset for next mixed event
-	    track_offset[0]=mix_event;
-	    track_dataspace.selectHyperslab( H5S_SELECT_SET, track_count, track_offset );
-	    track_dataset.read( track_data_out, PredType::NATIVE_FLOAT, track_memspace, track_dataspace );
-	    
-	    cluster_offset[0]=mix_event;
-	    cluster_dataspace.selectHyperslab( H5S_SELECT_SET, cluster_count, cluster_offset );
-	    cluster_dataset.read( cluster_data_out, PredType::NATIVE_FLOAT, cluster_memspace, cluster_dataspace );
-	  }
+	  //adjust offset for next mixed event
+	  track_offset[0]=mix_event;
+	  track_dataspace.selectHyperslab( H5S_SELECT_SET, track_count, track_offset );
+	  track_dataset.read( track_data_out, PredType::NATIVE_FLOAT, track_memspace, track_dataspace );
 
+	  cluster_offset[0]=mix_event;
+	  cluster_dataspace.selectHyperslab( H5S_SELECT_SET, cluster_count, cluster_offset );
+	  cluster_dataset.read( cluster_data_out, PredType::NATIVE_FLOAT, cluster_memspace, cluster_dataspace );
 
-
-	  {
-	    //same event stuff
-	  }
+	  //MIXED associated
 	  const int TrackCutBit =16;
 	  for (ULong64_t itrack = 0; itrack < ntrack_max; itrack++) {
 	    if (std::isnan(track_data_out[0][itrack][1])) break;
-	    if ((int(track_data_out[0][itrack][4]+0.5)&selection_number)==0) continue;
-	    //if ((int(track_data_out[0][itrack][4]+ 0.5)&TrackCutBit)==0) continue;
+	    //if ((int(track_data_out[0][itrack][4]+0.5)&selection_number)==0) continue;
+	    if ((int(track_data_out[0][itrack][4]+ 0.5)&TrackCutBit)==0) continue; //selection 16
 	    if (track_data_out[0][itrack][1] < 0.5) continue; //less than 1GeV
-	    if (abs(track_data_out[0][itrack][2]) > 0.8) continue; //eta cut
+	    if (track_data_out[0][itrack][1] > 30) continue; //less than 1GeV
+	    if (abs(track_data_out[0][itrack][2]) > 0.8) continue;
+	    if (track_data_out[0][itrack][7] < 4) continue;
+	    if ((track_data_out[0][itrack][8]/track_data_out[0][itrack][7]) > 36) continue;
+	    if( not(TMath::Abs(track_data_out[0][itrack][9])<0.0231+0.0315/TMath::Power(track_data_out[0][itrack][4],1.3 ))) continue;
+	    //FIXME add track criteria
+
+	    double dRmin = 1.0;
 	    //veto charged particles from mixed event tracks
 	    bool MixTrack_HasMatch = false;
 	    for (unsigned int l = 0; l < ncluster_max; l++){
 	      if (std::isnan(cluster_data_out[0][l][0])) break;
-	      if (TMath::Abs(cluster_data_out[0][l][2] - track_data_out[0][itrack][5]) < 0.015  && 
-		  TMath::Abs(cluster_data_out[0][l][3] - track_data_out[0][itrack][6]) < 0.015) {
-		MixTrack_HasMatch = true;
+		float dphi = TMath::Abs(cluster_data_out[0][l][2] - track_data_out[0][itrack][5]);
+		float deta = TMath::Abs(cluster_data_out[0][l][3] - track_data_out[0][itrack][6]);
+		float dR = sqrt(dphi*dphi + deta*deta);
+		if (dR < dRmin)	MixTrack_HasMatch = true;
 		break; 
-	      }
 	    }
 	    if (MixTrack_HasMatch) continue;
+	    
 	    //fprintf(stderr, "%s:%d: Mixed Event: %llu Track: %llu\n", __FILE__, __LINE__, mix_event, itrack);
 
 	    Float_t DeltaPhi = cluster_phi[n] - track_data_out[0][itrack][3];
@@ -546,22 +519,13 @@ int main(int argc, char *argv[])
 	    Float_t DeltaEta = cluster_eta[n] - track_data_out[0][itrack][2];
 	    if ((TMath::Abs(DeltaPhi) < 0.005) && (TMath::Abs(DeltaEta) < 0.005)) continue;
 
-	    //Debugging peak at Deltaphi 2
-	    if(DeltaPhi > 1.8326 && DeltaPhi < 2.3562){
-	      PhiValues->Fill(cluster_phi[n],track_data_out[0][itrack][3]);
-	    }
-
  	    Double_t zt = track_data_out[0][itrack][1]/cluster_pt[n];
-// 	    Float_t deta =  cluster_eta[n]-track_data_out[0][itrack][2];;
-// 	    Float_t dphi =  TVector2::Phi_mpi_pi(cluster_phi[n]-track_data_out[0][itrack][3]);
-// 	    dphi = dphi/TMath::Pi();
-// 	    //if(!(TMath::Abs(deta)<0.6)) continue; //deta cut
-// 	    if(dphi<-0.5) dphi +=2;
 
 	    for (int ipt = 0; ipt < nptbins; ipt++){
 	      if (cluster_pt[n] >ptbins[ipt] && cluster_pt[n] <ptbins[ipt+1]){
 		for(int izt = 0; izt<nztbins ; izt++){
 		  if(zt>ztbins[izt] and  zt<ztbins[izt+1]){
+
 		    if(isolation< iso_max){
 		      if (cluster_s_nphoton[n][1] > DNN_min && cluster_s_nphoton[n][1] < DNN_max){
 			IsoCorr[izt+ipt*nztbins]->Fill(DeltaPhi,DeltaEta);
@@ -587,9 +551,8 @@ int main(int argc, char *argv[])
 
 
     // Write to fout    
-    TFile* fout = new TFile("fout_largDNN_Mix_PTBIN_TEST.root","RECREATE");
+    TFile* fout = new TFile("fout_lowDNN_Mix.root","RECREATE");
     histogram0.Write("DeepPhotonSpectra");
-    h_ntrig.Write("ntriggers");
     for (int ipt = 0; ipt<nptbins; ipt++){    
       for (int izt = 0; izt<nztbins; izt++){
 	Corr[izt+ipt*nztbins]->Write();
