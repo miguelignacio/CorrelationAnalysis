@@ -33,21 +33,21 @@ int main(int argc, char *argv[])
   
   //Config File
   FILE* config = fopen("Corr_config.yaml", "r");
-  double DNN_min;
-  double DNN_max;
-  double pT_min;
-  double pT_max;
-  double Eta_max;
-  double Cluster_min;
-  double EcrossoverE_min;
-  int Track_Cut_Bit;
-  double iso_max;
-  double noniso_min;
-  double noniso_max;
-  double deta_max;
+  double DNN_min = 0;
+  double DNN_max = 0;
+  double pT_min = 0;
+  double pT_max = 0;
+  double Eta_max = 0;
+  double Cluster_min = 0;
+  double EcrossoverE_min = 0;
+  int Track_Cut_Bit = 0;
+  double iso_max = 0;
+  double noniso_min = 0;
+  double noniso_max = 0;
+  double deta_max = 0;
   isolationDet determiner = CLUSTER_ISO_ITS_04;
-  int n_eta_bins;
-  int n_phi_bins;  
+  int n_eta_bins = 0;
+  int n_phi_bins = 0;  
 
   // Zt bins
   //FIXME: Will have to likely set nztbins first, then initialize array
