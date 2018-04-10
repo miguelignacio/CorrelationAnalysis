@@ -25,13 +25,13 @@ int main()
 
   //TFile *corr = TFile::Open((TString)argv[1]);
 
-  TFile *corr = TFile::Open("fout_lowDNN.root");
+  TFile *corr = TFile::Open("Same_Event_Correlation.root");
   if (corr == NULL) {
     std::cout << "file 1 fail" << std::endl;
     exit(EXIT_FAILURE);
     }
 
-  TFile *mix = TFile::Open("fout_lowDNN_Mix.root");
+  TFile *mix = TFile::Open("Mix_Event_Correlation.root");
   if (mix == NULL) {
     std::cout << " file 2 fail" << std::endl;
     exit(EXIT_FAILURE);
@@ -118,6 +118,8 @@ int main()
   mix->Close();
   MyFile->Close();
   //  theApp.Run();
+  std::cout<<"Success"<<std::endl;
+
   return 0;
 }
     
