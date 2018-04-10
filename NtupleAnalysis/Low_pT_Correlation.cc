@@ -257,7 +257,6 @@ int main(int argc, char *argv[])
 
   TH1D* h_Iso_triggers[nptbins];
   TH1D* h_AntiIso_triggers[nptbins];
-  //TH1D h_ntrig_low_pT("N_Trig_LowpT_Uncorrelated","Number of low p_{T}^{Clus.} Triggers",2,-0.5,1);
 
   float ntriggers_iso = 0;
   float ntriggers_Antiiso = 0;
@@ -266,14 +265,25 @@ int main(int argc, char *argv[])
   int n_eta_bins = 14;
   int n_phi_bins = 24;
   
-  TH1D* Uncorrelated_lowpT[nztbins];
+  TH1D* Uncorrelated_DNN1_lowpT[nztbins];
+  TH1D* Uncorrelated_DNN2_lowpT[nztbins];
+  int n_DNN1_lowpt_triggers = 0;
+  int n_DNN2_lowpt_triggers = 0;
 
     for (int izt = 0; izt<nztbins; izt++){
-      Uncorrelated_lowpT[izt] = new TH1D(
-      Form("Uncorrelated_LowpT__zT%1.0f_%1.0f",10*ztbins[izt],10*ztbins[izt+1]),
-      Form("Uncorrelated Low p_{T}^{Clus.} 1-2 GeV z_{T} %1.2f-f%1.2f",ztbins[izt],ztbins[izt+1]), 
+      Uncorrelated_DNN1_lowpT[izt] = new TH1D(
+      Form("Uncorrelated_DNN%i_LowpT__zT%1.0f_%1.0f",1,10*ztbins[izt],10*ztbins[izt+1]),
+      Form("Uncorrelated Low DNN%i p_{T}^{Clus.} 1-2 GeV z_{T} %1.2f-f%1.2f",1,ztbins[izt],ztbins[izt+1]), 
       n_phi_bins,-M_PI/2,3*M_PI/2);
     }
+
+    for (int izt = 0; izt<nztbins; izt++){
+      Uncorrelated_DNN2_lowpT[izt] = new TH1D(
+      Form("Uncorrelated_DNN%i_LowpT__zT%1.0f_%1.0f",2,10*ztbins[izt],10*ztbins[izt+1]),
+      Form("Uncorrelated Low DNN%i p_{T}^{Clus.} 1-2 GeV z_{T} %1.2f-f%1.2f",2,ztbins[izt],ztbins[izt+1]),
+      n_phi_bins,-M_PI/2,3*M_PI/2);
+    }
+
 
   for (int ipt = 0; ipt <nptbins; ipt++) {
     h_Iso_triggers[ipt] = new TH1D(
@@ -324,8 +334,11 @@ int main(int argc, char *argv[])
     TTree *_tree_event = dynamic_cast<TTree *>(file->Get("_tree_event"));
 
     if (_tree_event == NULL) {
+      _tree_event = dynamic_cast<TTree *>(file->Get("AliAnalysisTaskNTGJ/_tree_event"));
+      if (_tree_event == NULL){
       std::cout << " fail " << std::endl;
       exit(EXIT_FAILURE);
+      }
     }  
     //_tree_event->Print();
 
@@ -418,7 +431,7 @@ int main(int argc, char *argv[])
       fprintf(stderr, "\r%s:%d: %llu / %llu", __FILE__, __LINE__, ievent, nentries);
  
       for (ULong64_t n = 0; n < ncluster; n++) {
-	if( not(cluster_pt[n]>pT_min and cluster_pt[n]<pT_max)) continue; //select pt of photons
+	if( not(cluster_pt[n]>1 and cluster_pt[n]<2)) continue; //select pt of photons
 	if( not(TMath::Abs(cluster_eta[n])<Eta_max)) continue; //cut edges of detector
 	if( not(cluster_ncell[n]>Cluster_min)) continue;   //removes clusters with 1 or 2 cells
 	if( not(cluster_e_cross[n]/cluster_e[n]>EcrossoverE_min)) continue; //removes "spiky" clusters
@@ -430,38 +443,19 @@ int main(int argc, char *argv[])
 	else isolation = cluster_frixione_its_04_02[n];
 	if (isolation>iso_max) continue;
 	
-	if ((cluster_s_nphoton[n][1] > DNN_min) && (cluster_s_nphoton[n][1]<DNN_max)){
-	  histogram0.Fill(cluster_pt[n]); //isolated deep-photon pt spectra
-	  ntriggers_iso += 1;
-	  //look at pt Distribution in Isolation bins
-	  for (double Iso_bin = -0.5; Iso_bin < iso_max; Iso_bin += 0.5){
-	    if (isolation > Iso_bin && isolation < Iso_bin+0.5) PtIsoDist->Fill(cluster_pt[n],isolation);
-	  }
-	  for (int ipt = 0; ipt < nptbins; ipt++){
-	    if (cluster_pt[n] >ptbins[ipt] && cluster_pt[n] <ptbins[ipt+1]){
-	      h_Iso_triggers[ipt]->Fill(0);
-	    }
-	  }
-	}
 	
+	//Cluster Passed Cuts
+
+	if ((cluster_s_nphoton[n][1] > DNN_min) && (cluster_s_nphoton[n][1]<DNN_max))
+	  n_DNN1_lowpt_triggers++;
+	if (cluster_s_nphoton[n][1] > 0 && cluster_s_nphoton[n][1] < 0.3)
+	  n_DNN2_lowpt_triggers++;
 	//if(isolation>noniso_min && isolation<noniso_max){
 	
-	if ((cluster_s_nphoton[n][1]>0.0) && (cluster_s_nphoton[n][1]<0.3)){
-	  h_ntrig.Fill(0.5);
-	  ntriggers_Antiiso += 1;
-	  //look at pt Distrobution in Isolation bins
-	  for (double Iso_bin = -0.5; Iso_bin < iso_max; Iso_bin += 0.5){
-	    if (isolation > Iso_bin && isolation < Iso_bin+0.5) LowDNN_PtIsoDist->Fill(cluster_pt[n],isolation);
-	  }
-	  for (int ipt = 0; ipt < nptbins; ipt++){
-	    if (cluster_pt[n] >ptbins[ipt] && cluster_pt[n] <ptbins[ipt+1]) h_AntiIso_triggers[ipt]->Fill(0); 
-	  }  
-	}
-	//cluster pT if
 
 	const int TrackCutBit =16;
 	for (ULong64_t itrack = 0; itrack < ntrack; itrack++) {            
-	  if(track_pt[itrack] < 1) continue; //1GeV Tracks
+	  //if(track_pt[itrack] < 1) continue; //1GeV Tracks
 	  if(track_pt[itrack] > 30) continue;
 	  if((track_quality[itrack]&TrackCutBit)==0) continue; //select only tracks that pass selection 3
 	  if(abs(track_eta[itrack]) > 0.8) continue;
@@ -471,16 +465,16 @@ int main(int argc, char *argv[])
 	  
 
 	  //Electron Veto for associated tracks outside of isolation cone
-// 	  double dRmin = 1.0;
-// 	  bool Track_HasMatch = false;
-// 	  for (ULong64_t c = 0; c < ncluster; c++){
-// 	    Float_t deta =  cluster_eta[n]-track_eta_emcal[itrack];
-// 	    Float_t dphi =  TVector2::Phi_mpi_pi(cluster_phi[c]-track_phi_emcal[itrack])/TMath::Pi();
-// 	    float dR = sqrt(dphi*dphi + deta*deta);
-// 	    if (dR < dRmin) Track_HasMatch = true;
-// 	    break;
-// 	  }
-// 	  if (Track_HasMatch) continue;
+	  double dRmin = 1.0;
+	  bool Track_HasMatch = false;
+	  for (ULong64_t c = 0; c < ncluster; c++){
+	    Float_t deta =  cluster_eta[n]-track_eta_emcal[itrack];
+	    Float_t dphi =  TVector2::Phi_mpi_pi(cluster_phi[c]-track_phi_emcal[itrack])/TMath::Pi();
+	    float dR = sqrt(dphi*dphi + deta*deta);
+	    if (dR < dRmin) Track_HasMatch = true;
+	    break;
+	  }
+	  if (Track_HasMatch) continue;
 
 	  //Observables:
 	  Double_t zt = track_pt[itrack]/cluster_pt[n];
@@ -490,24 +484,16 @@ int main(int argc, char *argv[])
 	  Float_t DeltaEta = cluster_eta[n] - track_eta[itrack];
 	  if ((TMath::Abs(DeltaPhi) < 0.005) && (TMath::Abs(DeltaEta) < 0.005)) continue; //Match Mixing Cut
 
-	  for (int ipt = 0; ipt < nptbins; ipt++){
-	    if (cluster_pt[n] >ptbins[ipt] && cluster_pt[n] <ptbins[ipt+1]){
-	      for(int izt = 0; izt<nztbins ; izt++){
-		if(zt>ztbins[izt] and  zt<ztbins[izt+1]){
-		  
-		  //2 DNN Regions
-		  if (cluster_s_nphoton[n][1] > DNN_min && cluster_s_nphoton[n][1] < DNN_max){
-		    IsoCorr[izt+ipt*nztbins]->Fill(DeltaPhi,DeltaEta);
-		  }
-		  if (cluster_s_nphoton[n][1] > 0.0 && cluster_s_nphoton[n][1] < 0.3){ //sel deep photons                                       
-		      AntiIsoCorr[izt+ipt*nztbins]->Fill(DeltaPhi,DeltaEta);
-		  }
-		  Corr[izt+ipt*nztbins]->Fill(DeltaPhi,DeltaEta);
+	  if(TMath::Abs(DeltaEta) > 0.6) continue;
+	  for (int izt = 0; izt < nztbins; izt++){
+	    if(zt>ztbins[izt] and  zt<ztbins[izt+1]){
+	      if (cluster_s_nphoton[n][1] > DNN_min && cluster_s_nphoton[n][1] < DNN_max)
+		Uncorrelated_DNN1_lowpT[izt]->Fill(DeltaPhi);
+	      if (cluster_s_nphoton[n][1] > 0 && cluster_s_nphoton[n][1] < 0.3)
+		  Uncorrelated_DNN2_lowpT[izt]->Fill(DeltaPhi);
+	    }
+	  }
 
-		}//if in zt bin                                                                                               
-	      } // end loop over zt bins                                                                         
-	    }//end if in pt bin                                                                                                  
-	  }//end pt loop bin   
 	}//end loop over tracks
       }//end loop on clusters. 
     } //end loop over events  
@@ -516,40 +502,27 @@ int main(int argc, char *argv[])
   // Write to fout
   
   //TFile* fout = new TFile(Form("fout_Corr_config%s.root", opened_files.c_str()),"RECREATE");
-  TFile* fout = new TFile("Same_Event_Correlation.root","RECREATE");
-  histogram0.Write("DeepPhotonSpectra");
-  h_ntrig.Write("ntriggers");
+  TFile* fout = new TFile("Same_Event_Correlation.root","update");
+  //  histogram0.Write("DeepPhotonSpectra");
+  // h_ntrig.Write("ntriggers");
   std::cout<<"Clusters Passed Iosalation: "<<ntriggers_iso<<std::endl;
   
-  PtIsoDist->Write();
-  LowDNN_PtIsoDist->Write();
   for (int izt = 0; izt < nztbins; izt++){
-    Uncorrelated_lowpT[izt]->Scale(1.0/1.2);//scale by eta
-    Uncorrelated_lowpT[izt]->Scale(1.0/n_lowpt_triggers); //per trigger yield
-    Uncorrelated_lowpT[izt]->Write();
+    Uncorrelated_DNN1_lowpT[izt]->Scale(1.0/1.2);//scale by eta
+    Uncorrelated_DNN1_lowpT[izt]->Scale(1.0/n_DNN1_lowpt_triggers); //per trigger yield
+    Uncorrelated_DNN1_lowpT[izt]->Write();
   }
+
+  for (int izt = 0; izt < nztbins; izt++){
+    Uncorrelated_DNN2_lowpT[izt]->Scale(1.0/1.2);//scale by eta
+    Uncorrelated_DNN2_lowpT[izt]->Scale(1.0/n_DNN2_lowpt_triggers); //per trigger yield
+    Uncorrelated_DNN2_lowpT[izt]->Write();
+  }
+
   std::cout<<n_lowpt_triggers<<std::endl;
   
-  for (int ipt = 0; ipt<nptbins; ipt++){
-    h_Iso_triggers[ipt]->Write();
-  }
-    for (int ipt = 0; ipt<nptbins; ipt++){
-      h_AntiIso_triggers[ipt]->Write();
-    }
-    
-    for (int ipt = 0; ipt<nptbins; ipt++){
-      for (int izt = 0; izt<nztbins; izt++){
-        Corr[izt+ipt*nztbins]->Write();
-      }
-      for (int izt = 0; izt<nztbins; izt++){
-        IsoCorr[izt+ipt*nztbins]->Write();
-      }
-      for (int izt = 0; izt<nztbins; izt++){
-        AntiIsoCorr[izt+ipt*nztbins]->Write();
-      }
-    }
-    fout->Close();     
-    
-    std::cout << " ending " << std::endl;
-    return EXIT_SUCCESS;
+  fout->Close();     
+  
+  std::cout << " ending " << std::endl;
+  return EXIT_SUCCESS;
 }
