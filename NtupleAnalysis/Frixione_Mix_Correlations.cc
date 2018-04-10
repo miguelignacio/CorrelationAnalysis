@@ -86,7 +86,7 @@ int main(int argc, char *argv[])
       value[0] = '\0';
       sscanf(line, "%[^:]:%[ \t]%100[^\n]", key, dummy, value);
       
-      // Use if statements to detect, based on key, which variable the line's content should be used to fill and fill that variable
+      //Read Config File: Detect Keys
       if (strcmp(key, "DNN_min") == 0) {
           // Assign DNN_min to the double-converted version of value
           DNN_min = atof(value);
@@ -95,80 +95,71 @@ int main(int argc, char *argv[])
       else if (strcmp(key, "DNN_max") == 0) {
           // Assign DNN_max to the double-converted version of value
           DNN_max = atof(value);
-          std::cout << "DNN_max is " << DNN_max << std::endl;
-      }
+          std::cout << "DNN_max is " << DNN_max << std::endl; }
+
       else if (strcmp(key, "pT_min") == 0) {
           pT_min = atof(value);
-          std::cout << "pT_min is " << pT_min << std::endl;
-      }
+          std::cout << "pT_min is " << pT_min << std::endl; }
+
       else if (strcmp(key, "pT_max") == 0) {
           pT_max = atof(value);
-          std::cout << "pT_max is " << pT_max << std::endl;
-      }
+          std::cout << "pT_max is " << pT_max << std::endl; }
+
       else if (strcmp(key, "Eta_max") == 0) {
           Eta_max = atof(value);
-          std::cout << "Eta_max is " << Eta_max << std::endl;
-      }
+          std::cout << "Eta_max is " << Eta_max << std::endl; }
+
       else if (strcmp(key, "Cluster_min") == 0) {
           Cluster_min = atof(value);
-          std::cout << "Cluster_min is " << Cluster_min << std::endl;
-      }
+          std::cout << "Cluster_min is " << Cluster_min << std::endl; }
+
       else if (strcmp(key, "EcrossoverE_min") == 0) {
           EcrossoverE_min = atof(value);
-          std::cout << "EcrossoverE_min is " << EcrossoverE_min << std::endl;
-      }
+          std::cout << "EcrossoverE_min is " << EcrossoverE_min << std::endl; }
+
       else if (strcmp(key, "iso_max") == 0) {
           iso_max = atof(value);
-          std::cout << "iso_max is " << iso_max << std::endl;
-      }
+          std::cout << "iso_max is " << iso_max << std::endl; }
+
       else if (strcmp(key, "noniso_min") == 0) {
           noniso_min = atof(value);
-          std::cout << "noniso_min is " << noniso_min << std::endl;
-      }
+          std::cout << "noniso_min is " << noniso_min << std::endl; }
+
       else if (strcmp(key, "noniso_max") == 0) {
           noniso_max = atof(value);
-          std::cout << "noniso_max is " << noniso_max << std::endl;
-      }
+          std::cout << "noniso_max is " << noniso_max << std::endl; }
+
       else if (strcmp(key, "deta_max") == 0) {
           deta_max = atof(value);
-          std::cout << "deta_max is " << deta_max << std::endl;
-      }
+          std::cout << "deta_max is " << deta_max << std::endl; }
+
       else if (strcmp(key, "Correlation_func_bins") == 0) {
           n_correlationbins = atoi(value);
-          std::cout << "Bins in a correlation function: " << n_correlationbins << std::endl;
-      }
+          std::cout << "Bins in a correlation function: " << n_correlationbins << std::endl; }
+
       else if (strcmp(key, "track_selection_num") == 0) {
           selection_number = atoi(value);
-          std::cout << "Number of Selection that tracks must pass: " << selection_number << std::endl;
-      }
+          std::cout << "Number of Selection that tracks must pass: " << selection_number << std::endl; }
+
       else if (strcmp(key, "Zt_bins") == 0) {
           nztbins = -1;
           for (const char *v = value; *v != ']';) {
-              while (*v != ']' && !isdigit(*v)) {
-                  v++;
-              }
-
+              while (*v != ']' && !isdigit(*v)) v++;
 	      nztbins++;
-              
-              while (*v != ']' && (isdigit(*v) || *v == '.')) {
-                  v++;
-              }
+              while (*v != ']' && (isdigit(*v) || *v == '.')) v++;
           }
+
           ztbins = new float[nztbins + 1];
           int i = 0;
           for (const char *v = value; *v != ']' ;) {
-              while (*v != ']' && !isdigit(*v)) {
-                  v++;
-              }              
+              while (*v != ']' && !isdigit(*v)) v++;
               ztbins[i] = atof(v);
               i++;              
-              while (*v != ']' && (isdigit(*v) || *v == '.')) {
-                  v++;
-              }
+              while (*v != ']' && (isdigit(*v) || *v == '.')) v++;
           }
           std::cout << "Number of Zt bins: " << nztbins << std::endl << "Zt bins: {";
-          for (int i = 0; i <= nztbins; i++)
-              std::cout << ztbins[i] << ", ";
+
+          for (int i = 0; i <= nztbins; i++) std::cout << ztbins[i] << ", ";
           std::cout << "}\n";
       }
 
@@ -176,30 +167,22 @@ int main(int argc, char *argv[])
       else if (strcmp(key, "Pt_bins") == 0) {
 	nptbins = -1;
 	for (const char *v = value; *v != ']';) {
-	  while (*v != ']' && !isdigit(*v)) {
-	    v++;
-	  }
+	  while (*v != ']' && !isdigit(*v)) v++;
 	  nptbins++;
-
-	  while (*v != ']' && (isdigit(*v) || *v == '.')) {
-	    v++;
-	  }
+	  while (*v != ']' && (isdigit(*v) || *v == '.')) v++;
 	}
+
 	ptbins = new float[nptbins + 1];
 	int i = 0;
 	for (const char *v = value; *v != ']' ;) {
-	  while (*v != ']' && !isdigit(*v)) {
-	    v++;
-	  }
+	  while (*v != ']' && !isdigit(*v)) v++;
 	  ptbins[i] = atof(v);
 	  i++;
-	  while (*v != ']' && (isdigit(*v) || *v == '.')) {
-	    v++;
-	  }
+	  while (*v != ']' && (isdigit(*v) || *v == '.')) v++;
 	}
 	std::cout << "Number of Pt bins: " << nptbins << std::endl << "Pt bins: {";
-	for (int i = 0; i <= nptbins; i++)
-	  std::cout << ptbins[i] << ", ";
+
+	for (int i = 0; i <= nptbins; i++) std::cout << ptbins[i] << ", ";
 	std::cout << "}\n";
       }
 
@@ -207,40 +190,35 @@ int main(int argc, char *argv[])
       else if (strcmp(key, "Cluster_isolation_determinant") == 0) {
 	if (strcmp(value, "cluster_iso_tpc_04") == 0){
               determiner = CLUSTER_ISO_TPC_04;
-              std::cout << "cluster_iso_tpc_04 will determine the isolation and non-isolation placement" << std::endl;
-          }
+              std::cout << "cluster_iso_tpc_04 will determine the isolation and non-isolation placement" << std::endl; }
+
           else if (strcmp(value, "cluster_iso_its_04") == 0){
               determiner = CLUSTER_ISO_ITS_04;
-              std::cout << "cluster_iso_its_04 will determine the isolation and non-isolation placement" << std::endl;
-          }
+              std::cout << "cluster_iso_its_04 will determine the isolation and non-isolation placement" << std::endl; }
+
           else if (strcmp(value, "cluster_frixione_tpc_04_02") == 0){
               determiner = CLUSTER_FRIXIONE_TPC_04_02;
-              std::cout << "cluster_frixione_tpc_04_02 will determine the isolation and non-isolation placement" << std::endl;
-          }
+              std::cout << "cluster_frixione_tpc_04_02 will determine the isolation and non-isolation placement" << std::endl; }
+
           else if (strcmp(value, "cluster_frixione_its_04_02") == 0){
               determiner = CLUSTER_FRIXIONE_ITS_04_02;
-              std::cout << "cluster_frixione_its_04_02 will determine the isolation and non-isolation placement" << std::endl;
-          }
+              std::cout << "cluster_frixione_its_04_02 will determine the isolation and non-isolation placement" << std::endl; }
           else {
               std::cout << "ERROR: Cluster_isolation_determinant in configuration file must be \"cluster_iso_tpc_04\", \"cluster_iso_its_04\", \"cluster_frixione_tpc_04_02\", or \"cluster_frixione_its_04_02\"" << std::endl << "Aborting the program" << std::endl;
-              exit(EXIT_FAILURE);
-          }
+              exit(EXIT_FAILURE); }
+
       }
-      else {
-          std::cout << "WARNING: Unrecognized keyvariable " << key << std::endl;
-      }
+
+      else std::cout << "WARNING: Unrecognized keyvariable " << key << std::endl;
   }
   fclose(config);
   
-  for (int i = 0; i <= nztbins; i++){
-    std::cout << "zt bound: " << ztbins[i] << std::endl;
-  }
+  //Read out Bins
+  for (int i = 0; i <= nztbins; i++) std::cout << "zt bound: " << ztbins[i] << std::endl;
+  for (int i = 0; i <= nptbins; i++) std::cout << "pt bound: " << ptbins[i] << std::endl;
 
-  for (int i = 0; i <= nptbins; i++){
-    std::cout << "pt bound: " << ptbins[i] << std::endl;
-  }
 
-  // Create the TCanvas and the histograms
+  // CREATE HISTOGRAMS
   TCanvas canvas("canvas", "");
   TH1D histogram0("histogram0", "", 16, 8.0, 16.0);
   TH1D histogram3("histogram3", "", 18, -0.5,1.5);
@@ -254,9 +232,6 @@ int main(int argc, char *argv[])
 
   int n_eta_bins = 14;
   int n_phi_bins = 24;
-
-  TH2D* PhiValues = new TH2D("PhiValues_Near_Detaphi2","Trackphi vs. Clusterphi",n_phi_bins,-M_PI/2,3*M_PI/2,n_phi_bins,-M_PI/2,3*M_PI/2);    
-  std::cout << "just befor Histos " << std::endl;
 
   for (int ipt = 0; ipt <nptbins; ipt++) {
     for (int izt = 0; izt<nztbins; izt++){
@@ -282,10 +257,8 @@ int main(int argc, char *argv[])
     }//zt bins
   }//pt bins
   
-  //histogram2.Sumw2();
-  //histogram3.Sumw2();
 
-  //Loop over samples
+  //LOOP OVER SAMPLES
   for (int iarg = 1; iarg < argc; iarg+=2) {
     std::cout << "Opening: " << (TString)argv[iarg] << std::endl;
     TFile *file = TFile::Open((TString)argv[iarg]);
@@ -394,10 +367,9 @@ int main(int argc, char *argv[])
 //       fprintf(stderr, "\r%s:%d: %llu", __FILE__, __LINE__, i);
 //     }
     ntrack_max = 3000;
-    ncluster_max = 23; //FixMe, root and hdf5 files from different data sets may have it be out of bounds
+    ncluster_max = 23;
 
     fprintf(stderr, "\n%s:%d: %s", __FILE__, __LINE__, "USING HARDCODED HDF5 DIMENSIONS");
-
     fprintf(stderr, "\n%s:%d: maximum tracks:%i maximum clusters:%i\n", __FILE__, __LINE__, ntrack_max,ncluster_max);
 
     //open hdf5: Define size of data from file, explicitly allocate memory in hdf5 space and array size
@@ -490,13 +462,12 @@ int main(int argc, char *argv[])
 	    if (std::isnan(track_data_out[0][itrack][1])) break;
 	    //if ((int(track_data_out[0][itrack][4]+0.5)&selection_number)==0) continue;
 	    if ((int(track_data_out[0][itrack][4]+ 0.5)&TrackCutBit)==0) continue; //selection 16
-	    if (track_data_out[0][itrack][1] < 0.5) continue; //less than 1GeV
+	    if (track_data_out[0][itrack][1] < 1) continue; //less than 1GeV
 	    if (track_data_out[0][itrack][1] > 30) continue; //less than 1GeV
 	    if (abs(track_data_out[0][itrack][2]) > 0.8) continue;
 	    if (track_data_out[0][itrack][7] < 4) continue;
 	    if ((track_data_out[0][itrack][8]/track_data_out[0][itrack][7]) > 36) continue;
 	    if( not(TMath::Abs(track_data_out[0][itrack][9])<0.0231+0.0315/TMath::Power(track_data_out[0][itrack][4],1.3 ))) continue;
-	    //FIXME add track criteria
 
 	    double dRmin = 1.0;
 	    //veto charged particles from mixed event tracks
@@ -551,7 +522,7 @@ int main(int argc, char *argv[])
 
 
     // Write to fout    
-    TFile* fout = new TFile("fout_lowDNN_Mix.root","RECREATE");
+    TFile* fout = new TFile("Mix_Correlation.root","RECREATE");
     histogram0.Write("DeepPhotonSpectra");
     for (int ipt = 0; ipt<nptbins; ipt++){    
       for (int izt = 0; izt<nztbins; izt++){
