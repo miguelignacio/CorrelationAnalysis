@@ -35,8 +35,8 @@ int main(int argc, char *argv[])
   FILE* config = fopen("Corr_config.yaml", "r");
   if (config == NULL)  std::cout<<"no config"<<std::endl;
   // Default values of various variables used in the file (actual values are to be determined by the configuration file)
-  // Cut variables
-  double DNN_min = 0.55;
+  //FIXME:Don't initialize, force requirement of Config File and avoid confusion
+  double DNN_min;
   double DNN_max = 0.85;
   double pT_min = 10;
   double pT_max = 16;
@@ -228,7 +228,7 @@ int main(int argc, char *argv[])
 
   TH2D* Corr[nztbins*nptbins];
   TH2D* IsoCorr[nztbins*nptbins];
-  TH2D* AntiIsoCorr[nztbins*nptbins];
+  TH2D* BKGD_IsoCorr[nztbins*nptbins];
 
   int n_eta_bins = 14;
   int n_phi_bins = 24;
@@ -248,11 +248,11 @@ int main(int argc, char *argv[])
       IsoCorr[izt+ipt*nztbins]->Sumw2();
       IsoCorr[izt+ipt*nztbins]->SetMinimum(0.);
       
-      AntiIsoCorr[izt+ipt*nztbins] = new TH2D(Form("DNN%i_Correlation__pT%1.0f_%1.0f__zT%1.0f_zT%1.0f",2,ptbins[ipt],ptbins[ipt+1],
+      BKGD_IsoCorr[izt+ipt*nztbins] = new TH2D(Form("DNN%i_Correlation__pT%1.0f_%1.0f__zT%1.0f_zT%1.0f",2,ptbins[ipt],ptbins[ipt+1],
       10*ztbins[izt],10*ztbins[izt+1]),"Mixed Event #gamma-H [AntiIso] Correlation", n_phi_bins,-M_PI/2,3*M_PI/2, n_eta_bins, -1.4, 1.4);
       
-      AntiIsoCorr[izt+ipt*nztbins]->Sumw2();
-      AntiIsoCorr[izt+ipt*nztbins]->SetMinimum(0.);
+      BKGD_IsoCorr[izt+ipt*nztbins]->Sumw2();
+      BKGD_IsoCorr[izt+ipt*nztbins]->SetMinimum(0.);
       
     }//zt bins
   }//pt bins
@@ -431,12 +431,10 @@ int main(int argc, char *argv[])
 
       for (ULong64_t n = 0; n < ncluster; n++) {
 	if( not(cluster_pt[n]>pT_min and cluster_pt[n]<pT_max)) continue; //select pt of photons
-	//if( not(cluster_s_nphoton[n][1]>DNN_min and cluster_s_nphoton[n][1]<DNN_max)) continue; //select deep-photons
 	if( not(TMath::Abs(cluster_eta[n])<Eta_max)) continue; //cut edges of detector
 	if( not(cluster_ncell[n]>Cluster_min)) continue;   //removes clusters with 1 or 2 cells
 	if( not(cluster_e_cross[n]/cluster_e[n]>EcrossoverE_min)) continue; //removes "spiky" clusters    
 	
-	//determiner: which frixione variable based on Corr_config.yaml
 	float isolation;
 	if (determiner == CLUSTER_ISO_TPC_04) isolation = cluster_iso_tpc_04[n];
 	else if (determiner == CLUSTER_ISO_ITS_04) isolation = cluster_iso_its_04[n];
@@ -504,7 +502,7 @@ int main(int argc, char *argv[])
 		    }
 		    if(isolation<iso_max){
 		      if (cluster_s_nphoton[n][1] > 0.0 && cluster_s_nphoton[n][1] < 0.3){ //sel deep photons 
-			AntiIsoCorr[izt+ipt*nztbins]->Fill(DeltaPhi,DeltaEta);
+			BKGD_IsoCorr[izt+ipt*nztbins]->Fill(DeltaPhi,DeltaEta);
 		      }
 		    }
 		    Corr[izt+ipt*nztbins]->Fill(DeltaPhi,DeltaEta);
@@ -532,7 +530,7 @@ int main(int argc, char *argv[])
 	IsoCorr[izt+ipt*nztbins]->Write();
       }
       for (int izt = 0; izt<nztbins; izt++){
-	AntiIsoCorr[izt+ipt*nztbins]->Write();	
+	BKGD_IsoCorr[izt+ipt*nztbins]->Write();	
       }
     }
     fout->Close();     
