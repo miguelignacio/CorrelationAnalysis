@@ -46,7 +46,8 @@ int main(int argc, char *argv[])
   double noniso_max;
   double deta_max;
   isolationDet determiner = CLUSTER_ISO_ITS_04;
-  int n_correlationbins = 18;
+  int n_eta_bins;
+  int n_phi_bins;  
 
   // Zt bins
   //FIXME: Will have to likely set nztbins first, then initialize array
@@ -78,51 +79,55 @@ int main(int argc, char *argv[])
       //Read Config File: Detect Keys 
       if (strcmp(key, "DNN_min") == 0) {
           DNN_min = atof(value);
-          std::cout << "DNN_min is " << DNN_min << std::endl; }
+          std::cout << "DNN_min: " << DNN_min << std::endl; }
 
       else if (strcmp(key, "DNN_max") == 0) {
           DNN_max = atof(value);
-          std::cout << "DNN_max is " << DNN_max << std::endl; }
+          std::cout << "DNN_max: " << DNN_max << std::endl; }
 
       else if (strcmp(key, "pT_min") == 0) {
           pT_min = atof(value);
-          std::cout << "pT_min is " << pT_min << std::endl; }
+          std::cout << "pT_min: " << pT_min << std::endl; }
 
       else if (strcmp(key, "pT_max") == 0) {
           pT_max = atof(value);
-          std::cout << "pT_max is " << pT_max << std::endl; }
+          std::cout << "pT_max: " << pT_max << std::endl; }
 
       else if (strcmp(key, "Eta_max") == 0) {
           Eta_max = atof(value);
-          std::cout << "Eta_max is " << Eta_max << std::endl;
+          std::cout << "Eta_max: " << Eta_max << std::endl;
       }
       else if (strcmp(key, "Cluster_min") == 0) {
           Cluster_min = atof(value);
-          std::cout << "Cluster_min is " << Cluster_min << std::endl; }
+          std::cout << "Cluster_min: " << Cluster_min << std::endl; }
 
       else if (strcmp(key, "EcrossoverE_min") == 0) {
           EcrossoverE_min = atof(value);
-          std::cout << "EcrossoverE_min is " << EcrossoverE_min << std::endl; }
+          std::cout << "EcrossoverE_min; " << EcrossoverE_min << std::endl; }
 
       else if (strcmp(key, "iso_max") == 0) {
           iso_max = atof(value);
-          std::cout << "iso_max is " << iso_max << std::endl; }
+          std::cout << "iso_max: " << iso_max << std::endl; }
 
       else if (strcmp(key, "noniso_min") == 0) {
           noniso_min = atof(value);
-          std::cout << "noniso_min is " << noniso_min << std::endl; }
+          std::cout << "noniso_min: " << noniso_min << std::endl; }
 
       else if (strcmp(key, "noniso_max") == 0) {
           noniso_max = atof(value);
-          std::cout << "noniso_max is " << noniso_max << std::endl; }
+          std::cout << "noniso_max: " << noniso_max << std::endl; }
 
       else if (strcmp(key, "deta_max") == 0) {
           deta_max = atof(value);
-          std::cout << "deta_max is " << deta_max << std::endl; }
+          std::cout << "deta_max: " << deta_max << std::endl; }
 
-      else if (strcmp(key, "Correlation_func_bins") == 0) {
-          n_correlationbins = atoi(value);
-          std::cout << "Bins in a correlation function: " << n_correlationbins << std::endl; }
+      else if (strcmp(key, "N_Phi_Bins") == 0) {
+	n_phi_bins = atoi(value);
+	std::cout << "Number of Phi Bins: " << n_phi_bins << std::endl; }
+
+      else if (strcmp(key, "N_Eta_Bins") == 0) {
+        n_eta_bins = atoi(value);
+	std::cout << "Number of Eta Bins: " << n_eta_bins << std::endl; }
 
       else if (strcmp(key, "Track_Cut_Bit") == 0) {
           Track_Cut_Bit = atoi(value);
@@ -173,19 +178,19 @@ int main(int argc, char *argv[])
       else if (strcmp(key, "Cluster_isolation_determinant") == 0) {
           if (strcmp(value, "cluster_iso_tpc_04") == 0){
               determiner = CLUSTER_ISO_TPC_04;
-              std::cout << "cluster_iso_tpc_04 will determine the isolation and non-isolation placement" << std::endl; }
+              std::cout << "Isolation Variable: cluster_iso_tpc_04" << std::endl; }
 
           else if (strcmp(value, "cluster_iso_its_04") == 0){
               determiner = CLUSTER_ISO_ITS_04;
-              std::cout << "cluster_iso_its_04 will determine the isolation and non-isolation placement" << std::endl; }
+              std::cout << "Isolation Variable: cluster_iso_its_04" << std::endl; }
 
           else if (strcmp(value, "cluster_frixione_tpc_04_02") == 0){
               determiner = CLUSTER_FRIXIONE_TPC_04_02;
-              std::cout << "cluster_frixione_tpc_04_02 will determine the isolation and non-isolation placement" << std::endl; }
+              std::cout << "Isolation Variable: cluster_frixione_tpc_04_02" << std::endl; }
 
           else if (strcmp(value, "cluster_frixione_its_04_02") == 0){
               determiner = CLUSTER_FRIXIONE_ITS_04_02;
-              std::cout << "cluster_frixione_its_04_02 will determine the isolation and non-isolation placement" << std::endl; }
+              std::cout << "Isolation Variable: cluster_frixione_its_04_02" << std::endl; }
 
           else {
               std::cout << "ERROR: Cluster_isolation_determinant in configuration file must be \"cluster_iso_tpc_04\", \"cluster_iso_its_04\", \"cluster_frixione_tpc_04_02\", or \"cluster_frixione_its_04_02\"" << std::endl << "Aborting the program" << std::endl;
@@ -194,7 +199,9 @@ int main(int argc, char *argv[])
 
       else std::cout << "WARNING: Unrecognized keyvariable " << key << std::endl;
   
-  }//end Config Loop
+  }
+  //end Config Loop
+
   fclose(config);
   
   for (int i = 0; i <= nztbins; i++)
@@ -220,8 +227,6 @@ int main(int argc, char *argv[])
   float N_Signal_Triggers = 0;
   float N_BKGD_Triggers = 0;
   
-  int n_eta_bins = 14;
-  int n_phi_bins = 24;
   //FIXME: Add to config file
 
     for (int ipt = 0; ipt <nptbins; ipt++) {
