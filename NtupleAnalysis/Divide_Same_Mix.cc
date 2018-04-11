@@ -69,14 +69,14 @@ int main()
 	std::cout << "tree 1 fail" << std::endl;
 	exit(EXIT_FAILURE);}
       
-//       Mix_Corr[izt+ipt*nztbins] = (TH2F*)mix->Get(
-//       Form("Correlation_ptmin%1.0f_ptmax%1.0f_ztmin%1.0f_ztmax%1.0f",
-//       ptbins[ipt],ptbins[ipt+1],10*ztbins[izt],10*ztbins[izt+1]));   
+      Mix_Corr[izt+ipt*nztbins] = (TH2F*)mix->Get(
+      Form("Correlation_ptmin%1.0f_ptmax%1.0f_ztmin%1.0f_ztmax%1.0f",
+      ptbins[ipt],ptbins[ipt+1],10*ztbins[izt],10*ztbins[izt+1]));   
 
-//       if (Mix_Corr[izt+ipt*nztbins] == NULL) {
-// 	std::cout << "tree 2 fail" << std::endl;
-// 	exit(EXIT_FAILURE);
-//       }
+      if (Mix_Corr[izt+ipt*nztbins] == NULL) {
+	std::cout << "tree 2 fail" << std::endl;
+	exit(EXIT_FAILURE);
+      }
       
       Corr_AntiIso_same[izt+ipt*nztbins] = (TH2F*)corr->Get(
           Form("DNN%i_Correlation__pT%1.0f_%1.0f__zT%1.0f_zT%1.0f",
