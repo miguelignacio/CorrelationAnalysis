@@ -86,7 +86,7 @@ int main()
 	std::cout << "tree 2 fail" << std::endl;
 	exit(EXIT_FAILURE);}
 
-    //Normalize Mixing to 1 at âˆ†etaâˆ†phi = 0,0
+    //Normalize Mixing to 1 at œôø¦etaœôø¦phi = 0,0
 //     TAxis *mix_xaxis = Mix_Corr[izt+ipt*nztbins]->GetXaxis();
 //     Int_t mix_bin_phi = mix_xaxis->FindBin(0.0);
 //     TAxis *mix_yaxis = Mix_Corr[izt+ipt*nztbins]->GetYaxis();
@@ -111,9 +111,8 @@ int main()
     }
     N_Iso_Triggers[ipt]->Write();
     N_BKGD_Triggers[ipt]->Write();
-    std::cout<<N_Iso_Triggers[ipt]->GetEntries()<<std::endl;
   }//ipt
-
+  , do
   TCanvas *canvas = new TCanvas("canv","canv", 1200,1000);
   corr->Close();
   mix->Close();
