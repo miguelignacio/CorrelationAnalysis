@@ -108,17 +108,15 @@ int main(int argc, char *argv[])
         file->Print();
 	std::cout<<"About to get TTree" << std::endl;
 
-
         TTree *_tree_event = NULL;
         _tree_event = dynamic_cast<TTree *> (dynamic_cast<TDirectoryFile *>   (file->Get("AliAnalysisTaskNTGJ"))->Get("_tree_event"));
 	if (_tree_event == NULL) {
 	  std::cout << "First try did not got (AliAnalysisTaskNTGJ does not exist, trying again" << std::endl;
 	  _tree_event = dynamic_cast<TTree *> (file->Get("_tree_event"));
-
 	  if (_tree_event == NULL) {
 	      std::cout << " fail " << std::endl;
 	      exit(EXIT_FAILURE);
-	      //}
+	  }
         }  
         //_tree_event->Print();
 
@@ -152,8 +150,16 @@ int main(int argc, char *argv[])
         Float_t cluster_NN1[NTRACK_MAX];
         Float_t cluster_NN2[NTRACK_MAX];
         Float_t cluster_Lambda[NTRACK_MAX];
+        Float_t cluster_Lambda_angle[NTRACK_MAX];
         Float_t cluster_isHardPhoton[NTRACK_MAX];
         Float_t cluster_minMass[NTRACK_MAX];
+        Float_t cluster_mindR_trackbit16[NTRACK_MAX];
+        Float_t cluster_mindR_trackbit3[NTRACK_MAX];
+	Float_t cluster_mindR_trackbit16_trackpt[NTRACK_MAX];
+        Float_t cluster_mindR_trackbit3_trackpt[NTRACK_MAX];
+        Float_t cluster_isoetaband_its[NTRACK_MAX];
+	Float_t cluster_isoetaband_tpc[NTRACK_MAX];
+
         Int_t cluster_pi0tagged[NTRACK_MAX];
         ////
 	Double_t primary_vertex[3];
@@ -163,7 +169,30 @@ int main(int argc, char *argv[])
         Int_t cluster_ncell[NTRACK_MAX];
 
         Float_t cluster_lambda_square[NTRACK_MAX][2];   
-    
+        Float_t cluster_lambda_square_angle[NTRACK_MAX][2];
+
+	UChar_t track_quality[NTRACK_MAX];
+	UInt_t ntrack;
+        Float_t track_e[NTRACK_MAX];
+        Float_t track_pt[NTRACK_MAX];
+        Float_t track_eta[NTRACK_MAX];
+        Float_t track_phi[NTRACK_MAX];
+	UChar_t track_its_ncluster[NTRACK_MAX];
+	Float_t track_dca_xy[NTRACK_MAX];
+	Float_t track_dca_z[NTRACK_MAX];
+	Float_t track_its_chi_square[NTRACK_MAX];
+
+	_tree_event->SetBranchAddress("ntrack", &ntrack);
+        _tree_event->SetBranchAddress("track_e", track_e);
+        _tree_event->SetBranchAddress("track_pt", track_pt);
+        _tree_event->SetBranchAddress("track_eta", track_eta);
+        _tree_event->SetBranchAddress("track_phi", track_phi);
+        _tree_event->SetBranchAddress("track_quality", track_quality);
+	_tree_event->SetBranchAddress("track_dca_xy", track_dca_xy);
+	_tree_event->SetBranchAddress("track_dca_z", track_dca_z);
+	_tree_event->SetBranchAddress("track_its_chi_square", track_its_chi_square);
+	_tree_event->SetBranchAddress("track_its_ncluster", track_its_ncluster);
+
 	_tree_event->SetBranchAddress("primary_vertex", primary_vertex);
         _tree_event->SetBranchAddress("ncluster", &ncluster);
         _tree_event->SetBranchAddress("cluster_pt", cluster_pt);
@@ -172,6 +201,7 @@ int main(int argc, char *argv[])
 	_tree_event->SetBranchAddress("cluster_e", cluster_e);
         _tree_event->SetBranchAddress("cluster_s_nphoton", cluster_s_nphoton);
         _tree_event->SetBranchAddress("cluster_lambda_square",  cluster_lambda_square);
+	_tree_event->SetBranchAddress("cluster_lambda_square_angle",  cluster_lambda_square_angle);
         _tree_event->SetBranchAddress("cluster_nmc_truth", cluster_nmc_truth);
 	_tree_event->SetBranchAddress("cluster_cell_id_max", cluster_cell_id_max);
 
@@ -220,15 +250,25 @@ int main(int argc, char *argv[])
 
  	std::cout << " Total Number of entries in TTree: " << _tree_event->GetEntries() << std::endl;
 
-	TFile *newfile = new TFile("13dsmall.root","recreate");
+	TFile *newfile = new TFile("Small.root","recreate");
 	TTree *newtree = _tree_event->CloneTree(0);
         newtree->Branch("cluster_NN1", cluster_NN1, "cluster_NN1[ncluster]/F");
         newtree->Branch("cluster_NN2", cluster_NN2, "cluster_NN2[ncluster]/F");
 
 	newtree->Branch("cluster_Lambda", cluster_Lambda, "cluster_Lambda[ncluster]/F");
+        newtree->Branch("cluster_Lambda_angle", cluster_Lambda_angle, "cluster_Lambda_angle[ncluster]/F");
+
         newtree->Branch("cluster_isHardPhoton", cluster_isHardPhoton, "cluster_isHardPhoton[ncluster]/F");
         newtree->Branch("cluster_minMass", cluster_minMass, "cluster_minMass[ncluster]/F");
+        newtree->Branch("cluster_mindR_trackbit16",cluster_mindR_trackbit16,"cluster_mindR_trackbit16[ncluster]/F");
+	newtree->Branch("cluster_mindR_trackbit3",cluster_mindR_trackbit3,"cluster_mindR_trackbit3[ncluster]/F");
+	newtree->Branch("cluster_mindR_trackbit16_trackpt",cluster_mindR_trackbit16_trackpt,"cluster_mindR_trackbit16_trackpt[ncluster]/F");
+        newtree->Branch("cluster_mindR_trackbit3_trackpt",cluster_mindR_trackbit3_trackpt,"cluster_mindR_trackbit3_trackpt[ncluster]/F");
+        newtree->Branch("cluster_isoetaband_its", cluster_isoetaband_its, "cluster_isoetaband_its[ncluster]/F");
+	newtree->Branch("cluster_isoetaband_tpc", cluster_isoetaband_tpc, "cluster_isoetaband_tpc[ncluster]/F");
+
         newtree->Branch("cluster_pi0tagged",cluster_pi0tagged,"cluster_pi0tagged[ncluster]/I");
+     
 
 	Float_t cluster_b5x5[NTRACK_MAX];
 	Float_t cluster_b5x5_lin[NTRACK_MAX];
@@ -253,6 +293,8 @@ int main(int argc, char *argv[])
 	    cluster_NN1[n] = cluster_s_nphoton[n][1]; 
             cluster_NN2[n] = cluster_s_nphoton[n][2];
             cluster_Lambda[n] = cluster_lambda_square[n][0];
+	    cluster_Lambda_angle[n] = cluster_lambda_square_angle[n][0];
+
 	    for(UInt_t counter = 0 ; counter<cluster_nmc_truth[n]; counter++)
 	      {
                 unsigned short index = cluster_mc_truth_index[n][counter];
@@ -262,7 +304,7 @@ int main(int argc, char *argv[])
 	      }//end loop over indices
             cluster_isHardPhoton[n] = IsTrueHardPhoton;
              //pi0 veto: cluster_minMass
-            float minmass = 999;
+            float minmass = 1.0;
             Int_t pi0tag = 0;
 
             TLorentzVector v1;
@@ -284,6 +326,66 @@ int main(int argc, char *argv[])
               KeepEvent = true;
             }
 
+            //Save Variables to veto high-pt tracks matching to clusters
+            double dRmin = 1.0;
+            double dRmin_trackpt = 0;
+	    for (ULong64_t itrack = 0; itrack < ntrack; itrack++) {
+	      if((track_quality[itrack]&16)==0) continue; //select only tracks that pass selection 16
+	      if( not(track_pt[itrack]>5.0))    continue;
+	      if( not(track_pt[itrack]<30.0))   continue;
+	      Float_t deta =  cluster_eta[n]-track_eta[itrack];
+	      Float_t dphi =  TVector2::Phi_mpi_pi(cluster_phi[n]-track_phi[itrack]);
+	      Float_t dR = TMath::Sqrt(deta*deta + dphi*dphi);
+              if(dR<dRmin){
+                  dRmin = dR;
+                  dRmin_trackpt = track_pt[itrack];
+	      }
+	    }
+            cluster_mindR_trackbit16_trackpt[n] = dRmin_trackpt;
+            cluster_mindR_trackbit16[n] = dRmin;
+            dRmin =1.0;
+	    dRmin_trackpt = 999.0;
+	    for (ULong64_t itrack = 0; itrack < ntrack; itrack++) {
+              if((track_quality[itrack]&3)==0) continue; //select only tracks that pass selection 3 = ITS+TPC
+              if( not(track_pt[itrack]>5.0)) continue;
+	      if( not(track_pt[itrack]<30.0)) continue;
+              Float_t deta =  cluster_eta[n]-track_eta[itrack];
+              Float_t dphi =  TVector2::Phi_mpi_pi(cluster_phi[n]-track_phi[itrack]);
+              Float_t dR = TMath::Sqrt(deta*deta + dphi*dphi);
+              if(dR<dRmin){
+                  dRmin = dR;
+	          dRmin_trackpt = track_pt[itrack];
+	      }
+            }
+	    cluster_mindR_trackbit3_trackpt[n] = dRmin_trackpt;
+	    cluster_mindR_trackbit3[n] = dRmin;
+
+            //Calculate UE using "eta band method, that is used by Erwann et al"
+            double iso_etaband =0.0;
+
+            for (ULong64_t itrack = 0; itrack < ntrack; itrack++) {
+                if((track_quality[itrack]&16)==0) continue; //select only tracks that pass selection 16 = ITS onluy
+	        Float_t deta =  cluster_eta[n]-track_eta[itrack];
+		Float_t dphi =  TVector2::Phi_mpi_pi(cluster_phi[n]-track_phi[itrack]);
+		Float_t dR = TMath::Sqrt(deta*deta + dphi*dphi);
+                if(TMath::Abs(dphi)>0.4) continue; // select tracks only within +/- 0.4 in phi (eta band)
+                if(dR<0.4) continue; //rejects events inside cone
+                iso_etaband = iso_etaband + track_pt[itrack];
+	    }
+            cluster_isoetaband_its[n] = iso_etaband;
+
+            iso_etaband = 0.0;
+            for (ULong64_t itrack = 0; itrack < ntrack; itrack++) {
+	      if((track_quality[itrack]&3)==0) continue; //select only tracks that pass selection 3
+	      Float_t deta =  cluster_eta[n]-track_eta[itrack];
+	      Float_t dphi =  TVector2::Phi_mpi_pi(cluster_phi[n]-track_phi[itrack]);
+	      Float_t dR = TMath::Sqrt(deta*deta + dphi*dphi);
+	      if(TMath::Abs(dphi)>0.4) continue; // select tracks only within +/- 0.4 in phi (eta band)
+	      if(dR<0.4) continue; //rejects events inside cone
+	      iso_etaband = iso_etaband + track_pt[itrack];
+            }
+	    cluster_isoetaband_tpc[n] = iso_etaband;
+
 	    unsigned int cell_id_5_5[25];
 	    cell_5_5(cell_id_5_5, cluster_cell_id_max[n]);
 
@@ -297,7 +399,7 @@ int main(int argc, char *argv[])
 	      if( not(cell_e[c_id] >0.100)) continue;
 	      eta_center =+ cell_e[c_id]* c_eta_array[c_id];
 	      phi_center =+ cell_e[c_id]* c_phi_array[c_id];
-	      sumw       = + cell_e[c_id];
+	      sumw       =+ cell_e[c_id];
 	    }
 	    eta_center = eta_center/sumw;
 	    phi_center = phi_center/sumw;
