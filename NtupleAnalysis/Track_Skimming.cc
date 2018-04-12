@@ -265,8 +265,8 @@ int main(int argc, char *argv[])
 	    if( not(track_its_chi_square[itrack]/track_its_ncluster[itrack] <36)) continue;
 	    if( not(TMath::Abs(track_dca_xy[itrack])<0.0231+0.0315/TMath::Power(track_pt[itrack],1.3 ))) continue;
 	    //cluster for loop for electron veto
-	    Float_t dR = 2.0;
-	    double dRmin = 1.0;
+	    Float_t dR = 1.0;
+	    double dRmin = 0.1;
 	    for (ULong64_t n = 0; n < ncluster; n++) {
 	      Float_t deta =  cluster_eta[n]-track_eta_emcal[itrack];
 	      if (std::isnan(track_phi_emcal[itrack])|| std::isnan(cluster_phi[n])) continue;

@@ -420,7 +420,7 @@ int main(int argc, char *argv[])
 	  if( not(TMath::Abs(track_dca_xy[itrack])<0.0231+0.0315/TMath::Power(track_pt[itrack],1.3 ))) continue;
 
 	  //Electron Veto for associated tracks outside of isolation cone
-	  double dRmin = 1.0;
+	  double dRmin = 0.1;
 	  bool Track_HasMatch = false;
 	  for (ULong64_t c = 0; c < ncluster; c++){
 	    Float_t deta =  cluster_eta[n]-track_eta_emcal[itrack];
@@ -429,7 +429,7 @@ int main(int argc, char *argv[])
 	    if (dR < dRmin) Track_HasMatch = true;
 	    break;
 	  }
-// 	  if (Track_HasMatch) continue;
+ 	  if (Track_HasMatch) continue;
 
 	  //Observables:
 	  Double_t zt = track_pt[itrack]/cluster_pt[n];
@@ -465,7 +465,7 @@ int main(int argc, char *argv[])
   // Write to fout
   
   //TFile* fout = new TFile(Form("fout_Corr_config%s.root", opened_files.c_str()),"RECREATE");
-  TFile* fout = new TFile("Same_Event_Correlation_TPC_ISO.root","RECREATE");
+  TFile* fout = new TFile("Same_Event_Correlation_ITS_ISO.root","RECREATE");
   h_ntrig.Write("ntriggers");
   std::cout<<"Clusters Passed Iosalation: "<<N_Signal_Triggers<<std::endl;
   

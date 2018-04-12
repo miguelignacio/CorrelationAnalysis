@@ -474,7 +474,7 @@ int main(int argc, char *argv[])
 	    if ((track_data_out[0][itrack][8]/track_data_out[0][itrack][7]) > 36) continue;
 	    if( not(TMath::Abs(track_data_out[0][itrack][9])<0.0231+0.0315/TMath::Power(track_data_out[0][itrack][4],1.3 ))) continue;
 
-	    double dRmin = 1.0;
+	    double dRmin = 0.1;
 	    //veto charged particles from mixed event tracks
 	    bool MixTrack_HasMatch = false;
 	    for (unsigned int l = 0; l < ncluster_max; l++){
