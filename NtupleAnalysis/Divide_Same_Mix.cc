@@ -48,11 +48,12 @@ int main()
   ptbins = new float[nptbins+1];
   ptbins[0] = 10.0; ptbins[1] = 11; ptbins[2] = 12.5; ptbins[3] = 16;
 
-  TH2F* Corr_Iso_same[nztbins*nptbins]; 
-  TH2F* Mix_Corr[nztbins*nptbins];
+  TH2F* Same_DNN1_Corr[nztbins*nptbins]; 
+  TH2F* Same_DNN2_Corr[nztbins*nptbins];
 
-  TH2F* Corr_AntiIso_same[nztbins*nptbins];
-  
+  TH2F* Mix_DNN1_Corr[nztbins*nptbins];
+  TH2F* Mix_DNN2_Corr[nztbins*nptbins];
+
   TH1D* N_Iso_Triggers[nptbins];
   TH1D* N_BKGD_Triggers[nptbins];
 
@@ -61,53 +62,64 @@ int main()
   for(int ipt = 0; ipt < nptbins; ipt++){
     for (int izt = 0; izt<nztbins; izt++){
 
-      Corr_Iso_same[izt+ipt*nztbins] = (TH2F*)corr->Get(
+      Same_DNN1_Corr[izt+ipt*nztbins] = (TH2F*)corr->Get(
 	  Form("DNN%i_Correlation__pT%1.0f_%1.0f__zT%1.0f_zT%1.0f",
 	  1,ptbins[ipt],ptbins[ipt+1],10*ztbins[izt],10*ztbins[izt+1]));
 
-      if (Corr_Iso_same[izt+ipt*nztbins] == NULL) {
-	std::cout << "tree 1 fail" << std::endl;
+      if (Same_DNN1_Corr[izt+ipt*nztbins] == NULL) {
+	std::cout << "Same 1 TH2D fail" << std::endl;
 	exit(EXIT_FAILURE);}
-      
-      Mix_Corr[izt+ipt*nztbins] = (TH2F*)mix->Get(
-      Form("Correlation_ptmin%1.0f_ptmax%1.0f_ztmin%1.0f_ztmax%1.0f",
-      ptbins[ipt],ptbins[ipt+1],10*ztbins[izt],10*ztbins[izt+1]));   
 
-      if (Mix_Corr[izt+ipt*nztbins] == NULL) {
-	std::cout << "tree 2 fail" << std::endl;
-	exit(EXIT_FAILURE);
-      }
-      
-      Corr_AntiIso_same[izt+ipt*nztbins] = (TH2F*)corr->Get(
+      Same_DNN2_Corr[izt+ipt*nztbins] = (TH2F*)corr->Get(
           Form("DNN%i_Correlation__pT%1.0f_%1.0f__zT%1.0f_zT%1.0f",
           2,ptbins[ipt],ptbins[ipt+1],10*ztbins[izt],10*ztbins[izt+1]));
 
-      if (Corr_AntiIso_same[izt+ipt*nztbins] == NULL) {
-	std::cout << "tree 2 fail" << std::endl;
+      if (Same_DNN2_Corr[izt+ipt*nztbins] == NULL) {
+	std::cout << "Same 2 TH2D fail" << std::endl;
 	exit(EXIT_FAILURE);}
 
+      Mix_DNN1_Corr[izt+ipt*nztbins] = (TH2F*)mix->Get(
+      Form("DNN%i_Correlation__pT%1.0f_%1.0f__zT%1.0f_zT%1.0f",
+      1,ptbins[ipt],ptbins[ipt+1],10*ztbins[izt],10*ztbins[izt+1]));   
+
+      if (Mix_DNN1_Corr[izt+ipt*nztbins] == NULL) {
+	std::cout << " mix 1 TH2D  fail" << std::endl;
+	exit(EXIT_FAILURE);
+      }
+      
+      Mix_DNN2_Corr[izt+ipt*nztbins] = (TH2F*)mix->Get(
+      Form("DNN%i_Correlation__pT%1.0f_%1.0f__zT%1.0f_zT%1.0f",
+      2,ptbins[ipt],ptbins[ipt+1],10*ztbins[izt],10*ztbins[izt+1]));
+
+      if (Mix_DNN2_Corr[izt+ipt*nztbins] == NULL) {
+	std::cout << " mix 2 TH2D  fail" << std::endl;
+        exit(EXIT_FAILURE);
+      }
+
     //Normalize Mixing to 1 at ∆eta∆phi = 0,0
-//     TAxis *mix_xaxis = Mix_Corr[izt+ipt*nztbins]->GetXaxis();
-//     Int_t mix_bin_phi = mix_xaxis->FindBin(0.0);
-//     TAxis *mix_yaxis = Mix_Corr[izt+ipt*nztbins]->GetYaxis();
-//     Int_t mix_bin_eta = mix_yaxis->FindBin(0.0);
-//     //Double_t mix_Iso_integ = Mix_Corr[izt+ipt*nztbins]->Integral(mix_bin_phi,mix_bin_phi,mix_bin_eta,mix_bin_eta);
-//     Double_t mix_Iso_integ = Mix_Corr[izt+ipt*nztbins]->GetBinContent(mix_bin_phi,mix_bin_eta,mix_bin_eta);
-//     std::cout<<"Iso Mix Integ: "<<mix_Iso_integ<<std::endl;
-//     Double_t Iso_norm = 1.0/mix_Iso_integ;
-//     Mix_Corr[izt+ipt*nztbins]->Scale(Iso_norm);
+    TAxis *mix_xaxis = Mix_DNN1_Corr[izt+ipt*nztbins]->GetXaxis();
+    TAxis *mix_yaxis = Mix_DNN1_Corr[izt+ipt*nztbins]->GetYaxis();
+    Double_t mix_DNN1_intgrl = Mix_DNN1_Corr[izt+ipt*nztbins]->GetBinContent
+      (mix_xaxis->FindBin(0.0),mix_yaxis->FindBin(0.0));
+    std::cout<<"Mix Event DNN1 Value at (0,0) = "<<mix_DNN1_intgrl<<std::endl;
+    Double_t mix_DNN2_intgrl = Mix_DNN2_Corr[izt+ipt*nztbins]->GetBinContent
+      (mix_xaxis->FindBin(0.0),mix_yaxis->FindBin(0.0)); //binning is the same
+    Double_t DNN1_norm = 1.0/mix_DNN1_intgrl;
+    Double_t DNN2_norm = 1.0/mix_DNN2_intgrl;
+    Mix_DNN1_Corr[izt+ipt*nztbins]->Scale(mix_DNN1_intgrl);
+    Mix_DNN2_Corr[izt+ipt*nztbins]->Scale(mix_DNN2_intgrl);
 
     //DIVIDE MIXING
-//      Corr_Iso_same[izt+ipt*nztbins]->Divide(Mix_Corr[izt+ipt*nztbins]);
-//      Corr_AntiIso_same[izt+ipt*nztbins]->Divide(Mix_Corr[izt+ipt*nztbins]);
+    Same_DNN1_Corr[izt+ipt*nztbins]->Divide(Mix_DNN1_Corr[izt+ipt*nztbins]);
+    Same_DNN2_Corr[izt+ipt*nztbins]->Divide(Mix_DNN1_Corr[izt+ipt*nztbins]);
 
-      Corr_Iso_same[izt+ipt*nztbins]->Write();
+      Same_DNN1_Corr[izt+ipt*nztbins]->Write();
     }//zt bin
     N_Iso_Triggers[ipt] = (TH1D*)corr->Get(Form("N_DNN%i_Triggers_pT%1.0f_%1.0f",1,ptbins[ipt],ptbins[ipt+1]));
     N_BKGD_Triggers[ipt] = (TH1D*)corr->Get(Form("N_DNN%i_Triggers_pT%1.0f_%1.0f",2,ptbins[ipt],ptbins[ipt+1]));
     
     for (int izt = 0; izt < nztbins; izt++){
-      Corr_AntiIso_same[izt+ipt*nztbins]->Write();
+      Same_DNN2_Corr[izt+ipt*nztbins]->Write();
     }
     N_Iso_Triggers[ipt]->Write();
     N_BKGD_Triggers[ipt]->Write();

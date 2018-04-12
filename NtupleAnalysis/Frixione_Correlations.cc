@@ -372,7 +372,7 @@ int main(int argc, char *argv[])
     //for(Long64_t ievent = 0; ievent < 1000 ; ievent++){
       _tree_event->GetEntry(ievent);
       fprintf(stderr, "\r%s:%d: %llu / %llu", __FILE__, __LINE__, ievent, nentries);
- 
+
       for (ULong64_t n = 0; n < ncluster; n++) {
 	if( not(cluster_pt[n]>pT_min and cluster_pt[n]<pT_max)) continue;   //select pt of photons
 	if( not(TMath::Abs(cluster_eta[n])<Eta_max)) continue;              //cut edges of detector
@@ -386,6 +386,7 @@ int main(int argc, char *argv[])
 	else isolation = cluster_frixione_its_04_02[n];
 	if (isolation>iso_max) continue;
 
+	//fprintf(stderr,"Event: %llu Cluster pT:  %f      Track pT's:  ",ievent,cluster_pt[n]);
 
 	//High DNN Trigger Signal
 	if ((cluster_s_nphoton[n][1] > DNN_min) && (cluster_s_nphoton[n][1]<DNN_max)){
@@ -410,14 +411,13 @@ int main(int argc, char *argv[])
 
 	//Track Loop
 	for (ULong64_t itrack = 0; itrack < ntrack; itrack++) {            
-	  if(track_pt[itrack] < 1) continue; //1GeV Tracks
-	  if(track_pt[itrack] > 30) continue;
-	  if((track_quality[itrack]&Track_Cut_Bit)==0) continue; //select only tracks that pass selection 
+ 	  if(track_pt[itrack] < 0.5) continue; //1GeV Tracks
+ 	  if(track_pt[itrack] > 30) continue;
+ 	  if((track_quality[itrack]&Track_Cut_Bit)==0) continue; //select only tracks that pass selection 
 	  if(abs(track_eta[itrack]) > 0.8) continue;
 	  if( not(track_its_ncluster[itrack]>4)) continue;
 	  if( not(track_its_chi_square[itrack]/track_its_ncluster[itrack] <36)) continue;
 	  if( not(TMath::Abs(track_dca_xy[itrack])<0.0231+0.0315/TMath::Power(track_pt[itrack],1.3 ))) continue;
-	  
 
 	  //Electron Veto for associated tracks outside of isolation cone
 	  double dRmin = 1.0;
@@ -429,7 +429,7 @@ int main(int argc, char *argv[])
 	    if (dR < dRmin) Track_HasMatch = true;
 	    break;
 	  }
-	  if (Track_HasMatch) continue;
+// 	  if (Track_HasMatch) continue;
 
 	  //Observables:
 	  Double_t zt = track_pt[itrack]/cluster_pt[n];
@@ -438,6 +438,8 @@ int main(int argc, char *argv[])
 	  if (DeltaPhi > 3*M_PI/2) DeltaPhi =DeltaPhi -2*M_PI;
 	  Float_t DeltaEta = cluster_eta[n] - track_eta[itrack];
 	  if ((TMath::Abs(DeltaPhi) < 0.005) && (TMath::Abs(DeltaEta) < 0.005)) continue; //Match Mixing Cut
+
+	  //fprintf(stderr,"%f   ",track_pt[itrack]);
 
 	  for (int ipt = 0; ipt < nptbins; ipt++){
 	    if (cluster_pt[n] >ptbins[ipt] && cluster_pt[n] <ptbins[ipt+1]){
@@ -455,14 +457,15 @@ int main(int argc, char *argv[])
 	    }//end if in pt bin                                                                                                  
 	  }//end pt loop bin   
 	}//end loop over tracks
-      }//end loop on clusters. 
+	//fprintf(stderr,"\n"); 
+      }//end loop on clusters.
     } //end loop over events  
   }//end loop over samples
 
   // Write to fout
   
   //TFile* fout = new TFile(Form("fout_Corr_config%s.root", opened_files.c_str()),"RECREATE");
-  TFile* fout = new TFile("Same_Event_Correlation.root","RECREATE");
+  TFile* fout = new TFile("Same_Event_Correlation_TPC_ISO.root","RECREATE");
   h_ntrig.Write("ntriggers");
   std::cout<<"Clusters Passed Iosalation: "<<N_Signal_Triggers<<std::endl;
   
