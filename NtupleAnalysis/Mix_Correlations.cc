@@ -48,7 +48,7 @@ int main(int argc, char *argv[])
   double noniso_min = 0;
   double noniso_max = 0;
   double deta_max = 0;
-  isolationDet determiner = CLUSTER_ISO_ITS_04;
+  isolationDet determiner = CLUSTER_ISO_ITS_04; //replaced by config file. Check on Print
   int n_eta_bins = 0;
   int n_phi_bins = 0;  
 
@@ -324,8 +324,7 @@ int main(int argc, char *argv[])
     Float_t mc_truth_first_parent_eta[NTRACK_MAX];
     Float_t mc_truth_first_parent_phi[NTRACK_MAX];
     UChar_t mc_truth_status[NTRACK_MAX];
- 
-    
+     
     // Set the branch addresses of the branches in the TTrees
     _tree_event->SetBranchStatus("*mc*", 0);
   
@@ -360,11 +359,8 @@ int main(int argc, char *argv[])
     
     std::cout << " Total Number of entries in TTree: " << _tree_event->GetEntries() << std::endl;
 
-//     UInt_t ntrack_max = 553;
-//     UInt_t ncluster_max = 150;
-
-     UInt_t ntrack_max = 0;
-     UInt_t ncluster_max = 0;
+//     UInt_t ntrack_max = 0;
+//     UInt_t ncluster_max = 0;
 
 //     fprintf(stderr, "\r%s:%d: %s\n", __FILE__, __LINE__, "Determining ntrack_max and ncluster_max needed for hdf5 hyperslab");
 //     for (Long64_t i = 0; i < _tree_event->GetEntries(); i++) {
@@ -373,8 +369,11 @@ int main(int argc, char *argv[])
 //       ncluster_max = std::max(ncluster_max, ncluster);
 //       fprintf(stderr, "\r%s:%d: %llu", __FILE__, __LINE__, i);
 //     }
-    ntrack_max = 3000;
-    ncluster_max = 23;
+//    ntrack_max = 2514;
+//    ncluster_max = 33;
+
+    UInt_t ntrack_max = 414;
+    UInt_t ncluster_max = 23;
 
     fprintf(stderr, "\n%s:%d: %s", __FILE__, __LINE__, "USING HARDCODED HDF5 DIMENSIONS");
     fprintf(stderr, "\n%s:%d: maximum tracks:%i maximum clusters:%i\n", __FILE__, __LINE__, ntrack_max,ncluster_max);
@@ -467,14 +466,14 @@ int main(int argc, char *argv[])
 	    if (std::isnan(track_data_out[0][itrack][1])) break;
 	    //if ((int(track_data_out[0][itrack][4]+0.5)&selection_number)==0) continue;
 	    if ((int(track_data_out[0][itrack][4]+ 0.5)&TrackCutBit)==0) continue; //selection 16
-	    if (track_data_out[0][itrack][1] < 1) continue; //less than 1GeV
+	    if (track_data_out[0][itrack][1] < 0.5) continue; //less than 1GeV
 	    if (track_data_out[0][itrack][1] > 30) continue; //less than 1GeV
 	    if (abs(track_data_out[0][itrack][2]) > 0.8) continue;
 	    if (track_data_out[0][itrack][7] < 4) continue;
 	    if ((track_data_out[0][itrack][8]/track_data_out[0][itrack][7]) > 36) continue;
 	    if( not(TMath::Abs(track_data_out[0][itrack][9])<0.0231+0.0315/TMath::Power(track_data_out[0][itrack][4],1.3 ))) continue;
 
-	    double dRmin = 0.1;
+	    double dRmin = 0.02;
 	    //veto charged particles from mixed event tracks
 	    bool MixTrack_HasMatch = false;
 	    for (unsigned int l = 0; l < ncluster_max; l++){
@@ -527,7 +526,7 @@ int main(int argc, char *argv[])
 
 
     // Write to fout    
-    TFile* fout = new TFile("Mix_Correlation.root","RECREATE");
+    TFile* fout = new TFile("Mix_Correlation_13def.root","RECREATE");
     for (int ipt = 0; ipt<nptbins; ipt++){    
       for (int izt = 0; izt<nztbins; izt++){
 	Corr[izt+ipt*nztbins]->Write();

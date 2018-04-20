@@ -25,17 +25,26 @@ int main()
 
   //TFile *corr = TFile::Open((TString)argv[1]);
 
-  TFile *corr = TFile::Open("Same_Event_Correlation.root");
+  //TFile *corr = TFile::Open("Same_Event_Correlation.root");
+  TFile *corr = TFile::Open("Same_Event_Correlation_TPC_ISO.root");
   if (corr == NULL) {
     std::cout << "file 1 fail" << std::endl;
     exit(EXIT_FAILURE);
     }
 
-  TFile *mix = TFile::Open("Mix_Event_Correlation.root");
-  if (mix == NULL) {
+  TFile *mix_LpT = TFile::Open("Mix_Event_Correlation.root");
+  if (mix_LpT == NULL) {
     std::cout << " file 2 fail" << std::endl;
     exit(EXIT_FAILURE);
   }
+
+  //TFile *mix = TFile::Open("Mix_Event_Correlation.root");
+  TFile *mix_HpT = TFile::Open("Mix_Correlation_TPCISO_13C_4GeV.root");
+  if (mix_HpT == NULL) {
+    std::cout << " file 3 fail" << std::endl;
+    exit(EXIT_FAILURE);
+  }
+
   //FIXME add Corr_config.yaml support
   int nztbins = 7;
   float* ztbins;
@@ -78,25 +87,49 @@ int main()
 	std::cout << "Same 2 TH2D fail" << std::endl;
 	exit(EXIT_FAILURE);}
 
-      Mix_DNN1_Corr[izt+ipt*nztbins] = (TH2F*)mix->Get(
-      Form("DNN%i_Correlation__pT%1.0f_%1.0f__zT%1.0f_zT%1.0f",
-      1,ptbins[ipt],ptbins[ipt+1],10*ztbins[izt],10*ztbins[izt+1]));   
+      //Implement due to Track pT Skimming min bias
+      if (ptbins[ipt]*ztbins[izt] < 4){
 
-      if (Mix_DNN1_Corr[izt+ipt*nztbins] == NULL) {
-	std::cout << " mix 1 TH2D  fail" << std::endl;
+	Mix_DNN1_Corr[izt+ipt*nztbins] = (TH2F*)mix_LpT->Get(
+        Form("DNN%i_Correlation__pT%1.0f_%1.0f__zT%1.0f_zT%1.0f",
+        1,ptbins[ipt],ptbins[ipt+1],10*ztbins[izt],10*ztbins[izt+1]));   
+
+	if (Mix_DNN1_Corr[izt+ipt*nztbins] == NULL) {
+	std::cout << " mix Unskimmed TH2D file 1 fail" << std::endl;
 	exit(EXIT_FAILURE);
+	}
+      
+	Mix_DNN2_Corr[izt+ipt*nztbins] = (TH2F*)mix_LpT->Get(
+        Form("DNN%i_Correlation__pT%1.0f_%1.0f__zT%1.0f_zT%1.0f",
+	2,ptbins[ipt],ptbins[ipt+1],10*ztbins[izt],10*ztbins[izt+1]));
+
+	if (Mix_DNN2_Corr[izt+ipt*nztbins] == NULL) {
+	std::cout << " mix Unskimmed  TH2D file 2 fail" << std::endl;
+        exit(EXIT_FAILURE);}
+
+      }
+
+      else{
+	Mix_DNN1_Corr[izt+ipt*nztbins] = (TH2F*)mix_HpT->Get(
+        Form("DNN%i_Correlation__pT%1.0f_%1.0f__zT%1.0f_zT%1.0f",
+        1,ptbins[ipt],ptbins[ipt+1],10*ztbins[izt],10*ztbins[izt+1]));   
+
+	if (Mix_DNN1_Corr[izt+ipt*nztbins] == NULL) {
+	std::cout << " mix 4GeV Track Skimmed TH2D 1 fail" << std::endl;
+	exit(EXIT_FAILURE);
+	}
+      
+	Mix_DNN2_Corr[izt+ipt*nztbins] = (TH2F*)mix_HpT->Get(
+        Form("DNN%i_Correlation__pT%1.0f_%1.0f__zT%1.0f_zT%1.0f",
+	2,ptbins[ipt],ptbins[ipt+1],10*ztbins[izt],10*ztbins[izt+1]));
+
+	if (Mix_DNN2_Corr[izt+ipt*nztbins] == NULL) {
+	std::cout << " mix 4GeV Track Skimmed TH2D 2 fail" << std::endl;
+        exit(EXIT_FAILURE);
+	}
       }
       
-      Mix_DNN2_Corr[izt+ipt*nztbins] = (TH2F*)mix->Get(
-      Form("DNN%i_Correlation__pT%1.0f_%1.0f__zT%1.0f_zT%1.0f",
-      2,ptbins[ipt],ptbins[ipt+1],10*ztbins[izt],10*ztbins[izt+1]));
-
-      if (Mix_DNN2_Corr[izt+ipt*nztbins] == NULL) {
-	std::cout << " mix 2 TH2D  fail" << std::endl;
-        exit(EXIT_FAILURE);
-      }
-
-    //Normalize Mixing to 1 at ∆eta∆phi = 0,0
+    //Normalize MixOAing to 1 at ∆eta∆phi = 0,0
     TAxis *mix_xaxis = Mix_DNN1_Corr[izt+ipt*nztbins]->GetXaxis();
     TAxis *mix_yaxis = Mix_DNN1_Corr[izt+ipt*nztbins]->GetYaxis();
     Double_t mix_DNN1_intgrl = Mix_DNN1_Corr[izt+ipt*nztbins]->GetBinContent
@@ -104,14 +137,14 @@ int main()
     std::cout<<"Mix Event DNN1 Value at (0,0) = "<<mix_DNN1_intgrl<<std::endl;
     Double_t mix_DNN2_intgrl = Mix_DNN2_Corr[izt+ipt*nztbins]->GetBinContent
       (mix_xaxis->FindBin(0.0),mix_yaxis->FindBin(0.0)); //binning is the same
-    Double_t DNN1_norm = 1.0/mix_DNN1_intgrl;
-    Double_t DNN2_norm = 1.0/mix_DNN2_intgrl;
-    Mix_DNN1_Corr[izt+ipt*nztbins]->Scale(mix_DNN1_intgrl);
-    Mix_DNN2_Corr[izt+ipt*nztbins]->Scale(mix_DNN2_intgrl);
+//     Double_t DNN1_norm = 1.0/mix_DNN1_intgrl;
+//     Double_t DNN2_norm = 1.0/mix_DNN2_intgrl;
+    Mix_DNN1_Corr[izt+ipt*nztbins]->Scale(1.0/mix_DNN1_intgrl);
+    Mix_DNN2_Corr[izt+ipt*nztbins]->Scale(1.0/mix_DNN2_intgrl);
 
     //DIVIDE MIXING
     Same_DNN1_Corr[izt+ipt*nztbins]->Divide(Mix_DNN1_Corr[izt+ipt*nztbins]);
-    Same_DNN2_Corr[izt+ipt*nztbins]->Divide(Mix_DNN1_Corr[izt+ipt*nztbins]);
+    Same_DNN2_Corr[izt+ipt*nztbins]->Divide(Mix_DNN2_Corr[izt+ipt*nztbins]);
 
       Same_DNN1_Corr[izt+ipt*nztbins]->Write();
     }//zt bin
@@ -128,7 +161,8 @@ int main()
 
   TCanvas *canvas = new TCanvas("canv","canv", 1200,1000);
   corr->Close();
-  mix->Close();
+  mix_LpT->Close();
+  mix_HpT->Close();
   MyFile->Close();
   //  theApp.Run();
   std::cout<<"Success"<<std::endl;
