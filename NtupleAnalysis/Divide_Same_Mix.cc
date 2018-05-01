@@ -22,35 +22,35 @@ int main()
 //     std::cout<<"Syntax is [Command] [Same_Event_root_file] [Mixed_Event_root_file]"<<std::endl;
 //     exit(EXIT_FAILURE);
 //   }
+//    TFile *corr = TFile::Open((TString)argv[1]);
 
-  //TFile *corr = TFile::Open((TString)argv[1]);
-
-  //TFile *corr = TFile::Open("Same_Event_Correlation.root");
   TFile *corr = TFile::Open("Same_Event_Correlation_TPC_ISO.root");
   if (corr == NULL) {
     std::cout << "file 1 fail" << std::endl;
     exit(EXIT_FAILURE);
     }
 
-  TFile *mix_LpT = TFile::Open("Mix_Event_Correlation.root");
-  if (mix_LpT == NULL) {
-    std::cout << " file 2 fail" << std::endl;
-    exit(EXIT_FAILURE);
-  }
+  int nTrackSkims = 3;
+  float* trackPtSkims;
+  trackPtSkims = new float[nTrackSkims+1];
+  trackPtSkims[0] = 0.0; trackPtSkims[1] = 4.0; trackPtSkims[2] = 6.0; trackPtSkims[3] = 30.0;
+  //trackPtSkims[2] = 30.0;
 
-  //TFile *mix = TFile::Open("Mix_Event_Correlation.root");
-  TFile *mix_HpT = TFile::Open("Mix_Correlation_TPCISO_13C_4GeV.root");
-  if (mix_HpT == NULL) {
-    std::cout << " file 3 fail" << std::endl;
-    exit(EXIT_FAILURE);
+  TFile* MixFile[nTrackSkims];
+  for (int iSkim = 0; iSkim < nTrackSkims; iSkim ++){
+    MixFile[iSkim] = TFile::Open(Form("Mix_Correlation_%1.0fGeVTracks_13def.root",trackPtSkims[iSkim]));
+    std::cout<<Form("Mix_Correlation_%1.0fGeVTracks_13def.root",trackPtSkims[iSkim])<<std::endl;
+    if (MixFile[iSkim] == NULL) {
+      std::cout<<MixFile[iSkim]<<std::endl;
+      std::cout << " Mixed file "<<iSkim<<" failed" << std::endl;
+      exit(EXIT_FAILURE);}
   }
-
   //FIXME add Corr_config.yaml support
   int nztbins = 7;
   float* ztbins;
   ztbins = new float[nztbins+1];
   ztbins[0] = 0.05; ztbins[1] = 0.1; ztbins[2] = 0.2; ztbins[3] = 0.4; ztbins[4] = 0.6; ztbins[5] = 0.8; ztbins[6] = 1.0; ztbins[7] = 1.2;
-  //FIXME
+  //FIXME: Why was it written like this? why not zt[] = {a,b,c,...}
 
   int nptbins = 3;
   float* ptbins;
@@ -88,57 +88,43 @@ int main()
 	exit(EXIT_FAILURE);}
 
       //Implement due to Track pT Skimming min bias
-      if (ptbins[ipt]*ztbins[izt] < 4){
+      for (int iSkim = 0; iSkim < nTrackSkims; iSkim ++){
+	
+	if ((ptbins[ipt]*ztbins[izt] >= trackPtSkims[iSkim]) && ((ptbins[ipt]*ztbins[izt]) <= trackPtSkims[iSkim+1]-0.5)){
+	  //a bit hacky, since ptbin*ztbin do not always correspond to integers...
 
-	Mix_DNN1_Corr[izt+ipt*nztbins] = (TH2F*)mix_LpT->Get(
-        Form("DNN%i_Correlation__pT%1.0f_%1.0f__zT%1.0f_zT%1.0f",
-        1,ptbins[ipt],ptbins[ipt+1],10*ztbins[izt],10*ztbins[izt+1]));   
+	  fprintf(stderr,"pt min max: %1.2f %1.2f, zt min max %1.2f %1.2f\n",ptbins[ipt],ptbins[ipt+1],ztbins[izt],ztbins[izt+1]);
+	  fprintf(stderr,"Track pT between %1.2f and %1.2f\n",ptbins[ipt]*ztbins[izt],ptbins[ipt+1]*ztbins[izt+1]);
+	  
+	  Mix_DNN1_Corr[izt+ipt*nztbins] = (TH2F*)MixFile[iSkim]->Get(
+          Form("DNN%i_Correlation__pT%1.0f_%1.0f__zT%1.0f_zT%1.0f",
+          1,ptbins[ipt],ptbins[ipt+1],10*ztbins[izt],10*ztbins[izt+1]));   
 
-	if (Mix_DNN1_Corr[izt+ipt*nztbins] == NULL) {
-	std::cout << " mix Unskimmed TH2D file 1 fail" << std::endl;
-	exit(EXIT_FAILURE);
-	}
+	  if (Mix_DNN1_Corr[izt+ipt*nztbins] == NULL) {
+	    std::cout << " mix TH2D DNN1 read fail "<<"Mix file "<<iSkim<< std::endl;
+	    exit(EXIT_FAILURE);}
       
-	Mix_DNN2_Corr[izt+ipt*nztbins] = (TH2F*)mix_LpT->Get(
-        Form("DNN%i_Correlation__pT%1.0f_%1.0f__zT%1.0f_zT%1.0f",
-	2,ptbins[ipt],ptbins[ipt+1],10*ztbins[izt],10*ztbins[izt+1]));
+	  Mix_DNN2_Corr[izt+ipt*nztbins] = (TH2F*)MixFile[iSkim]->Get(
+          Form("DNN%i_Correlation__pT%1.0f_%1.0f__zT%1.0f_zT%1.0f",
+	  2,ptbins[ipt],ptbins[ipt+1],10*ztbins[izt],10*ztbins[izt+1]));
 
-	if (Mix_DNN2_Corr[izt+ipt*nztbins] == NULL) {
-	std::cout << " mix Unskimmed  TH2D file 2 fail" << std::endl;
-        exit(EXIT_FAILURE);}
+	  if (Mix_DNN2_Corr[izt+ipt*nztbins] == NULL) {
+	    std::cout << " mix TH2D DNN2 read fail "<<"Mix file "<<iSkim<<std::endl;
+	    exit(EXIT_FAILURE);}     
+	}
 
       }
-
-      else{
-	Mix_DNN1_Corr[izt+ipt*nztbins] = (TH2F*)mix_HpT->Get(
-        Form("DNN%i_Correlation__pT%1.0f_%1.0f__zT%1.0f_zT%1.0f",
-        1,ptbins[ipt],ptbins[ipt+1],10*ztbins[izt],10*ztbins[izt+1]));   
-
-	if (Mix_DNN1_Corr[izt+ipt*nztbins] == NULL) {
-	std::cout << " mix 4GeV Track Skimmed TH2D 1 fail" << std::endl;
-	exit(EXIT_FAILURE);
-	}
-      
-	Mix_DNN2_Corr[izt+ipt*nztbins] = (TH2F*)mix_HpT->Get(
-        Form("DNN%i_Correlation__pT%1.0f_%1.0f__zT%1.0f_zT%1.0f",
-	2,ptbins[ipt],ptbins[ipt+1],10*ztbins[izt],10*ztbins[izt+1]));
-
-	if (Mix_DNN2_Corr[izt+ipt*nztbins] == NULL) {
-	std::cout << " mix 4GeV Track Skimmed TH2D 2 fail" << std::endl;
-        exit(EXIT_FAILURE);
-	}
-      }
-      
     //Normalize MixOAing to 1 at ∆eta∆phi = 0,0
     TAxis *mix_xaxis = Mix_DNN1_Corr[izt+ipt*nztbins]->GetXaxis();
     TAxis *mix_yaxis = Mix_DNN1_Corr[izt+ipt*nztbins]->GetYaxis();
+
     Double_t mix_DNN1_intgrl = Mix_DNN1_Corr[izt+ipt*nztbins]->GetBinContent
       (mix_xaxis->FindBin(0.0),mix_yaxis->FindBin(0.0));
     std::cout<<"Mix Event DNN1 Value at (0,0) = "<<mix_DNN1_intgrl<<std::endl;
+
     Double_t mix_DNN2_intgrl = Mix_DNN2_Corr[izt+ipt*nztbins]->GetBinContent
       (mix_xaxis->FindBin(0.0),mix_yaxis->FindBin(0.0)); //binning is the same
-//     Double_t DNN1_norm = 1.0/mix_DNN1_intgrl;
-//     Double_t DNN2_norm = 1.0/mix_DNN2_intgrl;
+
     Mix_DNN1_Corr[izt+ipt*nztbins]->Scale(1.0/mix_DNN1_intgrl);
     Mix_DNN2_Corr[izt+ipt*nztbins]->Scale(1.0/mix_DNN2_intgrl);
 
@@ -161,8 +147,7 @@ int main()
 
   TCanvas *canvas = new TCanvas("canv","canv", 1200,1000);
   corr->Close();
-  mix_LpT->Close();
-  mix_HpT->Close();
+  for (int iSkim = 0; iSkim < nTrackSkims; iSkim ++) MixFile[iSkim]->Close();
   MyFile->Close();
   //  theApp.Run();
   std::cout<<"Success"<<std::endl;
