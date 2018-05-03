@@ -369,13 +369,14 @@ int main(int argc, char *argv[])
 //       ncluster_max = std::max(ncluster_max, ncluster);
 //       fprintf(stderr, "\r%s:%d: %llu", __FILE__, __LINE__, i);
 //     }
+
 //    ntrack_max = 2514;
 //    ncluster_max = 33;
-
     UInt_t ntrack_max = 414;
     UInt_t ncluster_max = 23;
-
     fprintf(stderr, "\n%s:%d: %s", __FILE__, __LINE__, "USING HARDCODED HDF5 DIMENSIONS");
+
+
     fprintf(stderr, "\n%s:%d: maximum tracks:%i maximum clusters:%i\n", __FILE__, __LINE__, ntrack_max,ncluster_max);
 
     //open hdf5: Define size of data from file, explicitly allocate memory in hdf5 space and array size
