@@ -1,0 +1,190 @@
+pT_min: 10
+pT_max: 16
+DNN_min: 0.55
+DNN_max: 0.85
+Eta_max: 0.6
+Cluster_min: 2
+EcrossoverE_min; 0.03
+iso_max: 1
+noniso_min: 5
+noniso_max: 10
+deta_max: 0.6
+Number of Phi Bins: 24
+Number of Eta Bins: 14
+Track Cut Bit: 16
+Number of Zt bins: 7
+Zt bins: {0, 0.1, 0.2, 0.4, 0.6, 0.8, 1, 1.2, }
+Number of Pt bins: 3
+Pt bins: {10, 11, 12.5, 16, }
+Isolation Variable: cluster_iso_its_04
+zt bound: 0
+zt bound: 0.1
+zt bound: 0.2
+zt bound: 0.4
+zt bound: 0.6
+zt bound: 0.8
+zt bound: 1
+zt bound: 1.2
+pt bound: 10
+pt bound: 11
+pt bound: 12.5
+pt bound: 16
+Opening: ../../root_files/13d50_small.root
+TFile: name=../../root_files/13d50_small.root, title=, option=READ
+ Total Number of entries in TTree: 128636
+Event: 7 Cluster pT:  11.046875      Track pT's:  
+Event: 11 Cluster pT:  13.054688      Track pT's:  
+Event: 33 Cluster pT:  15.562500      Track pT's:  
+Event: 40 Cluster pT:  11.234375      Track pT's:  
+Event: 49 Cluster pT:  11.484375      Track pT's:  
+Event: 50 Cluster pT:  13.304688      Track pT's:  
+Event: 52 Cluster pT:  11.820312      Track pT's:  
+Event: 61 Cluster pT:  13.312500      Track pT's:  
+Event: 70 Cluster pT:  13.000000      Track pT's:  
+Event: 84 Cluster pT:  12.046875      Track pT's:  
+Event: 85 Cluster pT:  11.929688      Track pT's:  
+Event: 92 Cluster pT:  11.460938      Track pT's:  
+Event: 96 Cluster pT:  12.164062      Track pT's:  
+Event: 106 Cluster pT:  12.265625      Track pT's:  
+Event: 119 Cluster pT:  10.929688      Track pT's:  
+Event: 119 Cluster pT:  12.656250      Track pT's:  
+Event: 121 Cluster pT:  10.117188      Track pT's:  1.916992   1.604492   1.333008   1.963867   1.215820   1.695312   1.771484   1.325195   
+Event: 145 Cluster pT:  11.132812      Track pT's:  
+Event: 147 Cluster pT:  13.218750      Track pT's:  
+Event: 150 Cluster pT:  10.937500      Track pT's:  
+Event: 153 Cluster pT:  12.421875      Track pT's:  
+Event: 160 Cluster pT:  15.476562      Track pT's:  
+Event: 166 Cluster pT:  10.968750      Track pT's:  
+Event: 181 Cluster pT:  10.585938      Track pT's:  
+Event: 188 Cluster pT:  13.148438      Track pT's:  
+Event: 195 Cluster pT:  13.070312      Track pT's:  
+Event: 197 Cluster pT:  10.210938      Track pT's:  
+Event: 199 Cluster pT:  12.015625      Track pT's:  
+Event: 204 Cluster pT:  12.210938      Track pT's:  3.943359   1.161133   1.268555   1.367188   1.216797   1.547852   1.120117   1.452148   2.193359   1.399414   1.780273   2.240234   1.590820   1.096680   
+Event: 205 Cluster pT:  15.085938      Track pT's:  
+Event: 217 Cluster pT:  10.953125      Track pT's:  
+Event: 220 Cluster pT:  11.046875      Track pT's:  
+Event: 221 Cluster pT:  11.921875      Track pT's:  
+Event: 233 Cluster pT:  11.718750      Track pT's:  
+Event: 238 Cluster pT:  14.984375      Track pT's:  
+Event: 244 Cluster pT:  10.273438      Track pT's:  2.412109   
+Event: 248 Cluster pT:  14.656250      Track pT's:  
+Event: 251 Cluster pT:  12.726562      Track pT's:  
+Event: 272 Cluster pT:  15.570312      Track pT's:  
+Event: 273 Cluster pT:  10.453125      Track pT's:  2.144531   1.392578   1.594727   1.449219   1.783203   1.661133   3.142578   2.003906   6.359375   3.125000   2.449219   1.439453   3.191406   1.191406   1.328125   1.172852   
+Event: 285 Cluster pT:  14.312500      Track pT's:  
+Event: 292 Cluster pT:  11.914062      Track pT's:  
+Event: 299 Cluster pT:  10.140625      Track pT's:  1.496094   1.277344   1.471680   1.047852   1.404297   2.761719   1.342773   1.487305   1.194336   
+Event: 300 Cluster pT:  10.601562      Track pT's:  
+Event: 310 Cluster pT:  10.093750      Track pT's:  
+Event: 320 Cluster pT:  15.304688      Track pT's:  
+Event: 322 Cluster pT:  13.468750      Track pT's:  
+Event: 324 Cluster pT:  14.679688      Track pT's:  1.867188   2.328125   
+Event: 339 Cluster pT:  15.664062      Track pT's:  
+Event: 340 Cluster pT:  15.164062      Track pT's:  1.593750   1.323242   1.083008   1.061523   
+Event: 344 Cluster pT:  14.343750      Track pT's:  
+Event: 348 Cluster pT:  12.039062      Track pT's:  
+Event: 363 Cluster pT:  12.343750      Track pT's:  
+Event: 369 Cluster pT:  12.476562      Track pT's:  
+Event: 388 Cluster pT:  10.914062      Track pT's:  
+Event: 394 Cluster pT:  11.445312      Track pT's:  
+Event: 397 Cluster pT:  13.468750      Track pT's:  
+Event: 400 Cluster pT:  12.539062      Track pT's:  
+Event: 404 Cluster pT:  10.726562      Track pT's:  
+Event: 405 Cluster pT:  13.609375      Track pT's:  
+Event: 418 Cluster pT:  12.304688      Track pT's:  2.164062   2.535156   1.642578   1.052734   2.287109   1.281250   1.114258   1.687500   1.886719   1.500000   
+Event: 435 Cluster pT:  11.578125      Track pT's:  
+Event: 446 Cluster pT:  14.335938      Track pT's:  
+Event: 451 Cluster pT:  10.296875      Track pT's:  1.252930   3.509766   1.937500   1.510742   1.457031   1.435547   4.187500   2.136719   1.451172   
+Event: 454 Cluster pT:  10.851562      Track pT's:  
+Event: 455 Cluster pT:  11.179688      Track pT's:  
+Event: 460 Cluster pT:  11.679688      Track pT's:  1.666992   1.867188   1.074219   1.972656   1.414062   1.207031   
+Event: 476 Cluster pT:  14.359375      Track pT's:  
+Event: 478 Cluster pT:  13.757812      Track pT's:  
+Event: 482 Cluster pT:  12.242188      Track pT's:  1.579102   1.388672   1.071289   1.199219   1.667969   1.530273   
+Event: 491 Cluster pT:  11.289062      Track pT's:  
+Event: 505 Cluster pT:  13.390625      Track pT's:  
+Event: 507 Cluster pT:  10.312500      Track pT's:  
+Event: 509 Cluster pT:  15.148438      Track pT's:  
+Event: 509 Cluster pT:  13.992188      Track pT's:  
+Event: 520 Cluster pT:  10.109375      Track pT's:  
+Event: 523 Cluster pT:  12.234375      Track pT's:  
+Event: 525 Cluster pT:  12.539062      Track pT's:  
+Event: 526 Cluster pT:  10.453125      Track pT's:  
+Event: 528 Cluster pT:  11.640625      Track pT's:  
+Event: 529 Cluster pT:  12.359375      Track pT's:  
+Event: 534 Cluster pT:  10.664062      Track pT's:  
+Event: 535 Cluster pT:  10.976562      Track pT's:  
+Event: 553 Cluster pT:  12.585938      Track pT's:  
+Event: 556 Cluster pT:  11.976562      Track pT's:  
+Event: 564 Cluster pT:  15.007812      Track pT's:  
+Event: 569 Cluster pT:  11.648438      Track pT's:  
+Event: 575 Cluster pT:  14.859375      Track pT's:  
+Event: 581 Cluster pT:  10.492188      Track pT's:  
+Event: 586 Cluster pT:  11.328125      Track pT's:  
+Event: 590 Cluster pT:  10.781250      Track pT's:  
+Event: 591 Cluster pT:  12.945312      Track pT's:  
+Event: 592 Cluster pT:  10.773438      Track pT's:  
+Event: 596 Cluster pT:  11.406250      Track pT's:  
+Event: 606 Cluster pT:  13.242188      Track pT's:  
+Event: 608 Cluster pT:  13.914062      Track pT's:  
+Event: 612 Cluster pT:  14.562500      Track pT's:  
+Event: 615 Cluster pT:  11.992188      Track pT's:  
+Event: 616 Cluster pT:  12.351562      Track pT's:  
+Event: 621 Cluster pT:  10.078125      Track pT's:  
+Event: 622 Cluster pT:  13.718750      Track pT's:  
+Event: 625 Cluster pT:  13.828125      Track pT's:  
+Event: 631 Cluster pT:  15.289062      Track pT's:  
+Event: 639 Cluster pT:  11.304688      Track pT's:  
+Event: 644 Cluster pT:  11.148438      Track pT's:  
+Event: 649 Cluster pT:  12.664062      Track pT's:  
+Event: 657 Cluster pT:  11.664062      Track pT's:  
+Event: 661 Cluster pT:  11.835938      Track pT's:  
+Event: 665 Cluster pT:  12.875000      Track pT's:  
+Event: 674 Cluster pT:  10.898438      Track pT's:  
+Event: 678 Cluster pT:  10.578125      Track pT's:  
+Event: 688 Cluster pT:  10.359375      Track pT's:  
+Event: 713 Cluster pT:  12.578125      Track pT's:  
+Event: 719 Cluster pT:  11.140625      Track pT's:  
+Event: 721 Cluster pT:  12.070312      Track pT's:  
+Event: 724 Cluster pT:  13.679688      Track pT's:  
+Event: 726 Cluster pT:  11.726562      Track pT's:  
+Event: 747 Cluster pT:  11.179688      Track pT's:  
+Event: 758 Cluster pT:  14.093750      Track pT's:  
+Event: 766 Cluster pT:  13.523438      Track pT's:  
+Event: 767 Cluster pT:  12.625000      Track pT's:  
+Event: 772 Cluster pT:  11.640625      Track pT's:  
+Event: 776 Cluster pT:  10.187500      Track pT's:  
+Event: 780 Cluster pT:  11.164062      Track pT's:  
+Event: 781 Cluster pT:  13.070312      Track pT's:  
+Event: 789 Cluster pT:  11.382812      Track pT's:  
+Event: 797 Cluster pT:  13.453125      Track pT's:  1.129883   1.852539   1.452148   1.805664   1.875977   3.636719   2.005859   1.116211   1.366211   1.270508   2.630859   1.278320   1.460938   3.681641   1.841797   
+Event: 804 Cluster pT:  12.921875      Track pT's:  
+Event: 805 Cluster pT:  12.476562      Track pT's:  
+Event: 814 Cluster pT:  10.054688      Track pT's:  
+Event: 828 Cluster pT:  12.148438      Track pT's:  
+Event: 846 Cluster pT:  14.953125      Track pT's:  
+Event: 871 Cluster pT:  14.726562      Track pT's:  
+Event: 879 Cluster pT:  11.890625      Track pT's:  
+Event: 887 Cluster pT:  10.906250      Track pT's:  
+Event: 888 Cluster pT:  10.179688      Track pT's:  
+Event: 892 Cluster pT:  11.835938      Track pT's:  
+Event: 912 Cluster pT:  14.046875      Track pT's:  
+Event: 915 Cluster pT:  12.054688      Track pT's:  
+Event: 924 Cluster pT:  12.187500      Track pT's:  
+Event: 931 Cluster pT:  11.281250      Track pT's:  
+Event: 943 Cluster pT:  11.226562      Track pT's:  
+Event: 949 Cluster pT:  12.765625      Track pT's:  
+Event: 951 Cluster pT:  12.843750      Track pT's:  
+Event: 955 Cluster pT:  11.031250      Track pT's:  
+Event: 962 Cluster pT:  10.937500      Track pT's:  1.549805   3.572266   1.161133   3.242188   1.210938   1.068359   2.466797   1.844727   1.361328   1.782227   2.693359   1.462891   5.074219   2.148438   2.921875   1.891602   1.456055   2.619141   1.713867   
+Event: 963 Cluster pT:  10.343750      Track pT's:  
+Event: 964 Cluster pT:  10.882812      Track pT's:  
+Event: 970 Cluster pT:  10.789062      Track pT's:  
+Event: 978 Cluster pT:  12.187500      Track pT's:  
+Event: 979 Cluster pT:  11.968750      Track pT's:  
+Event: 985 Cluster pT:  10.093750      Track pT's:  
+Event: 991 Cluster pT:  14.445312      Track pT's:  
+Event: 994 Cluster pT:  10.929688      Track pT's:  
+Clusters Passed Iosalation: 77
+ ending 
