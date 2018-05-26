@@ -345,7 +345,7 @@ void mix_gale_shapley(const char *filename_0, const char *filename_1, const char
 	//fprintf(stderr,"\n%s\n","Using Assymetric File block distribution, LARGER FILE: SECEND ARG"); 
 
 	for(size_t h = 0; h < nblock_0+1; h++){
-	//for(size_t h = nblock_0; h < nblock_0+1; h++){
+	  //for(size_t h = nblock_0; h < nblock_0+1; h++){
 	  const size_t event_start_0 = h * nevent_0 / (nblock_0 + 1);
 	  size_t event_end_0 = (h + 1) * nevent_0 / (nblock_0 + 1);
 	  size_t hblock_nevents_0 = event_end_0 - event_start_0;	  
@@ -461,7 +461,7 @@ void mix_gale_shapley(const char *filename_0, const char *filename_1, const char
 
 	  //    write to txt
 
-	FILE * txtfile = fopen (Form("%iGeVpairs_v1_%lu_%lu.txt",Track_Skim,mix_start,mix_end),"w");
+	FILE * txtfile = fopen (Form("../InputData/%iGeVpairs_v1_%lu_%lu.txt",Track_Skim,mix_start,mix_end),"w");
 	  for (size_t t=0; t<Matches.size();t++){
 	    for (size_t s=0; s<Matches[t].size();s++){
 	      fprintf(txtfile, "%lld\t", Matches[t][s]);
@@ -476,7 +476,7 @@ void mix_gale_shapley(const char *filename_0, const char *filename_1, const char
 	  TFile *root_file = new TFile(filename_0,"update");
 	  TTree *hi_tree = dynamic_cast<TTree *>(root_file->Get(HI_TREE));
 
-	  TFile *newfile = new TFile(Form("13defv1_c_%lu_%lu_%iGeV_TrackSkim_mixed.root",mix_start,mix_end,Track_Skim),"recreate");	  
+	  TFile *newfile = new TFile(Form("../InputData/13defv1_c_%lu_%lu_%iGeV_TrackSkim_mixed.root",mix_start,mix_end,Track_Skim),"recreate");	  
 
 	  //TFiles are more closely associated with TTrees, need to clone, not append....
 	  TTree *newtree = hi_tree->CloneTree(0);
