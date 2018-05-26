@@ -76,20 +76,22 @@ Divides the same event correlation by the mixe event correlation in the appropri
 Make Same_Mix_Ratio
 ./Same_Mix_Ratio
 
-## Disclaimer
+### Disclaimer
 These have been tested extensiveley, however files were recently moved around in order to consolidate repositories, and make my and other users' life much easier when running. Any errors are likeley related to files being in the wrong spot. Apologies in advance.
 
-#### Notebook
+## Notebook
 Simlpy start the notebook (jupyter-notebook at a terminal) and you should be able to run over different NTuples by removing the comment prefix for the appropriate file. Save images is a pics/ folder.
 
-#### Correlation Code
+## Nonn Batch Correlation Code
 Make sure the gamma triggered NTuple has had the mix_GS run on it from the [NTupilizer](https://github.com/yslai/ntuple-gj). This populates a branch with a list of mixed events to run over.
 
 Command:
 /Mix_Correlations [gamma triggered NTuple] [Min Bias NTuple]
 /Frixione_Correlations [gamma triggered NTuple]
 
-#### Divide Correlations
+# Out Dated Instructions
+
+## Divide Correlations
 The naming of root files here is very strict. The same event correlation function will be called something along the lines of `Same_Event_Correlation.root`, however the last part. The Mixed event correlation functios will be multiple root files with the name `Mix_Correlation_[i]GeVTracks_13def.root`
 where `i = {0,4,6,30}` at the moment. These contain the mixed event correlation functions that have been split up to address the lack of statistics in high zT bins.
 
