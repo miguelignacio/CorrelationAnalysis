@@ -1,6 +1,6 @@
 # Gamma Hadron Correlation Code
 
-This code is a mix of c++ and python code to extract a gamma hadron, and ultimatley fragmentation function involving isolated, single photons and associated charged hadrons from a hard scattering. This uses NTuples created in [Yue Shi Lai's NTupilizer](https://github.com/yslai/ntuple-gj).
+This code is a mix of c++ and python code to extract a gamma hadron, and ultimatley fragmentation function involving isolated, single photons and associated charged hadrons from a hard scattering. This uses NTuples created in [Yue Shi Lai's NTupilizer](https://github.com/yslai/ntuple-gj). hdf5 and Gale Shapeley pairing also built from examples
 
 ## Getting Started
 
