@@ -24,17 +24,35 @@ enum isolationDet {CLUSTER_ISO_TPC_04, CLUSTER_ISO_ITS_04, CLUSTER_FRIXIONE_TPC_
 
 using namespace H5;
 
+//int main(int argc, const char rootfilename, const char hdf5filename, const char *mixing_start, const char *mixing_end)
 int main(int argc, char *argv[])
 {
-  if (argc < 2) {
+  if (argc < 6) {
+    fprintf(stderr,"Batch Syntax is [Gamma-Triggered Root], [Min-Bias HDF5] [Mix Start] [Mix End] [Track Skim GeV]");
     exit(EXIT_FAILURE);
   }
+
   int dummyc = 1;
   char **dummyv = new char *[1];
 
   dummyv[0] = strdup("main");
   
+  TString root_file = (TString)argv[1];
+  std::cout << "Opening: " << (TString)argv[1] << std::endl;
+  const H5std_string hdf5_file_name(argv[2]);
+  TString hdf5_file = (TString)argv[2];
+  fprintf(stderr,hdf5_file);
+  size_t mix_start = atoi(argv[3]);
+  size_t mix_end = atoi(argv[4]);
+  int GeV_Track_Skim = atoi(argv[5]);
+  fprintf(stderr,"\nMix Start is: %lu \n",mix_start);
+  fprintf(stderr,"Mix End is: %lu \n",mix_end);
+  fprintf(stderr,"Using %iGeV Track Skimmed from batch Script \n",GeV_Track_Skim);
+  std::cout<<"Output root file will be: "<<Form("Mix_Correlation_%1.1lu_%1.0lu_%luGeVTracks_13def.root",mix_start,mix_end,GeV_Track_Skim)<<std::endl;
+  size_t nmix = 300;
+  fprintf(stderr,"Number of Mixed Events: %i \n",nmix);
   //Config File
+
   FILE* config = fopen("Corr_config.yaml", "r");
   double DNN_min = 0;
   double DNN_max = 0;
@@ -266,10 +284,11 @@ int main(int argc, char *argv[])
   
 
   //LOOP OVER SAMPLES
-  for (int iarg = 1; iarg < argc; iarg+=2) {
-    std::cout << "Opening: " << (TString)argv[iarg] << std::endl;
-    TFile *file = TFile::Open((TString)argv[iarg]);
-    
+  //for (int iarg = 1; iarg < argc; iarg+=2) {
+
+    //TFile *file = TFile::Open((TString)argv[iarg]);
+    TFile *file = TFile::Open(root_file);
+
     if (file == NULL) {
       std::cout << " fail" << std::endl;
       exit(EXIT_FAILURE);
@@ -308,7 +327,8 @@ int main(int argc, char *argv[])
     Float_t cluster_lambda_square[NTRACK_MAX][2];   
     Float_t cell_e[17664];
 
-    Long64_t Mix_Events[50];
+    fprintf(stderr,"Initializing Mixing Branch to %i ME",nmix);
+    Long64_t Mix_Events[300];
 
     //MC
     unsigned int nmc_truth;
@@ -380,7 +400,6 @@ int main(int argc, char *argv[])
     fprintf(stderr, "\n%s:%d: maximum tracks:%i maximum clusters:%i\n", __FILE__, __LINE__, ntrack_max,ncluster_max);
 
     //open hdf5: Define size of data from file, explicitly allocate memory in hdf5 space and array size
-    const H5std_string hdf5_file_name(argv[iarg+1]);
 
     const H5std_string track_ds_name( "track" );
     H5File h5_file( hdf5_file_name, H5F_ACC_RDONLY );
@@ -431,29 +450,30 @@ int main(int argc, char *argv[])
 
     Long64_t nentries = _tree_event->GetEntries();
 
-    //for(Long64_t ievent = 0; ievent < nentries ; ievent++){     
-    for(Long64_t ievent = 0; ievent < 25000 ; ievent++){
+    for(Long64_t ievent = 0; ievent < nentries ; ievent++){     
+    //for(Long64_t ievent = 0; ievent < 25000; ievent++){
       _tree_event->GetEntry(ievent);
       fprintf(stderr, "\r%s:%d: %llu / %llu", __FILE__, __LINE__, ievent, nentries);
-      //fprintf(stderr,"\n%s:%d: number of clusters: %lu\n",__FILE__,__LINE__,ncluster);
+
       for (ULong64_t n = 0; n < ncluster; n++) {
 	if( not(cluster_pt[n]>pT_min and cluster_pt[n]<pT_max)) continue; //select pt of photons
 	if( not(TMath::Abs(cluster_eta[n])<Eta_max)) continue; //cut edges of detector
 	if( not(cluster_ncell[n]>Cluster_min)) continue;   //removes clusters with 1 or 2 cells
 	if( not(cluster_e_cross[n]/cluster_e[n]>EcrossoverE_min)) continue; //removes "spiky" clusters    
 	
-	//fprintf(stderr,"%s:%d: cluster: %lu\n",__FILE__,__LINE__,n);
-
 	float isolation;
 	if (determiner == CLUSTER_ISO_TPC_04) isolation = cluster_iso_tpc_04[n];
 	else if (determiner == CLUSTER_ISO_ITS_04) isolation = cluster_iso_its_04[n];
 	else if (determiner == CLUSTER_FRIXIONE_TPC_04_02) isolation = cluster_frixione_tpc_04_02[n];
 	else isolation = cluster_frixione_its_04_02[n];
-        
-	for (Long64_t imix = 0; imix < 20; imix++){
+
+	Long64_t mix_range = mix_end-mix_start+1;
+	for (Long64_t imix = 0; imix < mix_range; imix++){
 	  Long64_t mix_event = Mix_Events[imix];
-	  if (mix_event == ievent) continue;
-	  if(mix_event >= 9999999) continue;
+	  //fprintf(stderr,"%s:%d: Mixed Event: %lu from 13c hdf5\n",__FILE__, __LINE__, mix_event);
+	  //if (mix_event == ievent) continue; //not needed for gamma-MB pairing
+	  
+	  if(mix_event >= 9999999) continue;  
 
 	  //adjust offset for next mixed event
 	  track_offset[0]=mix_event;
@@ -465,14 +485,11 @@ int main(int argc, char *argv[])
 	  cluster_dataset.read( cluster_data_out, PredType::NATIVE_FLOAT, cluster_memspace, cluster_dataspace );
 
 	  //MIXED associated
-	  const int TrackCutBit =16;
+	  //const int TrackCutBit =16;
 	  for (ULong64_t itrack = 0; itrack < ntrack_max; itrack++) {
-	    if (std::isnan(track_data_out[0][itrack][1])) {
-	      //fprintf(stderr,"hd5f track was nan for track %lu\n",itrack);
-	      continue;
-	    }
+	    if (std::isnan(track_data_out[0][itrack][1])) continue;
 	    //if ((int(track_data_out[0][itrack][4]+0.5)&selection_number)==0) continue;
-	    if ((int(track_data_out[0][itrack][4]+ 0.5)&TrackCutBit)==0) continue; //selection 16
+	    if ((int(track_data_out[0][itrack][4]+ 0.5)&Track_Cut_Bit)==0) continue; //selection 16
 	    if (track_data_out[0][itrack][1] < 0.5) continue; //less than 1GeV
 	    if (track_data_out[0][itrack][1] > 30) continue; //less than 1GeV
 	    if (abs(track_data_out[0][itrack][2]) > 0.8) continue;
@@ -488,7 +505,7 @@ int main(int argc, char *argv[])
 		float dphi = TMath::Abs(cluster_data_out[0][l][2] - track_data_out[0][itrack][5]);
 		float deta = TMath::Abs(cluster_data_out[0][l][3] - track_data_out[0][itrack][6]);
 		float dR = sqrt(dphi*dphi + deta*deta);
-		//if (dR < dRmin)	MixTrack_HasMatch = true;
+		if (dR < dRmin)	MixTrack_HasMatch = true;
 		break; 
 	    }
 	    if (MixTrack_HasMatch) continue;
@@ -502,7 +519,6 @@ int main(int argc, char *argv[])
 	    if ((TMath::Abs(DeltaPhi) < 0.005) && (TMath::Abs(DeltaEta) < 0.005)) continue;
 
  	    Double_t zt = track_data_out[0][itrack][1]/cluster_pt[n];
-	    if (zt >= 0.6) fprintf(stderr,"%s: %d: %f\n", __FILE__,__LINE__,zt);
 
 	    for (int ipt = 0; ipt < nptbins; ipt++){
 	      if (cluster_pt[n] >ptbins[ipt] && cluster_pt[n] <ptbins[ipt+1]){
@@ -530,11 +546,11 @@ int main(int argc, char *argv[])
       
     } //end loop over events
     
-  }//end loop over samples
+    //}//end loop over samples
 
 
     // Write to fout    
-    TFile* fout = new TFile("Mix_Correlation_Serial_50_0GeVTracks_13def.root","RECREATE");
+    TFile* fout = new TFile(Form("InputData/Mix_Correlation_%1.1lu_%1.0lu_%luGeVTracks_13def.root",mix_start,mix_end,GeV_Track_Skim),"RECREATE");
     for (int ipt = 0; ipt<nptbins; ipt++){    
       for (int izt = 0; izt<nztbins; izt++){
 	Corr[izt+ipt*nztbins]->Write();
