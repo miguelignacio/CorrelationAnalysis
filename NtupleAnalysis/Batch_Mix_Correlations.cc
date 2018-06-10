@@ -379,28 +379,13 @@ int main(int argc, char *argv[])
     
     std::cout << " Total Number of entries in TTree: " << _tree_event->GetEntries() << std::endl;
 
-    // UInt_t ntrack_max = 0;
-    // UInt_t ncluster_max = 0;
+hid_t dspace = H5Dget_space(dset);
+const int ndims = H5Sget_simple_extent_ndims(dspace);
+hsize_t dims[ndims];
+H5Sget_simple_extent_dims(dspace, dims, NULL);
 
-    // fprintf(stderr, "\r%s:%d: %s\n", __FILE__, __LINE__, "Determining ntrack_max and ncluster_max needed for hdf5 hyperslab");
-    // for (Long64_t i = 0; i < _tree_event->GetEntries(); i++) {
-    //   _tree_event->GetEntry(i);
-    //   ntrack_max = std::max(ntrack_max, ntrack);
-    //   ncluster_max = std::max(ncluster_max, ncluster);
-    //   fprintf(stderr, "\r%s:%d: %llu", __FILE__, __LINE__, i);
-    // }
-
-//    ntrack_max = 2514;
-//    ncluster_max = 33;
-    UInt_t ntrack_max = 326;
-    UInt_t ncluster_max = 23;
-    // fprintf(stderr, "\n%s:%d: %s", __FILE__, __LINE__, "USING HARDCODED HDF5 DIMENSIONS");
-
-
-    fprintf(stderr, "\n%s:%d: maximum tracks:%i maximum clusters:%i\n", __FILE__, __LINE__, ntrack_max,ncluster_max);
-
+ //Using low level hdf5 API
     //open hdf5: Define size of data from file, explicitly allocate memory in hdf5 space and array size
-
     const H5std_string track_ds_name( "track" );
     H5File h5_file( hdf5_file_name, H5F_ACC_RDONLY );
     DataSet track_dataset = h5_file.openDataSet( track_ds_name );
@@ -409,6 +394,23 @@ int main(int argc, char *argv[])
     const H5std_string cluster_ds_name( "cluster" );
     DataSet cluster_dataset = h5_file.openDataSet( cluster_ds_name );
     DataSpace cluster_dataspace = cluster_dataset.getSpace();
+
+    //find max number of tracks
+    const int track_ndims = track_dataspace.getSimpleExtentNdims();
+    hsize_t track_maxdims[track_ndims];
+    hsize_t trackdims[track_ndims];
+    track_dataspace.getSimpleExtentDims(trackdims, track_maxdims);
+    UInt_t ntrack_max = trackdims[1];
+
+    //find max number of clusters
+    const int cluster_ndims = cluster_dataspace.getSimpleExtentNdims();
+    hsize_t cluster_maxdims[cluster_ndims];
+    hsize_t clusterdims[cluster_ndims];
+    cluster_dataspace.getSimpleExtentDims(clusterdims, cluster_maxdims);
+    UInt_t ncluster_max = clusterdims[1];
+
+    fprintf(stderr, "\n%s:%d: maximum tracks:%i maximum clusters:%i\n", __FILE__, __LINE__, ntrack_max,ncluster_max);
+
 
     //Define array hyperslab will be read into
     float track_data_out[1][ntrack_max][10];
