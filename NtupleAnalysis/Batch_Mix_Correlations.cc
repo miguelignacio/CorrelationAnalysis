@@ -379,12 +379,7 @@ int main(int argc, char *argv[])
     
     std::cout << " Total Number of entries in TTree: " << _tree_event->GetEntries() << std::endl;
 
-hid_t dspace = H5Dget_space(dset);
-const int ndims = H5Sget_simple_extent_ndims(dspace);
-hsize_t dims[ndims];
-H5Sget_simple_extent_dims(dspace, dims, NULL);
-
- //Using low level hdf5 API
+    //Using low level hdf5 API
     //open hdf5: Define size of data from file, explicitly allocate memory in hdf5 space and array size
     const H5std_string track_ds_name( "track" );
     H5File h5_file( hdf5_file_name, H5F_ACC_RDONLY );
