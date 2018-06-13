@@ -56,7 +56,7 @@ int main(int argc, char *argv[])
 	exit(EXIT_FAILURE);
       }
     }
-        
+
     if (_tree_event == NULL) {
       std::cout << " fail; the _tree_event is NULL " << std::endl;
       exit(EXIT_FAILURE);
@@ -79,18 +79,33 @@ int main(int argc, char *argv[])
     TH1D h_truth("h_truth", "truth photons", 50, 0, 50);
 
 
-    TH1D hBR_reco("hBR_reco", "Isolated cluster, bkg region", 40, 10.0, 20.0);
-    TH1D hSR_reco("hSR_reco", "Isolated cluster, signal region", 40, 10.0, 20.0);
+    TH1D hSR_njet("hSR_njet", "Number of associated jets, signal region" , 5, -0.5, 4.5);
+    TH1D hBR_njet("hBR_njet", "Number of associated jets, bkg region" , 5, -0.5, 4.5);
+  
+
+    TH1D hBR_clusterpt("hBR_clusterpt", "Isolated cluster pt [GeV], bkg region", 40, 10.0, 20.0);
+    TH1D hSR_clusterpt("hSR_clusterpt", "Isolated cluster pt [GeV], signal region", 40, 10.0, 20.0);
+
+    TH1D hBR_clustereta("hBR_clustereta", "Isolated cluster eta, bkg region", 20, -1.0, 1.0);
+    TH1D hSR_clustereta("hSR_clustereta", "Isolated cluster eta, signal region", 20, -1.0, 1.0);
+    TH1D hBR_clusterphi("hBR_clusterphi", "Isolated cluster phi, bkg region", 20, -1.0*TMath::Pi(), TMath::Pi());
+    TH1D hSR_clusterphi("hSR_clusterphi", "Isolated cluster phi, signal region", 20, -1.0*TMath::Pi(), TMath::Pi());
 
 
-    TH1D hBR_jetpt_reco("hBR_jetpt_reco", "Associated jet pt spectrum (reco), bkg region", 30, 0, 30);
-    TH1D hSR_jetpt_reco("hSR_jetpt_reco", "Associated jet pt spectrum (reco), signal region", 30, 0, 30);
-
+    TH1D hBR_jetpt("hBR_jetpt",   "Associated jet pt spectrum (reco), bkg region", 30, 0, 30);
+    TH1D hSR_jetpt("hSR_jetpt",   "Associated jet pt spectrum (reco), signal region", 30, 0, 30);
     TH1D hBR_jeteta("hBR_jeteta", "Associated jet eta spectrum (reco), bkg region", 20, -1.0, 1.0);
     TH1D hSR_jeteta("hSR_jeteta", "Associated jet eta spectrum (reco), signal region", 20, -1.0, 1.0); 
     TH1D hBR_jetphi("hBR_jetphi", "Associated jet phi spectrum (reco), bkg region", 20, -1.0*TMath::Pi(), TMath::Pi());
     TH1D hSR_jetphi("hSR_jetphi", "Associated jet phi spectrum (reco), signal region", 20, -1.0*TMath::Pi(), TMath::Pi());
 
+
+    TH1D hBR_jetpt_truth("hBR_jetpt_truth",   "Associated jet pt spectrum (truth), bkg region", 30, 0, 30);
+    TH1D hSR_jetpt_truth("hSR_jetpt_truth",   "Associated jet pt spectrum (truth), signal region", 30, 0, 30);
+    TH1D hBR_jeteta_truth("hBR_jeteta_truth", "Associated jet eta spectrum (truth), bkg region", 20, -1.0, 1.0);
+    TH1D hSR_jeteta_truth("hSR_jeteta_truth", "Associated jet eta spectrum (truth), signal region", 20, -1.0, 1.0);
+    TH1D hBR_jetphi_truth("hBR_jetphi_truth", "Associated jet phi spectrum (truth), bkg region", 20, -1.0*TMath::Pi(), TMath::Pi());
+    TH1D hSR_jetphi_truth("hSR_jetphi_truth", "Associated jet phi spectrum (truth), signal region", 20, -1.0*TMath::Pi(), TMath::Pi());
 
     TH1D h_jetpt_truth("h_jetpt_truth", "truth jet pt", 30, 0, 30);
     TH1D h_jetpt_truthreco("h_jetpt_truthreco", "reco jet truth pt (numerator of efficiency)", 30, 0, 30);
@@ -104,8 +119,8 @@ int main(int argc, char *argv[])
     TH1D hBR_pTD("hBR_pTD", "pTD distribution, BKG region", 40, 0.0,1.0);
     TH1D hSR_Multiplicity("hSR_Multiplicity", "Jet Multiplicity distribution, Signal region", 20, -0.5 , 19.5);
     TH1D hBR_Multiplicity("hBR_Multiplicity", "Jet Multiplicity distribution, BKG region", 20, -0.5, 19.5);
-    TH1D hSR_jetwidth("hSR_jetwidth", "jet width distribution, Signal region", 20, 0.0,0.01);
-    TH1D hBR_jetwidth("hBR_jetwidth", "jet width distribution, BKG region", 20, 0.0,0.01);
+    TH1D hSR_jetwidth("hSR_jetwidth", "jet width distribution, Signal region", 20, -10, 0);
+    TH1D hBR_jetwidth("hBR_jetwidth", "jet width distribution, BKG region", 20, -10, 0);
 
 
     TH1D hSR_Xj_truth("hSR_Xj_truth", "True Xj distribution, Signal region", xjbins, 0.0,2.0);
@@ -147,6 +162,9 @@ int main(int argc, char *argv[])
     hBR_Xj_truth.Sumw2();
     h_Xj_truth.Sumw2();     
 
+    hSR_njet.Sumw2();
+    hBR_njet.Sumw2();
+
     hSR_dPhi.Sumw2();
     hBR_dPhi.Sumw2();
     hSR_dPhi_truth.Sumw2();
@@ -168,15 +186,28 @@ int main(int argc, char *argv[])
     h_jetpt_reco.Sumw2();
 
     h_dPhi_truth.Sumw2();
-    hSR_reco.Sumw2();
-    hBR_reco.Sumw2();
-   
-    hBR_jetpt_reco.Sumw2();
-    hSR_jetpt_reco.Sumw2();
+
+    hSR_clusterpt.Sumw2();
+    hBR_clusterpt.Sumw2();
+    hSR_clustereta.Sumw2();
+    hBR_clustereta.Sumw2();
+    hSR_clusterphi.Sumw2();
+    hBR_clusterphi.Sumw2();
+
+    hBR_jetpt.Sumw2();
+    hSR_jetpt.Sumw2();
     hBR_jeteta.Sumw2();
     hSR_jeteta.Sumw2();
     hBR_jetphi.Sumw2();
     hSR_jetphi.Sumw2();
+    
+    hBR_jetpt_truth.Sumw2();
+    hSR_jetpt_truth.Sumw2();
+    hBR_jeteta_truth.Sumw2();
+    hSR_jeteta_truth.Sumw2();
+    hBR_jetphi_truth.Sumw2();
+    hSR_jetphi_truth.Sumw2();
+
 
     h_Xj_Matrix.Sumw2();
 
@@ -349,7 +380,7 @@ int main(int argc, char *argv[])
     Float_t N_BR = 0;
     Float_t N_eventpassed = 0;
     Float_t N_truth = 0;
- 
+     
  
     std::cout<<" About to start looping over events to get weights" << std::endl;
 
@@ -392,6 +423,18 @@ int main(int argc, char *argv[])
 
     std::cout<<" About to start looping over events" << std::endl;
 
+    h_cutflow.GetXaxis()->SetBinLabel(1, "All");
+    h_cutflow.GetXaxis()->SetBinLabel(2, "pt<16 GeV");
+    h_cutflow.GetXaxis()->SetBinLabel(3, "N_{cell}>2");
+    h_cutflow.GetXaxis()->SetBinLabel(4, "E_{cross}/E_{cell}");
+    h_cutflow.GetXaxis()->SetBinLabel(5, "NLM <3");
+    h_cutflow.GetXaxis()->SetBinLabel(6, "Distance-to-bad chanel>=2");
+    h_cutflow.GetXaxis()->SetBinLabel(7, "Isolation < 1 GeV");
+
+    h_evtcutflow.GetXaxis()->SetBinLabel(1, "All");
+    h_evtcutflow.GetXaxis()->SetBinLabel(2, "Vertex |z| < 10 cm");
+    h_evtcutflow.GetXaxis()->SetBinLabel(3, "Pileup rejection");
+
     for(Long64_t ievent = 0; ievent < _tree_event->GetEntries() ; ievent++){
 
       // std::cout << ievent << std::endl;
@@ -416,18 +459,20 @@ int main(int argc, char *argv[])
 
       h_evt_rho.Fill(ue_estimate_its_const, weight);
 
+
       //loop over clusters
       for (ULong64_t n = 0; n < ncluster; n++) {
         //Photon Selection
-	h_cutflow.Fill(0);
+       
         if( not(cluster_pt[n]>10.0)) continue; //select pt of photons
+	h_cutflow.Fill(0);
         if( not(cluster_pt[n]<16.0)) continue;
         h_cutflow.Fill(1);
         if( not(cluster_ncell[n]>2)) continue;   //removes clusters with 1 or 2 cells
         h_cutflow.Fill(2);
 	if( not(cluster_e_cross[n]/cluster_e[n]>0.05)) continue; //removes "spiky" clusters
         h_cutflow.Fill(3);
-        if( not(cluster_nlocal_maxima[n]<= 2)) continue; //require to have at most 2 local maxima.
+        if( not(cluster_nlocal_maxima[n]< 3)) continue; //require to have at most 2 local maxima.
         h_cutflow.Fill(4);
 	if( not(cluster_distance_to_bad_channel[n]>=2.0)) continue;
         h_cutflow.Fill(5);
@@ -471,6 +516,8 @@ int main(int argc, char *argv[])
             inBkgRegion = true;
 	}
 
+        Int_t njets_SR = 0; 
+        Int_t njets_BR = 0;
 	for (ULong64_t ijet = 0; ijet < njet_ak04its; ijet++) { //start loop over jets
           if(not (jet_ak04its_pt_raw[ijet]>5)) continue; 
           if(not (TMath::Abs(jet_ak04its_eta_raw[ijet]) <0.5)) continue;
@@ -494,6 +541,16 @@ int main(int argc, char *argv[])
          
 	  }
  	  if(not (dphi>0.4)) continue; 
+
+          //counts jets associated with clusters   
+          if(inSignalRegion){
+	    njets_SR =+1 ;
+	  }
+          else if(inBkgRegion){
+            njets_BR =+1; 
+	  }
+          
+
 	  Float_t xj = jet_ak04its_pt_raw[ijet]/cluster_pt[n];
 	  //std::cout <<"truthptjet: " << jet_ak04its_pt_truth[ijet] << "reco pt jet" << jet_ak04its_pt_raw[ijet] << std::endl;           
           Float_t xj_truth = jet_ak04its_pt_truth[ijet]/truth_pt; 
@@ -506,13 +563,16 @@ int main(int argc, char *argv[])
             hSR_pTD.Fill(jet_ak04its_ptd_raw[ijet],weight);
 	    //	    std::cout << jet_ak04its_multiplicity[ijet] << " " << jet_ak04its_width_sigma[ijet] << " " << jet_ak04its_ptd_raw[ijet] << std::endl;
             hSR_Multiplicity.Fill(jet_ak04its_multiplicity[ijet],weight);
-            hSR_jetwidth.Fill(jet_ak04its_width_sigma[ijet], weight);
+            hSR_jetwidth.Fill(TMath::Log(jet_ak04its_width_sigma[ijet]), weight);
 
             //associated jet rate
-	    hSR_jetpt_reco.Fill(jet_ak04its_pt_raw[ijet], weight);
+	    hSR_jetpt.Fill(jet_ak04its_pt_raw[ijet], weight);
 	    hSR_jeteta.Fill(jet_ak04its_eta_raw[ijet], weight);
 	    hSR_jetphi.Fill(jet_ak04its_phi[ijet],weight);
-	 
+
+	    hSR_jetpt_truth.Fill(jet_ak04its_pt_truth[ijet], weight);
+            hSR_jeteta_truth.Fill(jet_ak04its_eta_truth[ijet], weight);
+            hSR_jetphi_truth.Fill(jet_ak04its_phi_truth[ijet],weight);
 
             hSR_Xj_truth.Fill(xj_truth, weight);
             hSR_dEta_truth.Fill(deta_truth,weight);
@@ -529,12 +589,16 @@ int main(int argc, char *argv[])
 
 	    hBR_pTD.Fill(jet_ak04its_ptd_raw[ijet],weight);
 	    hBR_Multiplicity.Fill(jet_ak04its_multiplicity[ijet],weight);
-            hBR_jetwidth.Fill(jet_ak04its_width_sigma[ijet], weight);
+            hBR_jetwidth.Fill(TMath::Log(jet_ak04its_width_sigma[ijet]), weight);
 
 	    //Associated jet rate
-	    hBR_jetpt_reco.Fill(jet_ak04its_pt_raw[ijet], weight);
+	    hBR_jetpt.Fill(jet_ak04its_pt_raw[ijet], weight);
 	    hBR_jeteta.Fill(jet_ak04its_eta_raw[ijet], weight);
             hBR_jetphi.Fill(jet_ak04its_phi[ijet],weight);
+
+	    hBR_jetpt_truth.Fill(jet_ak04its_pt_truth[ijet], weight);
+            hBR_jeteta_truth.Fill(jet_ak04its_eta_truth[ijet], weight);
+            hBR_jetphi_truth.Fill(jet_ak04its_phi_truth[ijet],weight);
 
             hBR_Xj_truth.Fill(xj_truth,weight);
 	    hBR_dEta_truth.Fill(deta_truth,weight);
@@ -546,10 +610,16 @@ int main(int argc, char *argv[])
 	}//end loop over jets
 
         if(inSignalRegion){
-	  hSR_reco.Fill(cluster_pt[n],weight);
+	  hSR_clusterpt.Fill(cluster_pt[n], weight);
+	  hSR_clustereta.Fill(cluster_eta[n], weight);
+	  hSR_clusterphi.Fill(cluster_phi[n], weight);
+          hSR_njet.Fill(njets_SR, weight); 
 	}
         else if(inBkgRegion){
-          hBR_reco.Fill(cluster_pt[n],weight);
+	  hBR_clusterpt.Fill(cluster_pt[n], weight);
+          hBR_clustereta.Fill(cluster_eta[n], weight);
+          hBR_clusterphi.Fill(cluster_phi[n], weight);
+	  hBR_njet.Fill(njets_BR, weight);
 	}
 	//fill in this histogram only photons that can be traced to a generated non-decay photon.	
         h_reco_truthpt.Fill(truth_pt,weight);
@@ -595,8 +665,8 @@ int main(int argc, char *argv[])
 	    Float_t dphi_truth = TMath::Abs(TVector2::Phi_mpi_pi(jet_truth_ak04_phi[ijet] - mc_truth_phi[nmc]));
 	    //std::cout<< dphi_truth << std::endl;
             
-            if( not(dphi_truth>0.4)) continue;
 	    h_dPhi_truth.Fill(dphi_truth,weight);
+            if( not(dphi_truth>0.4)) continue;
 	    Float_t xj_truth = jet_truth_ak04_pt[ijet]/mc_truth_pt[nmc];
             h_Xj_truth.Fill(xj_truth,weight);
 	  }//end loop over truth jets
@@ -632,6 +702,9 @@ int main(int argc, char *argv[])
     
     TFile* fout = new TFile(Form("GammaJet_config%s.root", opened_files.c_str()),"RECREATE");
     fout->Print();
+    hSR_njet.Scale(1.0/N_SR);
+    hBR_njet.Scale(1.0/N_BR);
+
     hSR_Xj.Scale(1.0/N_SR);
     hBR_Xj.Scale(1.0/N_BR);
     hSR_dPhi.Scale(1.0/N_SR);
@@ -642,13 +715,20 @@ int main(int argc, char *argv[])
     hSR_AvgEta.Scale(1.0/N_SR);
     hBR_AvgEta.Scale(1.0/N_BR);
 
-    hSR_jetpt_reco.Scale(1.0/N_SR);
-    hBR_jetpt_reco.Scale(1.0/N_BR);
+    hSR_jetpt.Scale(1.0/N_SR);
+    hBR_jetpt.Scale(1.0/N_BR);
     hSR_jeteta.Scale(1.0/N_SR);
     hBR_jeteta.Scale(1.0/N_BR);
     hSR_jetphi.Scale(1.0/N_SR);
     hBR_jetphi.Scale(1.0/N_BR);
 
+
+    hSR_jetpt_truth.Scale(1.0/N_SR);
+    hBR_jetpt_truth.Scale(1.0/N_BR);
+    hSR_jeteta_truth.Scale(1.0/N_SR);
+    hBR_jeteta_truth.Scale(1.0/N_BR);
+    hSR_jetphi_truth.Scale(1.0/N_SR);
+    hBR_jetphi_truth.Scale(1.0/N_BR);
 
 
     hSR_Xj_truth.Scale(1.0/N_SR);
@@ -675,6 +755,10 @@ int main(int argc, char *argv[])
     h_evtcutflow.Write("EventCutFlow");
     h_cutflow.Write("ClusterCutFlow");
     h_evt_rho.Write("h_evt_rho");
+
+    //number of jets
+    hSR_njet.Write("hSR_njet");
+    hBR_njet.Write("hBR_njet");
 
     //Xj
     hSR_Xj.Write("hSR_Xj");
@@ -705,17 +789,30 @@ int main(int argc, char *argv[])
     hSR_jetwidth.Write("hSR_jetwidth");
     hBR_jetwidth.Write("hBR_jetwidth");
     //Associated jet histograms    
-    hSR_jetpt_reco.Write("hSR_jetpt");
-    hBR_jetpt_reco.Write("hBR_jetpt");
+    hSR_jetpt.Write("hSR_jetpt");
+    hBR_jetpt.Write("hBR_jetpt");
+    hSR_jetpt_truth.Write("hSR_jetpt_truth");
+    hBR_jetpt_truth.Write("hBR_jetpt_truth");
+
     hSR_jeteta.Write("hSR_jeteta");
     hBR_jeteta.Write("hBR_jeteta");
+    hSR_jeteta_truth.Write("hSR_jeteta_truth");
+    hBR_jeteta_truth.Write("hBR_jeteta_truth");
+
     hSR_jetphi.Write("hSR_jetphi");
     hBR_jetphi.Write("hBR_jetphi");
+    hSR_jetphi_truth.Write("hSR_jetphi_truth");
+    hBR_jetphi_truth.Write("hBR_jetphi_truth");
+
 
     //Cluster pt
-    hSR_reco.Write("hSR_recopt");
-    hBR_reco.Write("hBR_recopt");
-  
+    hSR_clusterpt.Write("hSR_clusterpt");
+    hBR_clusterpt.Write("hBR_clusterpt");
+    hSR_clustereta.Write("hSR_clustereta");
+    hBR_clustereta.Write("hBR_clustereta");
+    hSR_clusterphi.Write("hSR_clusterphi");
+    hBR_clusterphi.Write("hBR_clusterphi");
+
     //MC truth 
     h_dPhi_truth.Write("h_dPhi_truth");
     h_Xj_Matrix.Write("xj_matrix");    
