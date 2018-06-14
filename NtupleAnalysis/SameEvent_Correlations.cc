@@ -271,7 +271,6 @@ int main(int argc, char *argv[])
     }
     file->Print();
     
-    // Get all the TTree variables from the file to open, I guess
     TTree *_tree_event = dynamic_cast<TTree *>(file->Get("_tree_event"));
 
     if (_tree_event == NULL) {
