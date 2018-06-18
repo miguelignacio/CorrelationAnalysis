@@ -427,15 +427,10 @@ int main(int argc, char *argv[])
     fprintf(stderr, "%s:%d: %s\n", __FILE__, __LINE__, "select Hyperslab OK");
 
     //Define the memory dataspace to place hyperslab
-    //FIXME: Can reduce rank
     const int RANK_OUT = 3; //# of Dimensions
-    hsize_t track_dimsm[3] = {1, ntrack_max, NTrack_Vars};
-    DataSpace track_memspace( RANK_OUT, track_dimsm );
-    hsize_t cluster_dimsm[3] = {1, ncluster_max, NCluster_Vars};
-    DataSpace cluster_memspace( RANK_OUT, cluster_dimsm );
-    
-    //FIXME: Both cluster_dimsm and clusterdims (and by analogy tracks) not needed. Artifact of older implementation.
-
+    DataSpace track_memspace( RANK_OUT, trackdims );
+    DataSpace cluster_memspace( RANK_OUT, clusterdims );    
+    //FIXME: Can reduce rank to 2
 
     //Define memory offset for hypreslab starting at begining:
     hsize_t track_offset_out[3] = {0};
