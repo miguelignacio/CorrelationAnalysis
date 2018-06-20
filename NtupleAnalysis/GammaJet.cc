@@ -86,10 +86,15 @@ int main(int argc, char *argv[])
     TH1D hBR_clusterpt("hBR_clusterpt", "Isolated cluster pt [GeV], bkg region", 40, 10.0, 20.0);
     TH1D hSR_clusterpt("hSR_clusterpt", "Isolated cluster pt [GeV], signal region", 40, 10.0, 20.0);
 
-    TH1D hBR_clustereta("hBR_clustereta", "Isolated cluster eta, bkg region", 20, -1.0, 1.0);
-    TH1D hSR_clustereta("hSR_clustereta", "Isolated cluster eta, signal region", 20, -1.0, 1.0);
-    TH1D hBR_clusterphi("hBR_clusterphi", "Isolated cluster phi, bkg region", 20, -1.0*TMath::Pi(), TMath::Pi());
-    TH1D hSR_clusterphi("hSR_clusterphi", "Isolated cluster phi, signal region", 20, -1.0*TMath::Pi(), TMath::Pi());
+    TH1D hBR_clustereta("hBR_clustereta", "Isolated cluster eta, bkg region", 40, -1.0, 1.0);
+    TH1D hSR_clustereta("hSR_clustereta", "Isolated cluster eta, signal region", 40, -1.0, 1.0);
+    TH1D hBR_clusterphi("hBR_clusterphi", "Isolated cluster phi, bkg region", 40, -1.0*TMath::Pi(), TMath::Pi());
+    TH1D hSR_clusterphi("hSR_clusterphi", "Isolated cluster phi, signal region", 40, -1.0*TMath::Pi(), TMath::Pi());
+
+    TH1D h_clusterphi("h_clusterphi", "all photon cluster phi", 100, -1.0*TMath::Pi(), TMath::Pi());
+    TH1D h_clusterphi_iso("h_clusterphi_iso", "all photon cluster phi, passing isolation", 100, -1.0*TMath::Pi(), TMath::Pi());
+    TH1D h_trackphi("h_trackphi", " track phi" , 100,  -1.0*TMath::Pi(), TMath::Pi());
+    TH1D h_jetphi("h_jetphi", " jetphi phi" , 100,  -1.0*TMath::Pi(), TMath::Pi());
 
 
     TH1D hBR_jetpt("hBR_jetpt",   "Associated jet pt spectrum (reco), bkg region", 30, 0, 30);
@@ -147,6 +152,12 @@ int main(int argc, char *argv[])
 
     TH1D h_dPhi_truth("h_dPhi_truth", "delta phi gamma-jet truth MC", phibins, 0, TMath::Pi());
 
+
+
+    h_clusterphi.Sumw2();
+    h_clusterphi_iso.Sumw2();
+    h_trackphi.Sumw2();
+    h_jetphi.Sumw2();
 
     hSR_pTD.Sumw2();
     hBR_pTD.Sumw2();
@@ -263,10 +274,8 @@ int main(int argc, char *argv[])
   
     //The z_reco is defined as the fraction of the true jet that ended up in this reco jet 
     //There are two entries and indices, the first is the best. 
-
     Int_t   jet_ak04its_truth_index_z_reco[NTRACK_MAX][2];
     Float_t jet_ak04its_truth_z_reco[NTRACK_MAX][2];
-
     Float_t jet_ak04its_ptd_raw[NTRACK_MAX];
     Float_t jet_ak04its_width_sigma[NTRACK_MAX];
     UShort_t jet_ak04its_multiplicity[NTRACK_MAX];
@@ -396,7 +405,7 @@ int main(int argc, char *argv[])
             if(is_pileup_from_spd_5_08) continue; //removes pileup
             ULong64_t one1 = 1;
             ULong64_t triggerMask_13data = (one1 << 17) | (one1 << 18) | (one1 << 19) | (one1 << 20); //EG1 or EG2 or EJ1 or EJ2
-            if(triggerMask_13data & trigger_mask[0] == 0) continue; //trigger selection
+            //if(triggerMask_13data & trigger_mask[0] == 0) continue; //trigger selection
 
             for (ULong64_t n = 0; n < ncluster; n++) {
                 if( not(cluster_pt[n]>10.0)) continue; //select pt of photons
@@ -420,44 +429,64 @@ int main(int argc, char *argv[])
         for(int i=0 ; i< hweight.GetNbinsX() ; i++) std::cout <<" i" << i << " weight= " << hweight.GetBinContent(i) << std::endl;
     }//end loop over events to get weights for background region
     
-
     std::cout<<" About to start looping over events" << std::endl;
-
     h_cutflow.GetXaxis()->SetBinLabel(1, "All");
     h_cutflow.GetXaxis()->SetBinLabel(2, "pt<16 GeV");
     h_cutflow.GetXaxis()->SetBinLabel(3, "N_{cell}>2");
     h_cutflow.GetXaxis()->SetBinLabel(4, "E_{cross}/E_{cell}");
     h_cutflow.GetXaxis()->SetBinLabel(5, "NLM <3");
     h_cutflow.GetXaxis()->SetBinLabel(6, "Distance-to-bad chanel>=2");
-    h_cutflow.GetXaxis()->SetBinLabel(7, "Isolation < 1 GeV");
+    h_cutflow.GetXaxis()->SetBinLabel(7, "Isolation < 2 GeV");
+    h_cutflow.GetXaxis()->SetBinLabel(8, "Isolation < 1 GeV");
 
     h_evtcutflow.GetXaxis()->SetBinLabel(1, "All");
     h_evtcutflow.GetXaxis()->SetBinLabel(2, "Vertex |z| < 10 cm");
     h_evtcutflow.GetXaxis()->SetBinLabel(3, "Pileup rejection");
+    h_evtcutflow.GetXaxis()->SetBinLabel(4, "Trigger Selection");
 
     for(Long64_t ievent = 0; ievent < _tree_event->GetEntries() ; ievent++){
 
       // std::cout << ievent << std::endl;
-    //for(Long64_t ievent = 0; ievent < 500000 ; ievent++){
+    //    for(Long64_t ievent = 0; ievent < 5000 ; ievent++){
       _tree_event->GetEntry(ievent);
       h_evtcutflow.Fill(0);
       //Eevent Selection: 
       if(not( TMath::Abs(primary_vertex[2])<10.0)) continue; //vertex z position    
       h_evtcutflow.Fill(1);
-      if(is_pileup_from_spd_5_08) continue; //removes pileup
+      // if(is_pileup_from_spd_5_08) continue; //removes pileup
       h_evtcutflow.Fill(2);     
       ULong64_t one1 = 1;
       ULong64_t triggerMask_13data = (one1 << 17) | (one1 << 18) | (one1 << 19) | (one1 << 20); //EG1 or EG2 or EJ1 or EJ2
-      if(isRealData and (triggerMask_13data & trigger_mask[0]) == 0) continue; //trigger selection
+      //if(isRealData and (triggerMask_13data & trigger_mask[0]) == 0) continue; //trigger selection
       h_evtcutflow.Fill(3);
 
       N_eventpassed +=1;
 
 
       double weight = 1.0;
-      if(not isRealData) weight = eg_cross_section/(double)eg_ntrial;
+      if(not isRealData){
+	if(eg_cross_section>0 and eg_ntrial>0){
+          weight = eg_cross_section/(double)eg_ntrial;
+        }
+      }
+      //std::cout << " weight " << weight << std::endl;        
 
       h_evt_rho.Fill(ue_estimate_its_const, weight);
+
+      //loop over tracks
+      const int TrackCutBit =16;
+      for (ULong64_t itrack = 0; itrack < ntrack; itrack++) {            
+	if(track_pt[itrack] < 1) continue; //1GeV Tracks
+	if((track_quality[itrack]&TrackCutBit)==0) continue; //select only tracks that pass selection 3
+	h_trackphi.Fill(track_phi[itrack],weight);
+      }
+
+      //loop over jets
+      for (ULong64_t ijet = 0; ijet < njet_ak04its; ijet++) { //start loop over jets
+	if(not (jet_ak04its_pt_raw[ijet]>5)) continue;
+	if(not (TMath::Abs(jet_ak04its_eta_raw[ijet]) <0.5)) continue;
+        h_jetphi.Fill(jet_ak04its_phi[ijet], weight);
+      }
 
 
       //loop over clusters
@@ -476,9 +505,14 @@ int main(int argc, char *argv[])
         h_cutflow.Fill(4);
 	if( not(cluster_distance_to_bad_channel[n]>=2.0)) continue;
         h_cutflow.Fill(5);
-        if( not(cluster_iso_its_04[n] < 1.0)) continue;
+        if( not(cluster_iso_its_04[n] < 2.0)) continue;
         h_cutflow.Fill(6);
-       
+        h_clusterphi.Fill(cluster_phi[n], weight);
+	if( not(cluster_iso_its_04[n] < 1.0)) continue;
+        h_clusterphi_iso.Fill(cluster_phi[n], weight);
+        h_cutflow.Fill(7);
+
+
 	Bool_t isTruePhoton = false;
         Float_t truth_pt = -999.0;
         Float_t truth_eta = -999.0;
@@ -496,8 +530,15 @@ int main(int argc, char *argv[])
           truth_phi    =  mc_truth_phi[index];
           truth_eta    =  mc_truth_eta[index];
 	}//end loop over indices
+
+        //if (not isTruePhoton){ std::cout << " photon is not true " << std::endl;} 
+	// if((not isRealData) and (not isTruePhoton) and weight!=1.0 ) continue; //17g samples don't have weight FIX ME: of course this cut only works for GJ and not JJ
 	
-        if((not isRealData) and (not isTruePhoton)) continue;
+        if( not isRealData){
+	  if(cluster_phi[n]<0 and cluster_phi[n]>-2.0){
+	    weight = weight*0.45; //adhoc weighting for DCAL acceptance
+	  }
+	}
 	
 	//start jet loop 
 
@@ -511,7 +552,7 @@ int main(int argc, char *argv[])
         else if(cluster_s_nphoton[n][1]<0.30){
             double bkg_weight = hweight.GetBinContent(hweight.FindBin(cluster_pt[n]));
 	    //std::cout << bkg_weight << " " << cluster_pt[n] << std::endl;
-	    weight = weight*bkg_weight; //pt-dependent weight for background;					      
+	    if( isRealData) weight = weight*bkg_weight; //pt-dependent weight for background;					      
             N_BR +=weight;
             inBkgRegion = true;
 	}
@@ -540,7 +581,8 @@ int main(int argc, char *argv[])
             hBR_dPhi_truth.Fill(dphi_truth,weight);
          
 	  }
- 	  if(not (dphi>0.4)) continue; 
+ 	  //if(not (dphi>0.4)) continue; 
+          if( not (dphi>TMath::Pi()/2.0)) continue;
 
           //counts jets associated with clusters   
           if(inSignalRegion){
@@ -666,7 +708,8 @@ int main(int argc, char *argv[])
 	    //std::cout<< dphi_truth << std::endl;
             
 	    h_dPhi_truth.Fill(dphi_truth,weight);
-            if( not(dphi_truth>0.4)) continue;
+            //if( not(dphi_truth>0.4)) continue;
+            if( not(dphi_truth>TMath::Pi()/2.0)) continue;
 	    Float_t xj_truth = jet_truth_ak04_pt[ijet]/mc_truth_pt[nmc];
             h_Xj_truth.Fill(xj_truth,weight);
 	  }//end loop over truth jets
@@ -748,6 +791,11 @@ int main(int argc, char *argv[])
     hSR_jetwidth.Scale(1.0/N_SR);
     hBR_jetwidth.Scale(1.0/N_BR);
 
+    
+    hSR_clustereta.Scale(1.0/N_SR);
+    hBR_clustereta.Scale(1.0/N_BR);
+    hSR_clusterphi.Scale(1.0/N_SR);
+    hBR_clusterphi.Scale(1.0/N_BR);
 
     h_dPhi_truth.Scale(1.0/N_truth);
     h_Xj_truth.Scale(1.0/N_truth);
@@ -813,6 +861,9 @@ int main(int argc, char *argv[])
     hSR_clusterphi.Write("hSR_clusterphi");
     hBR_clusterphi.Write("hBR_clusterphi");
 
+    h_clusterphi.Write("h_clusterphi");
+    h_clusterphi_iso.Write("h_clusterphi_iso");
+
     //MC truth 
     h_dPhi_truth.Write("h_dPhi_truth");
     h_Xj_Matrix.Write("xj_matrix");    
@@ -820,6 +871,10 @@ int main(int argc, char *argv[])
     h_jetpt_truth.Write("h_jetpt_truth");
     h_jetpt_truthreco.Write("h_jetpt_truthreco");
     h_jetpt_reco.Write("h_jetpt");
+
+
+    h_trackphi.Write("h_trackphi");
+    h_jetphi.Write("h_jetphi");
    
     TH1D* jet_eff = (TH1D*)h_jetpt_truthreco.Clone();
     jet_eff->Divide(&h_jetpt_truth);
