@@ -1,9 +1,9 @@
 CXX =		g++
 CC =		$(CXX)
-#CXXFLAGS =      -g -O -s -frounding-math
+CXXFLAGS =      -g -O -s -frounding-math
 CXXFLAGS =      -O
-CXXFLAGS +=     -Wextra -Wall -Werror -fPIC
-CXXFLAGS +=	-Wno-unused-variable -Wno-unused-parameter
+#CXXFLAGS +=     -Wextra -Wall -Werror -fPIC
+#CXXFLAGS +=	-Wno-unused-variable -Wno-unused-parameter
 CXXFLAGS +=	-Wno-unused-function
 ifeq ($(findstring g++,$(CXX)),g++)
     CXXFLAGS += -no-canonical-prefixes -Wno-builtin-macro-redefined \
@@ -16,16 +16,8 @@ CXXFLAGS +=	$(shell root-config --cflags)
 LDFLAGS =	$(shell root-config --ldflags)
 LDLIBS =	$(shell root-config --libs)
 
-<<<<<<< HEAD
-<<<<<<< HEAD
 #HDF5_ROOT =	/opt/local/
 HDF5_ROOT = 	/usr/common/usg/software/hdf5/1.8.13/
-=======
-HDF5_ROOT =	/opt/local/
->>>>>>> eed1d90c226e1a6035acb9dcd3626dbdc670d08d
-=======
-HDF5_ROOT =	/opt/local/
->>>>>>> eed1d90c226e1a6035acb9dcd3626dbdc670d08d
 CXXFLAGS +=	-I$(HDF5_ROOT)/include
 LDLIBS +=	 -L$(HDF5_ROOT)/lib -lhdf5_cpp -lhdf5
 CXXFLAGS +=	-I$(BOOST_ROOT)/include
@@ -34,15 +26,7 @@ CXXFLAGS +=	-I$(BOOST_ROOT)/include
 #LDLIBS +=	-L$(HDF5_ROOT)/lib64 -L$(HDF5_ROOT)/lib -lhdf5_cpp -lhdf5
 
 
-<<<<<<< HEAD
-<<<<<<< HEAD
 TARGET =	
-=======
-TARGET =	to_hdf5
->>>>>>> eed1d90c226e1a6035acb9dcd3626dbdc670d08d
-=======
-TARGET =	to_hdf5
->>>>>>> eed1d90c226e1a6035acb9dcd3626dbdc670d08d
 
 all:		$(TARGET)
 
