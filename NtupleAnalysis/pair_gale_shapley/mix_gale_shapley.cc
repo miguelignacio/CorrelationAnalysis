@@ -344,8 +344,8 @@ void mix_gale_shapley(const char *filename_0, const char *filename_1, const char
 	std::vector<std::vector<Long64_t> > Matches;
 	//fprintf(stderr,"\n%s\n","Using Assymetric File block distribution, LARGER FILE: SECEND ARG"); 
 
-	for(size_t h = 0; h < nblock_0+1; h++){
-	  //for(size_t h = nblock_0; h < nblock_0+1; h++){
+	//for(size_t h = 0; h < nblock_0+1; h++){
+	  for(size_t h = nblock_0; h < nblock_0+1; h++){
 	  const size_t event_start_0 = h * nevent_0 / (nblock_0 + 1);
 	  size_t event_end_0 = (h + 1) * nevent_0 / (nblock_0 + 1);
 	  size_t hblock_nevents_0 = event_end_0 - event_start_0;	  
@@ -356,7 +356,7 @@ void mix_gale_shapley(const char *filename_0, const char *filename_1, const char
 	    
 	  fprintf(stderr,"%s:%d: %s %lu %s %lu\n",__FILE__,__LINE__,"Block",h,"of",nblock_0);
 	    
-// //foregoing this block structure as number of events to be mixed approaches nblocks	    
+// //foregoing this block structure as number of events to be mixed approaches nblocks*nmix	    
 // if (h < width) {
 //   lmin = 0; 
 //   lmax = 2*width+1;
@@ -474,11 +474,17 @@ void mix_gale_shapley(const char *filename_0, const char *filename_1, const char
 	//if (strcmp(filename_0,filename_1) == 0){
 
 	  TFile *root_file = new TFile(filename_0,"update");
+
 	  TTree *hi_tree = dynamic_cast<TTree *>(root_file->Get(HI_TREE));
+	  if (hi_tree == NULL) {
+	    hi_tree = dynamic_cast<TTree *>(root_file->Get(HI_TREE_2));		
+	    if(hi_tree == NULL){
+	      fprintf(stderr, "%s:%d: TREE FAIL\n",__FILE__, __LINE__);
+	      return;
+	    }
+	  }
 
 	  TFile *newfile = new TFile(Form("../InputData/13defv1_c_%lu_%lu_%iGeV_TrackSkim_mixed.root",mix_start,mix_end,Track_Skim),"recreate");	  
-
-	  //TFiles are more closely associated with TTrees, need to clone, not append....
 	  TTree *newtree = hi_tree->CloneTree(0);
 
 	  unsigned int n_mix_events = 2*width;
@@ -496,7 +502,7 @@ void mix_gale_shapley(const char *filename_0, const char *filename_1, const char
 
 	      for (size_t s=0; s<(Matches[t]).size();s++){ //s=1 for same event start. s=0 when taken out
 		Mix_Events[s]=Matches[t][s]; //edit may 17: changed s-1 -> s
-		fprintf(stderr, "%llu:%lld\n", t,Mix_Events[s]); //same edit
+		fprintf(stderr, "%s:%d:  %llu:%lld\n\n",__FILE__,__LINE__,t,Mix_Events[s]); //same edit
 	      }
 	    }
 	    
@@ -504,11 +510,10 @@ void mix_gale_shapley(const char *filename_0, const char *filename_1, const char
 	      for(size_t u = 0; u<n_mix_events; u++){
 		//Mix_Events[u] = t; //Fill with own event number. Skip During correlation function
 		Mix_Events[u] = 999999999;
-		fprintf(stderr, "%llu:%lld\n",t,Mix_Events[u]);
+	      if (t % 500 == 0) fprintf(stderr, "%s:%d: %llu:%lld\n\n",__FILE__,__LINE__,t,Mix_Events[u]);
 	      }
 	    }
 	    
-	    fprintf(stderr, "%s\n","");
 	    newtree->Fill();  
 	    
 	  }//End loop over entries
@@ -516,8 +521,6 @@ void mix_gale_shapley(const char *filename_0, const char *filename_1, const char
 
 	  delete root_file;
 	  delete newfile;
-	  //}
-	  //else fprintf(stderr, "%s\n","Nothing written to root file.");
 	
 	gSystem->Exit(0);
 }

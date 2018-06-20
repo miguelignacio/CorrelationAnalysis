@@ -390,32 +390,37 @@ int main(int argc, char *argv[])
     DataSet cluster_dataset = h5_file.openDataSet( cluster_ds_name );
     DataSpace cluster_dataspace = cluster_dataset.getSpace();
 
-    //find max number of tracks
+    //Initialize Track Dimensions
     const int track_ndims = track_dataspace.getSimpleExtentNdims();
     hsize_t track_maxdims[track_ndims];
     hsize_t trackdims[track_ndims];
     track_dataspace.getSimpleExtentDims(trackdims, track_maxdims);
-    UInt_t ntrack_max = trackdims[1];
 
-    //find max number of clusters
+    UInt_t ntrack_max = trackdims[1];
+    UInt_t NTrack_Vars = trackdims[2];
+
+    //Initalize Cluster Dimensions
     const int cluster_ndims = cluster_dataspace.getSimpleExtentNdims();
     hsize_t cluster_maxdims[cluster_ndims];
     hsize_t clusterdims[cluster_ndims];
     cluster_dataspace.getSimpleExtentDims(clusterdims, cluster_maxdims);
-    UInt_t ncluster_max = clusterdims[1];
 
+    UInt_t ncluster_max = clusterdims[1];
+    UInt_t NCluster_Vars = clusterdims[2];
+
+    fprintf(stderr, "\n%s:%d: n track variables:%i n cluster variables:%i\n", __FILE__, __LINE__, NTrack_Vars,NCluster_Vars);
     fprintf(stderr, "\n%s:%d: maximum tracks:%i maximum clusters:%i\n", __FILE__, __LINE__, ntrack_max,ncluster_max);
 
 
     //Define array hyperslab will be read into
-    float track_data_out[1][ntrack_max][10];
-    float cluster_data_out[1][ncluster_max][5];
+    float track_data_out[1][ntrack_max][NTrack_Vars];
+    float cluster_data_out[1][ncluster_max][NCluster_Vars];
 
     //Define hyperslab size and offset in  FILE;
     hsize_t track_offset[3] = {0, 0, 0};
-    hsize_t track_count[3] = {1, ntrack_max, 10};
+    hsize_t track_count[3] = {1, ntrack_max, NTrack_Vars};
     hsize_t cluster_offset[3] = {0, 0, 0};
-    hsize_t cluster_count[3] = {1, ncluster_max, 5};
+    hsize_t cluster_count[3] = {1, ncluster_max, NCluster_Vars};
 
     track_dataspace.selectHyperslab( H5S_SELECT_SET, track_count, track_offset );
     cluster_dataspace.selectHyperslab( H5S_SELECT_SET, cluster_count, cluster_offset );
@@ -423,18 +428,17 @@ int main(int argc, char *argv[])
 
     //Define the memory dataspace to place hyperslab
     const int RANK_OUT = 3; //# of Dimensions
-    hsize_t track_dimsm[3] = {1, ntrack_max, 10};
-    DataSpace track_memspace( RANK_OUT, track_dimsm );
-    hsize_t cluster_dimsm[3] = {1, ncluster_max, 5};
-    DataSpace cluster_memspace( RANK_OUT, cluster_dimsm );
+    DataSpace track_memspace( RANK_OUT, trackdims );
+    DataSpace cluster_memspace( RANK_OUT, clusterdims );    
+    //FIXME: Can reduce rank to 2
 
     //Define memory offset for hypreslab starting at begining:
     hsize_t track_offset_out[3] = {0};
     hsize_t cluster_offset_out[3] = {0};
 
     //define Dimensions of array, for writing slab to array
-    hsize_t track_count_out[3] = {1, ntrack_max, 10};
-    hsize_t cluster_count_out[3] = {1, ncluster_max, 5};
+    hsize_t track_count_out[3] = {1, ntrack_max, NTrack_Vars};
+    hsize_t cluster_count_out[3] = {1, ncluster_max, NCluster_Vars};
 
     //define space in memory for hyperslab, then write from file to memory
     track_memspace.selectHyperslab( H5S_SELECT_SET, track_count_out, track_offset_out );
@@ -468,7 +472,7 @@ int main(int argc, char *argv[])
 	for (Long64_t imix = 0; imix < mix_range; imix++){
 	  Long64_t mix_event = Mix_Events[imix];
 	  //fprintf(stderr,"%s:%d: Mixed Event: %lu from 13c hdf5\n",__FILE__, __LINE__, mix_event);
-	  //if (mix_event == ievent) continue; //not needed for gamma-MB pairing
+	  //if (mix_event == ievent) continue; //not needed for gamma-MB pairing: Different Triggers
 	  
 	  if(mix_event >= 9999999) continue;  
 
@@ -481,7 +485,7 @@ int main(int argc, char *argv[])
 	  cluster_dataspace.selectHyperslab( H5S_SELECT_SET, cluster_count, cluster_offset );
 	  cluster_dataset.read( cluster_data_out, PredType::NATIVE_FLOAT, cluster_memspace, cluster_dataspace );
 
-	  //MIXED associated
+	  //MIX with Associated Tracks
 	  //const int TrackCutBit =16;
 	  for (ULong64_t itrack = 0; itrack < ntrack_max; itrack++) {
 	    if (std::isnan(track_data_out[0][itrack][1])) continue;
