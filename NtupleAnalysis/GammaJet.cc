@@ -445,7 +445,7 @@ int main(int argc, char *argv[])
     h_evtcutflow.GetXaxis()->SetBinLabel(4, "Trigger Selection");
 
     for(Long64_t ievent = 0; ievent < _tree_event->GetEntries() ; ievent++){
-
+      if(ievent%2) continue;
       // std::cout << ievent << std::endl;
     //    for(Long64_t ievent = 0; ievent < 5000 ; ievent++){
       _tree_event->GetEntry(ievent);
