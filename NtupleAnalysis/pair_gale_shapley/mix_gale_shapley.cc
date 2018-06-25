@@ -329,12 +329,9 @@ void mix_gale_shapley(const char *filename_0, const char *filename_1, const char
 	size_t block_size_max = 2000;
 	if (Track_Skim == 6) block_size_max = 1000; //FIXME: Set back for 2000 when larger 6GeV Skimmed NTuple available
 
-
 	const size_t nblocks = (std::min(nevent_0, nevent_1 * nduplicate) /
 				block_size_max + 1)-1;//Not Usefull for very assymetric files
-
 	const size_t nblock_0 = ((nevent_0) / block_size_max + 1)-1; // FIXME:Use % and rounding to get all events 
-
 	const size_t nblock_1 = ((nevent_1 * nduplicate)/
 				 block_size_max + 1)-1;
 
@@ -342,10 +339,9 @@ void mix_gale_shapley(const char *filename_0, const char *filename_1, const char
 	const size_t n_mix = 300;
 
 	std::vector<std::vector<Long64_t> > Matches;
-	//fprintf(stderr,"\n%s\n","Using Assymetric File block distribution, LARGER FILE: SECEND ARG"); 
 
-	//for(size_t h = 0; h < nblock_0+1; h++){
-	  for(size_t h = nblock_0; h < nblock_0+1; h++){
+	for(size_t h = 0; h < nblock_0+1; h++){
+	//for(size_t h = nblock_0; h < nblock_0+1; h++){
 	  const size_t event_start_0 = h * nevent_0 / (nblock_0 + 1);
 	  size_t event_end_0 = (h + 1) * nevent_0 / (nblock_0 + 1);
 	  size_t hblock_nevents_0 = event_end_0 - event_start_0;	  
@@ -461,7 +457,9 @@ void mix_gale_shapley(const char *filename_0, const char *filename_1, const char
 
 	  //    write to txt
 
-	FILE * txtfile = fopen (Form("../InputData/%iGeVpairs_v1_%lu_%lu.txt",Track_Skim,mix_start,mix_end),"w");
+	size_t lastindex = std::string(filename_0).find_last_of("."); 
+	std::string rawname = std::string(filename_0).substr(0, lastindex);
+	FILE * txtfile = fopen (Form("../InputData/%s_%iGeVTrack_Pairs_%lu_to_%lu.txt",rawname.data(),Track_Skim,mix_start,mix_end),"w");
 	  for (size_t t=0; t<Matches.size();t++){
 	    for (size_t s=0; s<Matches[t].size();s++){
 	      fprintf(txtfile, "%lld\t", Matches[t][s]);
@@ -471,56 +469,54 @@ void mix_gale_shapley(const char *filename_0, const char *filename_1, const char
 	 fclose (txtfile);
 
 	// write to TTree
-	//if (strcmp(filename_0,filename_1) == 0){
+	  // TFile *root_file = new TFile(filename_0,"update");
 
-	  TFile *root_file = new TFile(filename_0,"update");
+	  // TTree *hi_tree = dynamic_cast<TTree *>(root_file->Get(HI_TREE));
+	  // if (hi_tree == NULL) {
+	  //   hi_tree = dynamic_cast<TTree *>(root_file->Get(HI_TREE_2));		
+	  //   if(hi_tree == NULL){
+	  //     fprintf(stderr, "%s:%d: TREE FAIL\n",__FILE__, __LINE__);
+	  //     return;
+	  //   }
+	  // }
 
-	  TTree *hi_tree = dynamic_cast<TTree *>(root_file->Get(HI_TREE));
-	  if (hi_tree == NULL) {
-	    hi_tree = dynamic_cast<TTree *>(root_file->Get(HI_TREE_2));		
-	    if(hi_tree == NULL){
-	      fprintf(stderr, "%s:%d: TREE FAIL\n",__FILE__, __LINE__);
-	      return;
-	    }
-	  }
+	  // TFile *newfile = new TFile(Form("../InputData/13defv1_c_%lu_%lu_%iGeV_TrackSkim_mixed.root",mix_start,mix_end,Track_Skim),"recreate");	  
+	  // TTree *newtree = hi_tree->CloneTree(0);
 
-	  TFile *newfile = new TFile(Form("../InputData/13defv1_c_%lu_%lu_%iGeV_TrackSkim_mixed.root",mix_start,mix_end,Track_Skim),"recreate");	  
-	  TTree *newtree = hi_tree->CloneTree(0);
+	  // unsigned int n_mix_events = 2*width;
+	  // ULong64_t nentries = hi_tree->GetEntries();    
+	  // Long64_t Mix_Events[n_mix_events];
 
-	  unsigned int n_mix_events = 2*width;
-	  ULong64_t nentries = hi_tree->GetEntries();    
-	  Long64_t Mix_Events[n_mix_events];
-
-	  fprintf(stderr, "%llu\n",nentries);
+	  // fprintf(stderr, "%llu\n",nentries);
 	  
-	  TBranch *MixE = newtree->Branch("Mix_Events", Mix_Events, "&Mix_Events[300]/L");
+	  // TBranch *MixE = newtree->Branch("Mix_Events", Mix_Events, "&Mix_Events[300]/L");
 	  
-	  for (ULong64_t t = 0; t<nentries;t++){
-	    hi_tree->GetEntry(t);
+	  // for (ULong64_t t = 0; t<nentries;t++){
+	  //   hi_tree->GetEntry(t);
 	    
-	    if(t < Matches.size()){
+	  //   if(t < Matches.size()){
 
-	      for (size_t s=0; s<(Matches[t]).size();s++){ //s=1 for same event start. s=0 when taken out
-		Mix_Events[s]=Matches[t][s]; //edit may 17: changed s-1 -> s
-		fprintf(stderr, "%s:%d:  %llu:%lld\n\n",__FILE__,__LINE__,t,Mix_Events[s]); //same edit
-	      }
-	    }
+	  //     for (size_t s=0; s<(Matches[t]).size();s++){ //s=1 for same event start. s=0 when taken out
+	  // 	Mix_Events[s]=Matches[t][s]; //edit may 17: changed s-1 -> s
+	  // 	fprintf(stderr, "%s:%d:  %llu:%lld\n\n",__FILE__,__LINE__,t,Mix_Events[s]); //same edit
+	  //     }
+	  //   }
 	    
-	    else if (t >= Matches.size()){
-	      for(size_t u = 0; u<n_mix_events; u++){
-		//Mix_Events[u] = t; //Fill with own event number. Skip During correlation function
-		Mix_Events[u] = 999999999;
-	      if (t % 500 == 0) fprintf(stderr, "%s:%d: %llu:%lld\n\n",__FILE__,__LINE__,t,Mix_Events[u]);
-	      }
-	    }
+	  //   else if (t >= Matches.size()){
+	  //     for(size_t u = 0; u<n_mix_events; u++){
+	  // 	//Mix_Events[u] = t; //Fill with own event number. Skip During correlation function
+	  // 	Mix_Events[u] = 999999999;
+	  //     if (t % 500 == 0) fprintf(stderr, "%s:%d: %llu:%lld\n\n",__FILE__,__LINE__,t,Mix_Events[u]);
+	  //     }
+	  //   }
 	    
-	    newtree->Fill();  
+	  //   newtree->Fill();  
 	    
-	  }//End loop over entries
-	  newtree->Write();
+	  // }//End loop over entries
+	  // newtree->Write();
 
-	  delete root_file;
-	  delete newfile;
+	  // delete root_file;
+	  // delete newfile;
 	
 	gSystem->Exit(0);
 }
