@@ -39,20 +39,24 @@ int main(int argc, char *argv[])
   
   TString root_file = (TString)argv[1];
   std::cout << "Opening: " << (TString)argv[1] << std::endl;
+
   const H5std_string hdf5_file_name(argv[2]);
   TString hdf5_file = (TString)argv[2];
   fprintf(stderr,hdf5_file);
+
   size_t mix_start = atoi(argv[3]);
   size_t mix_end = atoi(argv[4]);
+
   int GeV_Track_Skim = atoi(argv[5]);
   fprintf(stderr,"\nMix Start is: %lu \n",mix_start);
   fprintf(stderr,"Mix End is: %lu \n",mix_end);
   fprintf(stderr,"Using %iGeV Track Skimmed from batch Script \n",GeV_Track_Skim);
-  std::cout<<"Output root file will be: "<<Form("Mix_Correlation_%1.1lu_%1.0lu_%luGeVTracks_13def.root",mix_start,mix_end,GeV_Track_Skim)<<std::endl;
+
   size_t nmix = 300;
   fprintf(stderr,"Number of Mixed Events: %i \n",nmix);
-  //Config File
 
+
+  //Config File
   FILE* config = fopen("Corr_config.yaml", "r");
   double DNN_min = 0;
   double DNN_max = 0;
@@ -70,8 +74,7 @@ int main(int argc, char *argv[])
   int n_eta_bins = 0;
   int n_phi_bins = 0;  
 
-  // Zt bins
-  //FIXME: Will have to likely set nztbins first, then initialize array
+  // zT & pT bins
   int nztbins = 7;
   float* ztbins;
   ztbins = new float[nztbins+1];
@@ -83,7 +86,7 @@ int main(int argc, char *argv[])
   ptbins[0] = 10.0; ptbins[1] = 11; ptbins[2] = 12.5; ptbins[3] = 16;
 
 
-  // Loop through config file
+  // Read/Loop through config file
   char line[MAX_INPUT_LENGTH];
   while (fgets(line, MAX_INPUT_LENGTH, config) != NULL) {
       if (line[0] == '#') continue;
@@ -284,9 +287,7 @@ int main(int argc, char *argv[])
   
 
   //LOOP OVER SAMPLES
-  //for (int iarg = 1; iarg < argc; iarg+=2) {
 
-    //TFile *file = TFile::Open((TString)argv[iarg]);
     TFile *file = TFile::Open(root_file);
 
     if (file == NULL) {
@@ -297,9 +298,12 @@ int main(int argc, char *argv[])
     
     TTree *_tree_event = dynamic_cast<TTree *>(file->Get("_tree_event"));
     if (_tree_event == NULL) {
-      std::cout << " fail " << std::endl;
-      exit(EXIT_FAILURE);
-    }  
+      _tree_event = dynamic_cast<TTree *>(file->Get("AliAnalysisTaskNTGJ/_tree_event"));
+      if (_tree_event == NULL) {
+	std::cout << " tree fail " << std::endl;
+	exit(EXIT_FAILURE);
+      }  
+    }
 
     //variables
     Double_t primary_vertex[3];
@@ -551,7 +555,10 @@ int main(int argc, char *argv[])
 
 
     // Write to fout    
-    TFile* fout = new TFile(Form("InputData/Mix_Correlation_%1.1lu_%1.0lu_%luGeVTracks_13def.root",mix_start,mix_end,GeV_Track_Skim),"RECREATE");
+    size_t lastindex = std::string(root_file).find_last_of("."); 
+    std::string rawname = std::string(root_file).substr(0, lastindex);
+    TFile* fout = new TFile(Form("InputData/%s_%s-MinBias_%luGeVTracks_%1.1lu_%1.0lu.root",rawname.data(),rawname.data(),mix_start,mix_end,GeV_Track_Skim),"RECREATE");
+
     for (int ipt = 0; ipt<nptbins; ipt++){    
       for (int izt = 0; izt<nztbins; izt++){
 	Corr[izt+ipt*nztbins]->Write();

@@ -8,9 +8,12 @@ which gcc
 which root
 module list
 date
-echo "Command runpairing with mix_start = $1, mix_end = $2, and TrackSkim GeV = $3"
+echo "Command runpairing with file $1.root, mix_start = $2, mix_end = $3, and TrackSkim GeV = $4"
 
 export cwd=$(pwd)
 cd $cwd/../pair_gale_shapley/
-./mix_gale_shapley ../InputData/13def.root ../InputData/13c_pass4_v1_$3GevtrackSkim.root $1 $2 $3
+./mix_gale_shapley ../InputData/$1.root ../InputData/$1_MinBias_$4GeVTrackSkim.root $2 $3 $4
 date 
+
+
+#The first argument can be replaced with full file name. Written assuming use on 13d,13e, and 13f (separately)
