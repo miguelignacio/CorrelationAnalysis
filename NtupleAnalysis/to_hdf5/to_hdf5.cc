@@ -17,8 +17,9 @@
 // Rank of the tensor written in HDF5, rank 3 being (index_event,
 // index_track, index_properties)
 #define RANK 3
+#define Event_RANK 2
 
-void find_ntrack_ncluster_max(char *argv_first[], char *argv_last[], UInt_t &ntrack_max, UInt_t &ncluster_max)
+void find_ntrack_ncluster_max(char *argv_first[], char *argv_last[], UInt_t &nevent_max, UInt_t &ntrack_max, UInt_t &ncluster_max)
 { 
    for (char **p = argv_first; p != argv_last; p++) {
         // Cautious opening of the TTree, capturing all modes of
@@ -50,13 +51,14 @@ void find_ntrack_ncluster_max(char *argv_first[], char *argv_last[], UInt_t &ntr
 
         UInt_t ntrack;
         UInt_t ncluster;
-
+	nevent_max = UInt_t(hi_tree->GetEntries());
         hi_tree->SetBranchAddress("ntrack", &ntrack);
         hi_tree->SetBranchAddress("ncluster", &ncluster);
 
 	fprintf(stderr, "%s:%d: %s\n", __FILE__, __LINE__, "Obtaining ntrack and ncluster max for hdf5 file");
 
         for (Long64_t i = 0; i < hi_tree->GetEntries(); i++) {
+	//for (Long64_t i = 0; i < 100; i++) {
             hi_tree->GetEntry(i);
             ntrack_max = std::max(ntrack_max, ntrack);
 	    ncluster_max = std::max(ncluster_max, ncluster);
@@ -64,6 +66,7 @@ void find_ntrack_ncluster_max(char *argv_first[], char *argv_last[], UInt_t &ntr
 	}
 	fprintf(stderr, "\n");
         // Fully delete everything
+
 
         hi_tree->Delete();
 	delete df;
@@ -73,10 +76,10 @@ void find_ntrack_ncluster_max(char *argv_first[], char *argv_last[], UInt_t &ntr
 
 }
 
-void write_track_cluster(H5::DataSet &track_data_set, H5::DataSet &cluster_data_set, 
-			 hsize_t *offset, const hsize_t *track_dim_extend, 
-			 const hsize_t *cluster_dim_extend, const UInt_t ntrack_max,
-			 const UInt_t ncluster_max, char *argv_first[], char *argv_last[])
+void write_track_cluster(H5::DataSet &event_data_set, H5::DataSet &track_data_set, H5::DataSet &cluster_data_set, 
+			 hsize_t *event_offset, hsize_t *offset, const hsize_t *event_dim_extend, 
+			 const hsize_t *track_dim_extend, const hsize_t *cluster_dim_extend, const UInt_t nevent_max, 
+			 const UInt_t ntrack_max, const UInt_t ncluster_max, char *argv_first[], char *argv_last[])
 {
     for (char **p = argv_first; p != argv_last; p++) {
         TFile *file = TFile::Open(*p);
@@ -99,6 +102,10 @@ void write_track_cluster(H5::DataSet &track_data_set, H5::DataSet &cluster_data_
             continue;
         }
 
+	UInt_t nevent;
+	std::vector<Double_t> primary_vertex(3, NAN);
+	std::vector<Float_t> multiplicity_v0(64, NAN);//64 channels for v0 detector, to be summed
+
         UInt_t ntrack;
         std::vector<Float_t> track_e(ntrack_max, NAN);
         std::vector<Float_t> track_pt(ntrack_max, NAN);
@@ -118,8 +125,11 @@ void write_track_cluster(H5::DataSet &track_data_set, H5::DataSet &cluster_data_
 	std::vector<Float_t> cluster_phi(ncluster_max, NAN);
 	std::vector<Float_t> cluster_e_cross(ncluster_max, NAN);
 	//std::vector<std::vector<Float_t> > cluster_s_nphoton(ncluster_max,std::vector <Float_t> (4, NAN) );
+	
+        hi_tree->SetBranchAddress("primary_vertex", &primary_vertex[0]);
+	hi_tree->SetBranchAddress("multiplicity_v0", &multiplicity_v0[0]);
 
-        hi_tree->SetBranchAddress("ntrack", &ntrack);
+	hi_tree->SetBranchAddress("ntrack", &ntrack);
         hi_tree->SetBranchAddress("track_e", &track_e[0]);
         hi_tree->SetBranchAddress("track_pt", &track_pt[0]);
         hi_tree->SetBranchAddress("track_eta", &track_eta[0]);
@@ -138,13 +148,20 @@ void write_track_cluster(H5::DataSet &track_data_set, H5::DataSet &cluster_data_
         hi_tree->SetBranchAddress("cluster_phi", &cluster_phi[0]);
         hi_tree->SetBranchAddress("cluster_e_cross", &cluster_e_cross[0]);
 	//hi_tree->SetBranchAddress("cluster_s_nphoton", &cluster_s_nphoton[0]);
-
+	
         for (Long64_t i = 0; i < hi_tree->GetEntries(); i++) {
-            hi_tree->GetEntry(i);
+	  //for (Long64_t i = 0; i < 100; i++) {
+	    hi_tree->GetEntry(i);
 
+	    std:: vector<float> event_data (1, NAN); //2 variables, multp, vertx
             std::vector<float> track_data(ntrack_max * 10, NAN);
             std::vector<float> cluster_data(ncluster_max * 5, NAN);
 
+	    float multiplicity_sum = 0;
+	    for (int k = 0; k < 64; k++) multiplicity_sum += multiplicity_v0[k];	    
+	    event_data[0] = primary_vertex[2]; //xyz, choose 3rd element, z
+	    event_data[1] = multiplicity_sum;
+	    
             for (Long64_t j = 0; j < ntrack; j++) {
                 // Note HDF5 is always row-major (C-like)
                 track_data[j * 10 + 0] = track_e[j];
@@ -168,6 +185,28 @@ void write_track_cluster(H5::DataSet &track_data_set, H5::DataSet &cluster_data_
 	        //cluster_data[j * 7 + 5] = cluster_s_nphoton[j][0];
 	        //cluster_data[j * 7 + 6] = cluster_s_nphoton[j][1];
 	    }
+
+	    if (event_offset == 0) {
+	      //write first event
+	      event_data_set.write(&event_data[0], H5::PredType::NATIVE_FLOAT);
+	    }
+	    else{
+	      //set up extension
+	      const hsize_t event_dim_extended[2] = {
+		event_offset[0] + event_dim_extend[0], event_dim_extend[1]
+	      };
+	    
+	      //Extend to new Dimension
+	      event_data_set.extend(event_dim_extended);
+	      H5::DataSpace event_file_space = event_data_set.getSpace();
+	      event_file_space.selectHyperslab(
+		  H5S_SELECT_SET, event_dim_extend, event_offset);
+	      H5::DataSpace event_memory_space(2, event_dim_extend, NULL);
+	      event_data_set.write(&event_data[0], H5::PredType::NATIVE_FLOAT,
+                               event_memory_space, event_file_space);
+	    }
+	    event_offset[0] ++;
+
 
             if (offset == 0) {
                 // Writing the first event. The track_data space is already
@@ -242,40 +281,45 @@ int main(int argc, char *argv[])
     }
 
     //UInt_t ntrack_max = 1927 ; 
-    
+    UInt_t nevent_max = 0;
     UInt_t ntrack_max = 0;
     UInt_t ncluster_max = 0;
 
-    find_ntrack_ncluster_max(argv + 1, argv + argc - 1, ntrack_max, ncluster_max);
-    fprintf(stderr, "%sf:%d: ntrack_max = %u, ncluster_max = %u\n", __FILE__, __LINE__, ntrack_max, ncluster_max);
+    find_ntrack_ncluster_max(argv + 1, argv + argc - 1, nevent_max, ntrack_max, ncluster_max);
+    fprintf(stderr, "%sf:%d: nevents = %u, ntrack_max = %u, ncluster_max = %u\n", __FILE__, __LINE__,nevent_max, ntrack_max, ncluster_max);
 
     // Access mode H5F_ACC_TRUNC truncates any existing file, while
     // not throwing any exception (unlike H5F_ACC_RDWR)
     H5::H5File file(argv[argc - 1], H5F_ACC_TRUNC);
 
     // How many properties per track is written
+    static const size_t event_row_size = 2;
     static const size_t track_row_size = 10;
     static const size_t cluster_row_size = 5;
     //easier to just make cluster use same # properties, reuse dim_extend
 
 
     // The tensor dimension increment for each new event
+    hsize_t event_dim_extend[Event_RANK] = {1, event_row_size};
     hsize_t track_dim_extend[RANK] = { 1, ntrack_max, track_row_size };
     hsize_t cluster_dim_extend[RANK] = { 1, ncluster_max, cluster_row_size };
 
     // The maximum tensor dimension, for unlimited number of events
+    hsize_t event_dim_max[Event_RANK] = {H5S_UNLIMITED, event_row_size};
     hsize_t track_dim_max[RANK] = { H5S_UNLIMITED, ntrack_max, track_row_size };
     hsize_t cluster_dim_max[RANK] = { H5S_UNLIMITED, ncluster_max, cluster_row_size };
 
     // The extensible HDF5 data space
-	H5::DataSpace track_data_space(RANK, track_dim_extend, track_dim_max);
-	H5::DataSpace cluster_data_space(RANK, cluster_dim_extend, cluster_dim_max);
-	//might need two data_spaces: track_data_space & cluster_data_space
+    H5::DataSpace event_data_space(Event_RANK, event_dim_extend, event_dim_max);
+    H5::DataSpace track_data_space(RANK, track_dim_extend, track_dim_max);
+    H5::DataSpace cluster_data_space(RANK, cluster_dim_extend, cluster_dim_max);
+    //might need two data_spaces: track_data_space & cluster_data_space
 
 
     // To enable zlib compression (there will be many NANs) and
     // efficient chunking (splitting of the tensor into contingous
     // hyperslabs), a HDF5 property list is needed
+    H5::DSetCreatPropList event_property = H5::DSetCreatPropList();
     H5::DSetCreatPropList track_property = H5::DSetCreatPropList();
     H5::DSetCreatPropList cluster_property = H5::DSetCreatPropList();
 
@@ -295,6 +339,7 @@ int main(int argc, char *argv[])
                     "available for encoding\n", __FILE__, __LINE__);
         }
         else {
+	    event_property.setDeflate(1);
             track_property.setDeflate(1);
 	    cluster_property.setDeflate(1);
         }
@@ -303,6 +348,16 @@ int main(int argc, char *argv[])
 
     // Activate chunking, while observing the HDF5_DEFAULT_CACHE being
     // the CPU L2 cache size
+    hsize_t event_dim_chunk[Event_RANK] = {
+        std::max(static_cast<unsigned long long>(1),
+                 HDF5_DEFAULT_CACHE /
+                 std::max(static_cast<unsigned long long>(1),
+                          event_dim_extend[0]*
+                          sizeof(float))),
+        event_dim_extend[1]
+    };
+    
+
     hsize_t track_dim_chunk[RANK] = {
         std::max(static_cast<unsigned long long>(1),
                  HDF5_DEFAULT_CACHE /
@@ -323,22 +378,28 @@ int main(int argc, char *argv[])
         cluster_dim_extend[2]
     };
 
+    event_property.setChunk(Event_RANK, event_dim_chunk);
     track_property.setChunk(RANK, track_dim_chunk);
     cluster_property.setChunk(RANK, cluster_dim_chunk);
 
     // Create the data set, which will have space for the first event
+    H5::DataSet event_data_set =
+      file.createDataSet("event", H5::PredType::NATIVE_FLOAT,
+			 event_data_space, event_property);
+    fprintf(stderr,"%s:%d: CREATED EVENT DATASET",__FILE__,__LINE__);
     H5::DataSet track_data_set =
-        file.createDataSet("track", H5::PredType::NATIVE_FLOAT,
-                           track_data_space, track_property);
+      file.createDataSet("track", H5::PredType::NATIVE_FLOAT,
+			 track_data_space, track_property);
 
     H5::DataSet cluster_data_set =
       file.createDataSet("cluster", H5::PredType::NATIVE_FLOAT,
 			 cluster_data_space, cluster_property);
 
+    hsize_t event_offset [2] = {0,0};
     hsize_t offset[RANK] = {0, 0, 0};
 
-    write_track_cluster(track_data_set, cluster_data_set, offset, track_dim_extend, cluster_dim_extend, 
-			ntrack_max, ncluster_max, argv + 1, argv + argc - 1);
+    write_track_cluster(event_data_set, track_data_set, cluster_data_set, event_offset, offset, event_dim_extend, track_dim_extend, cluster_dim_extend, 
+			nevent_max, ntrack_max, ncluster_max, argv + 1, argv + argc - 1);
 
     file.close();
 
