@@ -459,8 +459,8 @@ int main(int argc, char *argv[])
     
 
     for(Long64_t ievent = 0; ievent < nentries ; ievent++){     
-      fprintf(stderr, "\r%s:%d: %llu / %llu", __FILE__, __LINE__, ievent, nentries);
       //for(Long64_t ievent = 0; ievent < 200; ievent++){
+      fprintf(stderr, "\r%s:%d: %llu / %llu", __FILE__, __LINE__, ievent, nentries);
       _tree_event->GetEntry(ievent);
 
       for (ULong64_t n = 0; n < ncluster; n++) {
@@ -557,10 +557,10 @@ int main(int argc, char *argv[])
 
 
     // Write to fout    
-    // size_t lastindex = std::string(root_file).find_last_of("."); 
-    // std::string rawname = std::string(root_file).substr(0, lastindex);
-    std::string rawname = std::string(argv[1]);
-    TFile* fout = new TFile(Form("%s_%s-MinBias_%luGeVTracks_%1.1lu_%1.0lu.root",rawname.data(),rawname.data(),mix_start,mix_end,GeV_Track_Skim),"RECREATE");
+    size_t lastindex = std::string(root_file).find_last_of("."); 
+    std::string rawname = std::string(root_file).substr(0, lastindex);
+    //std::string rawname = std::string(argv[1]);
+    TFile* fout = new TFile(Form("%s_%luGeVTracks_Correlation_%1.1lu_to_%1.1lu.root",rawname.data(),GeV_Track_Skim,mix_start,mix_end),"RECREATE");
 
     for (int ipt = 0; ipt<nptbins; ipt++){    
       for (int izt = 0; izt<nztbins; izt++){
