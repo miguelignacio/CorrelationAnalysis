@@ -12,7 +12,7 @@ echo "Command runpairing with file $1.root, mix_start = $2, mix_end = $3, and Tr
 
 export cwd=$(pwd)
 cd $cwd/../pair_gale_shapley/
-./mix_gale_shapley ../InputData/$1.root ../InputData/$1_MinBias_$4GeVTrackSkim.root $2 $3 $4
+./mix_gale_shapley ../InputData/$1.root ../InputData/$1_minbias_$4GeVTracks.root $2 $3 $4
 date 
 
 
