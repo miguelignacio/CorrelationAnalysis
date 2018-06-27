@@ -325,17 +325,17 @@ int main(int argc, char *argv[])
     //UInt_t ntrack_max = 1927 ;
     
     // hard-coded values for 13d_minbias_0GeVTracks.root
-    UInt_t nevent_max = 1946854;
-    UInt_t ntrack_max = 432;
-    UInt_t ncluster_max = 29;
-    UInt_t njet_max = 42;
+    // UInt_t nevent_max = 1946854;
+    // UInt_t ntrack_max = 432;
+    // UInt_t ncluster_max = 29;
+    // UInt_t njet_max = 42;
 
-    // UInt_t nevent_max = 0;
-    // UInt_t ntrack_max = 0;
-    // UInt_t ncluster_max = 0;
-    // UInt_t njet_max = 0;
+    UInt_t nevent_max = 0;
+    UInt_t ntrack_max = 0;
+    UInt_t ncluster_max = 0;
+    UInt_t njet_max = 0;
 
-    // find_ntrack_ncluster_max(argv + 1, argv + argc - 1, nevent_max, ntrack_max, ncluster_max, njet_max);
+    find_ntrack_ncluster_max(argv + 1, argv + argc - 1, nevent_max, ntrack_max, ncluster_max, njet_max);
     fprintf(stderr, "%sf:%d: nevents = %u, ntrack_max = %u, ncluster_max = %u, njet_max = %u\n", __FILE__, __LINE__, nevent_max, ntrack_max, ncluster_max, njet_max);
 
     // Access mode H5F_ACC_TRUNC truncates any existing file, while
@@ -346,7 +346,7 @@ int main(int argc, char *argv[])
     static const size_t event_row_size = 2;
     static const size_t track_row_size = 10;
     static const size_t cluster_row_size = 5;
-    static const size_t jet_row_size = 6;
+    static const size_t jet_row_size = 5;
     //easier to just make cluster use same # properties, reuse dim_extend
 
 
