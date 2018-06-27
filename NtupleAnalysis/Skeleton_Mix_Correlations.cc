@@ -398,7 +398,6 @@ int main(int argc, char *argv[])
 	for (Long64_t imix = mix_start; imix < mix_end+1; imix++){
 	  Long64_t mix_event = mix_events[imix];
 	  fprintf(stderr,"\n %s:%d: Mixed event = %lu",__FILE__,__LINE__,mix_event);
-	  fprintf(stderr, "%s:%d: Mixed Event %lu, iteration %lu of %lu", imix, imix-mix_start, mix_end-mix_start+1);
 
 	  //if (mix_event == ievent) continue; //not needed for gamma-MB pairing: Different Triggers
 	  if(mix_event >= 9999999) continue;  
@@ -431,10 +430,11 @@ int main(int argc, char *argv[])
 	}//end loop over mixed events
     } //end loop over events
     
-    //very particular about file names to ease scripting
-    std::string rawname = std::string(argv[1]);
-    TFile* fout = new TFile(Form("%s_%s-MinBias_%luGeVTracks_%1.1lu_%1.0lu.root",rawname.data(),rawname.data(),mix_start,mix_end,GeV_Track_Skim),"RECREATE");
-    
+  // Write to fout    
+    size_t lastindex = std::string(root_file).find_last_of("."); 
+    std::string rawname = std::string(root_file).substr(0, lastindex);
+    //std::string rawname = std::string(argv[1]);
+    TFile* fout = new TFile(Form("%s_%luGeVTracks_Correlation_%1.1lu_to_%1.1lu.root",rawname.data(),GeV_Track_Skim,mix_start,mix_end),"RECREATE");    
     //Write histograms here    
     
     Signal_pT_Dist->Write();    
