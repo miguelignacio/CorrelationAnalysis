@@ -19,8 +19,8 @@ do
     do
 	mix_min=$i
 	mix_max="$((i + 19))"
-	#sbatch -p shared-chos -t 16:00:00 runCorr.sh $1 $mix_min $mix_max $p
-	./runCorr.sh $1 $mix_min $mix_max $p
+	sbatch -p shared-chos -t 16:00:00 runCorr.sh $1 $mix_min $mix_max $p
+	#./runCorr.sh $1 $mix_min $mix_max $p
     echo "$mix_min $mix_max $1"
     done
 done
