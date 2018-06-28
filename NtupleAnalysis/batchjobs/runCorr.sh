@@ -11,6 +11,5 @@ echo "Command runCorr with file = $1, mix_start = $2, mix_end = $3, and TrackSki
 
 export cwd=$(pwd)
 cd $cwd/../
-./Batch_Mix_Correlations InputData/$1_$4GeVTrack_paired.root InputData/$1.hdf5 $2 $3 $4
+./Batch_Mix_Correlations InputData/$1_$4GeVTrack_paired.root InputData/$1_minbias_$4GeVTracks.hdf5 $2 $3 $4
 date
-
