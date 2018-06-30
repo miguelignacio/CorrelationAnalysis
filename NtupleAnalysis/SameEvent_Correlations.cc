@@ -425,8 +425,10 @@ int main(int argc, char *argv[])
 	    Float_t deta =  cluster_eta[c]-track_eta_emcal[itrack];
 	    Float_t dphi =  TVector2::Phi_mpi_pi(cluster_phi[c]-track_phi_emcal[itrack])/TMath::Pi();
 	    float dR = sqrt(dphi*dphi + deta*deta);
-	    if (dR < dRmin) Track_HasMatch = true;
-	    break;
+	    if (dR < dRmin) {
+	      Track_HasMatch = true;
+	      break;
+	    }
 	  }
  	  if (Track_HasMatch) continue;
 
