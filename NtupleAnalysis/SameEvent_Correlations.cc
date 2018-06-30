@@ -422,7 +422,7 @@ int main(int argc, char *argv[])
 	  double dRmin = 0.02;
 	  bool Track_HasMatch = false;
 	  for (ULong64_t c = 0; c < ncluster; c++){
-	    Float_t deta =  cluster_eta[n]-track_eta_emcal[itrack];
+	    Float_t deta =  cluster_eta[c]-track_eta_emcal[itrack];
 	    Float_t dphi =  TVector2::Phi_mpi_pi(cluster_phi[c]-track_phi_emcal[itrack])/TMath::Pi();
 	    float dR = sqrt(dphi*dphi + deta*deta);
 	    if (dR < dRmin) Track_HasMatch = true;
