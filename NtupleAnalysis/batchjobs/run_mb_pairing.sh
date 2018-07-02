@@ -8,11 +8,11 @@ which gcc
 which root
 module list
 date
-echo "Command runpairing with file $1.root, mix_start = $2, mix_end = $3, and TrackSkim GeV = $4"
+echo "Command runpairing with file $1 (pairs with self), mix_start = $2, mix_end = $3, and TrackSkim GeV = $4"
 
 export cwd=$(pwd)
 cd $cwd/../pair_gale_shapley/
-./mix_gale_shapley ../InputData/$1.root ../InputData/$1_minbias_$4GeVTracks.root $2 $3 $4
+./mix_gale_shapley $1 $1 $2 $3 $4
 date 
 
 

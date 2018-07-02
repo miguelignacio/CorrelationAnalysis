@@ -28,9 +28,12 @@ using namespace H5;
 int main(int argc, char *argv[])
 {
   if (argc < 6) {
-    fprintf(stderr,"Batch Syntax is [Gamma-Triggered Root], [Min-Bias HDF5] [Mix Start] [Mix End] [Track Skim GeV]");
+    fprintf(stderr,"Batch Syntax is [Gamma-Triggered Paired Root], [Min-Bias HDF5] [Mix Start] [Mix End] [Track Skim GeV]");
     exit(EXIT_FAILURE);
   }
+
+  std::cout<<"TEST TEST TEST TEST"<<std::endl;
+
 
   int dummyc = 1;
   char **dummyv = new char *[1];
@@ -44,17 +47,16 @@ int main(int argc, char *argv[])
   TString hdf5_file = (TString)argv[2];
   fprintf(stderr,hdf5_file);
 
-  size_t mix_start = atoi(argv[3]);
-  size_t mix_end = atoi(argv[4]);
+  size_t mix_start = stoull(std::string(argv[3]));
+  size_t mix_end = stoull(std::string(argv[4]));
 
   int GeV_Track_Skim = atoi(argv[5]);
-  fprintf(stderr,"\nMix Start is: %lu \n",mix_start);
-  fprintf(stderr,"Mix End is: %lu \n",mix_end);
+  std::cout<<"mix start is "<<mix_start<<std::endl;
+  std::cout<<"mix end is "<<mix_end<<std::endl;
   fprintf(stderr,"Using %iGeV Track Skimmed from batch Script \n",GeV_Track_Skim);
 
   size_t nmix = 300;
   fprintf(stderr,"Number of Mixed Events: %i \n",nmix);
-
 
   //Config File
   FILE* config = fopen("Corr_config.yaml", "r");
@@ -332,7 +334,7 @@ int main(int argc, char *argv[])
     Float_t cell_e[17664];
 
     fprintf(stderr,"Initializing Mixing Branch to %i ME",nmix);
-    Long64_t Mix_Events[300];
+    Long64_t mix_events[300];
 
     //MC
     unsigned int nmc_truth;
@@ -378,7 +380,7 @@ int main(int argc, char *argv[])
     _tree_event->SetBranchAddress("cluster_cell_id_max", cluster_cell_id_max);
     _tree_event->SetBranchAddress("cell_e", cell_e);
 
-    _tree_event->SetBranchAddress("Mix_Events", Mix_Events);
+    _tree_event->SetBranchAddress("mixed_events", mix_events);
     //_tree_event->SetBranchAddress("LimitUse_Mixed_Events", Mix_Events);
     
     std::cout << " Total Number of entries in TTree: " << _tree_event->GetEntries() << std::endl;
@@ -454,11 +456,12 @@ int main(int argc, char *argv[])
     fprintf(stderr, "%s:%d: %s\n", __FILE__, __LINE__, "cluster dataset read into array: OK");
 
     Long64_t nentries = _tree_event->GetEntries();
+    
 
     for(Long64_t ievent = 0; ievent < nentries ; ievent++){     
-    //for(Long64_t ievent = 0; ievent < 25000; ievent++){
-      _tree_event->GetEntry(ievent);
+      //for(Long64_t ievent = 0; ievent < 200; ievent++){
       fprintf(stderr, "\r%s:%d: %llu / %llu", __FILE__, __LINE__, ievent, nentries);
+      _tree_event->GetEntry(ievent);
 
       for (ULong64_t n = 0; n < ncluster; n++) {
 	if( not(cluster_pt[n]>pT_min and cluster_pt[n]<pT_max)) continue; //select pt of photons
@@ -473,11 +476,11 @@ int main(int argc, char *argv[])
 	else isolation = cluster_frixione_its_04_02[n];
 
 	Long64_t mix_range = mix_end-mix_start+1;
-	for (Long64_t imix = 0; imix < mix_range; imix++){
-	  Long64_t mix_event = Mix_Events[imix];
-	  //fprintf(stderr,"%s:%d: Mixed Event: %lu from 13c hdf5\n",__FILE__, __LINE__, mix_event);
+	for (Long64_t imix = mix_start; imix < mix_end+1; imix++){
+	  Long64_t mix_event = mix_events[imix];
+	  //fprintf(stderr,"%s:%d: Pulling Mixed Event: %lu from hdf5 file.\n ME iteration %lu of %lu\n",__FILE__, __LINE__, mix_event, imix, imix-mix_start, mix_range);	  
+
 	  //if (mix_event == ievent) continue; //not needed for gamma-MB pairing: Different Triggers
-	  
 	  if(mix_event >= 9999999) continue;  
 
 	  //adjust offset for next mixed event
@@ -490,7 +493,6 @@ int main(int argc, char *argv[])
 	  cluster_dataset.read( cluster_data_out, PredType::NATIVE_FLOAT, cluster_memspace, cluster_dataspace );
 
 	  //MIX with Associated Tracks
-	  //const int TrackCutBit =16;
 	  for (ULong64_t itrack = 0; itrack < ntrack_max; itrack++) {
 	    if (std::isnan(track_data_out[0][itrack][1])) continue;
 	    //if ((int(track_data_out[0][itrack][4]+0.5)&selection_number)==0) continue;
@@ -557,7 +559,8 @@ int main(int argc, char *argv[])
     // Write to fout    
     size_t lastindex = std::string(root_file).find_last_of("."); 
     std::string rawname = std::string(root_file).substr(0, lastindex);
-    TFile* fout = new TFile(Form("InputData/%s_%s-MinBias_%luGeVTracks_%1.1lu_%1.0lu.root",rawname.data(),rawname.data(),mix_start,mix_end,GeV_Track_Skim),"RECREATE");
+    //std::string rawname = std::string(argv[1]);
+    TFile* fout = new TFile(Form("%s_%luGeVTracks_Correlation_%1.1lu_to_%1.1lu.root",rawname.data(),GeV_Track_Skim,mix_start,mix_end),"RECREATE");
 
     for (int ipt = 0; ipt<nptbins; ipt++){    
       for (int izt = 0; izt<nztbins; izt++){

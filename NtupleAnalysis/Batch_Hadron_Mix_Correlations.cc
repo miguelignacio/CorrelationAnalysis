@@ -11,6 +11,7 @@
 #include <TProfile.h>
 #include <iostream>
 #include <fstream>
+#include "H5Cpp.h"
 
 #define NTRACK_MAX (1U << 14)
 
@@ -21,16 +22,42 @@ const int MAX_INPUT_LENGTH = 200;
 
 enum isolationDet {CLUSTER_ISO_TPC_04, CLUSTER_ISO_ITS_04, CLUSTER_FRIXIONE_TPC_04_02, CLUSTER_FRIXIONE_ITS_04_02};
 
+using namespace H5;
+
+//int main(int argc, const char rootfilename, const char hdf5filename, const char *mixing_start, const char *mixing_end)
 int main(int argc, char *argv[])
 {
-  if (argc < 2) {
+  if (argc < 6) {
+    fprintf(stderr,"Batch Syntax is [Gamma-Triggered Paired Root], [Min-Bias HDF5] [Mix Start] [Mix End] [Track Skim GeV]");
     exit(EXIT_FAILURE);
   }
+
+  std::cout<<"TEST TEST TEST TEST"<<std::endl;
+
+
   int dummyc = 1;
   char **dummyv = new char *[1];
 
   dummyv[0] = strdup("main");
   
+  TString root_file = (TString)argv[1];
+  std::cout << "Opening: " << (TString)argv[1] << std::endl;
+
+  const H5std_string hdf5_file_name(argv[2]);
+  TString hdf5_file = (TString)argv[2];
+  fprintf(stderr,hdf5_file);
+
+  size_t mix_start = stoull(std::string(argv[3]));
+  size_t mix_end = stoull(std::string(argv[4]));
+
+  int GeV_Track_Skim = atoi(argv[5]);
+  std::cout<<"mix start is "<<mix_start<<std::endl;
+  std::cout<<"mix end is "<<mix_end<<std::endl;
+  fprintf(stderr,"Using %iGeV Track Skimmed from batch Script \n",GeV_Track_Skim);
+
+  size_t nmix = 300;
+  fprintf(stderr,"Number of Mixed Events: %i \n",nmix);
+
   //Config File
   FILE* config = fopen("Corr_config.yaml", "r");
   double DNN_min = 0;
@@ -45,12 +72,11 @@ int main(int argc, char *argv[])
   double noniso_min = 0;
   double noniso_max = 0;
   double deta_max = 0;
-  isolationDet determiner = CLUSTER_ISO_ITS_04;
+  isolationDet determiner = CLUSTER_ISO_ITS_04; //replaced by config file. Check on Print
   int n_eta_bins = 0;
   int n_phi_bins = 0;  
 
-  // Zt bins
-  //FIXME: Will have to likely set nztbins first, then initialize array
+  // zT & pT bins
   int nztbins = 7;
   float* ztbins;
   ztbins = new float[nztbins+1];
@@ -62,7 +88,7 @@ int main(int argc, char *argv[])
   ptbins[0] = 10.0; ptbins[1] = 11; ptbins[2] = 12.5; ptbins[3] = 16;
 
 
-  // Loop through config file
+  // Read/Loop through config file
   char line[MAX_INPUT_LENGTH];
   while (fgets(line, MAX_INPUT_LENGTH, config) != NULL) {
       if (line[0] == '#') continue;
@@ -218,52 +244,10 @@ int main(int argc, char *argv[])
   TH2D* Signal_pT_Dist = new TH2D("Signal_pT_Dist","Cluster Pt Spectrum For Isolation (its_04) bins 0.55 < DNN < 0.85",24,10,16,5,-0.5,2);
   TH2D* BKGD_pT_Dist = new TH2D("BKGD_pT_Dist","Cluster Pt Spectrum For Isolation (its_04) bins 0.0 < DNN < 0.3",24,10,16,5,-0.5,2);
 
-  TH2D* Corr[nztbins*nptbins];
-  TH2D* IsoCorr[nztbins*nptbins];
-  TH2D* BKGD_IsoCorr[nztbins*nptbins];
+  TH2D* Corr = new TH2D("hadron_hadron_corr","Min Bias Hadron Hadron Correlation",n_phi_bins, -M_PI/2,3*M_PI/2, n_eta_bins, -1.4, 1.4);
 
-  TH1D* H_Signal_Triggers[nptbins];
-  TH1D* H_BKGD_Triggers[nptbins];
-  float N_Signal_Triggers = 0;
-  float N_BKGD_Triggers = 0;
-  
-  //FIXME: Add to config file
 
-    for (int ipt = 0; ipt <nptbins; ipt++) {
-      H_Signal_Triggers[ipt] = new TH1D(
-      Form("N_DNN%i_Triggers_pT%1.0f_%1.0f",1,ptbins[ipt],ptbins[ipt+1]),
-      "Number of Isolated Photon Triggers", 2, -0.5,1.0);
-
-      H_BKGD_Triggers[ipt] = new TH1D(
-      Form("N_DNN%i_Triggers_pT%1.0f_%1.0f",2,ptbins[ipt],ptbins[ipt+1]),
-      "Number of Isolated Low DNN Photon Triggers", 2, -0.5,1.0);
-
-      for (int izt = 0; izt<nztbins; izt++){
-
-      Corr[izt+ipt*nztbins] = new TH2D(Form("Correlation__pT%1.0f_%1.0f__zT%1.0f_zT%1.0f",ptbins[ipt],ptbins[ipt+1],
-      10*ztbins[izt],10*ztbins[izt+1]),"#gamma-H [all] Correlation", n_phi_bins,-M_PI/2,3*M_PI/2, n_eta_bins, -1.4, 1.4);
-
-      Corr[izt+ipt*nztbins]->Sumw2();
-      Corr[izt+ipt*nztbins]->SetMinimum(0.);
-
-      IsoCorr[izt+ipt*nztbins] = new TH2D(Form("DNN%i_Correlation__pT%1.0f_%1.0f__zT%1.0f_zT%1.0f",1,ptbins[ipt],ptbins[ipt+1],
-      10*ztbins[izt],10*ztbins[izt+1]),"#gamma-H [Iso] Correlation", n_phi_bins,-M_PI/2,3*M_PI/2,n_eta_bins, -1.4, 1.4);
-
-      IsoCorr[izt+ipt*nztbins]->Sumw2();
-      IsoCorr[izt+ipt*nztbins]->SetMinimum(0.);
-
-      BKGD_IsoCorr[izt+ipt*nztbins] = new TH2D(Form("DNN%i_Correlation__pT%1.0f_%1.0f__zT%1.0f_zT%1.0f",2,ptbins[ipt],ptbins[ipt+1],
-      10*ztbins[izt],10*ztbins[izt+1]),"#gamma-H [AntiIso] Correlation", n_phi_bins,-M_PI/2,3*M_PI/2, n_eta_bins, -1.4, 1.4);
-
-      BKGD_IsoCorr[izt+ipt*nztbins]->Sumw2();
-      BKGD_IsoCorr[izt+ipt*nztbins]->SetMinimum(0.);
-
-    }//zt bins
-  }//pt bins                           
-  
-  for (int iarg = 1; iarg < argc; iarg++) {
-    std::cout << "Opening: " << (TString)argv[iarg] << std::endl;
-    TFile *file = TFile::Open((TString)argv[iarg]);
+    TFile *file = TFile::Open(root_file);
 
     if (file == NULL) {
       std::cout << " fail" << std::endl;
@@ -272,30 +256,28 @@ int main(int argc, char *argv[])
     file->Print();
     
     TTree *_tree_event = dynamic_cast<TTree *>(file->Get("_tree_event"));
-
     if (_tree_event == NULL) {
       _tree_event = dynamic_cast<TTree *>(file->Get("AliAnalysisTaskNTGJ/_tree_event"));
       if (_tree_event == NULL) {
-	std::cout << " fail " << std::endl;
+	std::cout << " tree fail " << std::endl;
 	exit(EXIT_FAILURE);
-      }
-    }  
+      }  
+    }
 
-    //Tracks
+    //variables
     Double_t primary_vertex[3];
     UInt_t ntrack;
     Float_t track_e[NTRACK_MAX];
     Float_t track_pt[NTRACK_MAX];
     Float_t track_eta[NTRACK_MAX];
     Float_t track_phi[NTRACK_MAX];
-    Float_t track_eta_emcal[NTRACK_MAX];
-    Float_t track_phi_emcal[NTRACK_MAX];
     UChar_t track_quality[NTRACK_MAX];
     UChar_t track_its_ncluster[NTRACK_MAX];
     Float_t track_its_chi_square[NTRACK_MAX];
     Float_t track_dca_xy[NTRACK_MAX];
 
-    //Clusters
+
+
     UInt_t ncluster;
     Float_t cluster_e[NTRACK_MAX];
     Float_t cluster_e_cross[NTRACK_MAX];
@@ -312,6 +294,9 @@ int main(int argc, char *argv[])
     UShort_t  cluster_cell_id_max[NTRACK_MAX];
     Float_t cluster_lambda_square[NTRACK_MAX][2];   
     Float_t cell_e[17664];
+
+    fprintf(stderr,"Initializing Mixing Branch to %i ME",nmix);
+    Long64_t mix_events[300];
 
     //MC
     unsigned int nmc_truth;
@@ -331,21 +316,17 @@ int main(int argc, char *argv[])
     // Set the branch addresses of the branches in the TTrees
     _tree_event->SetBranchStatus("*mc*", 0);
   
-    //track Addresses
     _tree_event->SetBranchAddress("primary_vertex", primary_vertex);
     _tree_event->SetBranchAddress("ntrack", &ntrack);
     _tree_event->SetBranchAddress("track_e", track_e);
     _tree_event->SetBranchAddress("track_pt", track_pt);
     _tree_event->SetBranchAddress("track_eta", track_eta);
     _tree_event->SetBranchAddress("track_phi", track_phi);
-    _tree_event->SetBranchAddress("track_eta_emcal", track_eta_emcal);
-    _tree_event->SetBranchAddress("track_phi_emcal", track_phi_emcal);
     _tree_event->SetBranchAddress("track_quality", track_quality);
     _tree_event->SetBranchAddress("track_its_ncluster", &track_its_ncluster);
     _tree_event->SetBranchAddress("track_its_chi_square", &track_its_chi_square);
     _tree_event->SetBranchAddress("track_dca_xy", &track_dca_xy);
 
-    //Cluster Addresses
     _tree_event->SetBranchAddress("ncluster", &ncluster);
     _tree_event->SetBranchAddress("cluster_e", cluster_e);
     _tree_event->SetBranchAddress("cluster_e_cross", cluster_e_cross);
@@ -364,132 +345,169 @@ int main(int argc, char *argv[])
     _tree_event->SetBranchAddress("cluster_cell_id_max", cluster_cell_id_max);
     _tree_event->SetBranchAddress("cell_e", cell_e);
 
-    Long64_t nentries = _tree_event->GetEntries();         
-    std::cout << " Total Number of entries in TTree: " << nentries << std::endl;
+    _tree_event->SetBranchAddress("mixed_events", mix_events);
+    //_tree_event->SetBranchAddress("LimitUse_Mixed_Events", Mix_Events);
+    
+    std::cout << " Total Number of entries in TTree: " << _tree_event->GetEntries() << std::endl;
+
+    //Using low level hdf5 API
+    //open hdf5: Define size of data from file, explicitly allocate memory in hdf5 space and array size
+    const H5std_string track_ds_name( "track" );
+    H5File h5_file( hdf5_file_name, H5F_ACC_RDONLY );
+    DataSet track_dataset = h5_file.openDataSet( track_ds_name );
+    DataSpace track_dataspace = track_dataset.getSpace();
+
+    const H5std_string cluster_ds_name( "cluster" );
+    DataSet cluster_dataset = h5_file.openDataSet( cluster_ds_name );
+    DataSpace cluster_dataspace = cluster_dataset.getSpace();
+
+    //Initialize Track Dimensions
+    const int track_ndims = track_dataspace.getSimpleExtentNdims();
+    hsize_t track_maxdims[track_ndims];
+    hsize_t trackdims[track_ndims];
+    track_dataspace.getSimpleExtentDims(trackdims, track_maxdims);
+
+    UInt_t ntrack_max = trackdims[1];
+    UInt_t NTrack_Vars = trackdims[2];
+
+    //Initalize Cluster Dimensions
+    const int cluster_ndims = cluster_dataspace.getSimpleExtentNdims();
+    hsize_t cluster_maxdims[cluster_ndims];
+    hsize_t clusterdims[cluster_ndims];
+    cluster_dataspace.getSimpleExtentDims(clusterdims, cluster_maxdims);
+
+    UInt_t ncluster_max = clusterdims[1];
+    UInt_t NCluster_Vars = clusterdims[2];
+
+    fprintf(stderr, "\n%s:%d: n track variables:%i n cluster variables:%i\n", __FILE__, __LINE__, NTrack_Vars,NCluster_Vars);
+    fprintf(stderr, "\n%s:%d: maximum tracks:%i maximum clusters:%i\n", __FILE__, __LINE__, ntrack_max,ncluster_max);
+
+
+    //Define array hyperslab will be read into
+    float track_data_out[1][ntrack_max][NTrack_Vars];
+    float cluster_data_out[1][ncluster_max][NCluster_Vars];
+
+    //Define hyperslab size and offset in  FILE;
+    hsize_t track_offset[3] = {0, 0, 0};
+    hsize_t track_count[3] = {1, ntrack_max, NTrack_Vars};
+    hsize_t cluster_offset[3] = {0, 0, 0};
+    hsize_t cluster_count[3] = {1, ncluster_max, NCluster_Vars};
+
+    track_dataspace.selectHyperslab( H5S_SELECT_SET, track_count, track_offset );
+    cluster_dataspace.selectHyperslab( H5S_SELECT_SET, cluster_count, cluster_offset );
+    fprintf(stderr, "%s:%d: %s\n", __FILE__, __LINE__, "select Hyperslab OK");
+
+    //Define the memory dataspace to place hyperslab
+    const int RANK_OUT = 3; //# of Dimensions
+    DataSpace track_memspace( RANK_OUT, trackdims );
+    DataSpace cluster_memspace( RANK_OUT, clusterdims );    
+    //FIXME: Can reduce rank to 2
+
+    //Define memory offset for hypreslab starting at begining:
+    hsize_t track_offset_out[3] = {0};
+    hsize_t cluster_offset_out[3] = {0};
+
+    //define Dimensions of array, for writing slab to array
+    hsize_t track_count_out[3] = {1, ntrack_max, NTrack_Vars};
+    hsize_t cluster_count_out[3] = {1, ncluster_max, NCluster_Vars};
+
+    //define space in memory for hyperslab, then write from file to memory
+    track_memspace.selectHyperslab( H5S_SELECT_SET, track_count_out, track_offset_out );
+    track_dataset.read( track_data_out, PredType::NATIVE_FLOAT, track_memspace, track_dataspace );
+    fprintf(stderr, "%s:%d: %s\n", __FILE__, __LINE__, "track dataset read into array: OK");
+
+    cluster_memspace.selectHyperslab( H5S_SELECT_SET, cluster_count_out, cluster_offset_out );
+    cluster_dataset.read( cluster_data_out, PredType::NATIVE_FLOAT, cluster_memspace, cluster_dataspace );
+    fprintf(stderr, "%s:%d: %s\n", __FILE__, __LINE__, "cluster dataset read into array: OK");
+
+    Long64_t nentries = _tree_event->GetEntries();
+    
 
     for(Long64_t ievent = 0; ievent < nentries ; ievent++){     
-    //for(Long64_t ievent = 0; ievent < 1000 ; ievent++){
-      _tree_event->GetEntry(ievent);
+      //for(Long64_t ievent = 0; ievent < 200; ievent++){
       fprintf(stderr, "\r%s:%d: %llu / %llu", __FILE__, __LINE__, ievent, nentries);
+      _tree_event->GetEntry(ievent);
 
-      for (ULong64_t n = 0; n < ncluster; n++) {
-	if( not(cluster_pt[n]>pT_min and cluster_pt[n]<pT_max)) continue;   //select pt of photons
-	if( not(TMath::Abs(cluster_eta[n])<Eta_max)) continue;              //cut edges of detector
-	if( not(cluster_ncell[n]>Cluster_min)) continue;                    //removes clusters with 1 or 2 cells
-	if( not(cluster_e_cross[n]/cluster_e[n]>EcrossoverE_min)) continue; //removes "spiky" clusters
+      for (ULong64_t outrack = 0; outrack < ntrack; outrack++){
+	  if(track_pt[outrack] < 0.5) continue; //500 MeV Tracks
+ 	  if(track_pt[outrack] > 30) continue;
+ 	  if((track_quality[outrack]&Track_Cut_Bit)==0) continue; //select only tracks that pass selection 
+	  if(abs(track_eta[outrack]) > 0.8) continue;
+	  if( not(track_its_ncluster[outrack]>4)) continue;
+	  if( not(track_its_chi_square[outrack]/track_its_ncluster[outrack] <36)) continue;
+	  if( not(TMath::Abs(track_dca_xy[outrack])<0.0231+0.0315/TMath::Power(track_pt[outrack],1.3 ))) continue;
 
-	float isolation;
-	if (determiner == CLUSTER_ISO_TPC_04) isolation = cluster_iso_tpc_04[n];
-	else if (determiner == CLUSTER_ISO_ITS_04) isolation = cluster_iso_its_04[n];
-	else if (determiner == CLUSTER_FRIXIONE_TPC_04_02) isolation = cluster_frixione_tpc_04_02[n];
-	else isolation = cluster_frixione_its_04_02[n];
-	if (isolation>iso_max) continue;
 
-	//fprintf(stderr,"Event: %llu Cluster pT:  %f      Track pT's:  ",ievent,cluster_pt[n]);
 
-	//High DNN Trigger Signal
-	if ((cluster_s_nphoton[n][1] > DNN_min) && (cluster_s_nphoton[n][1]<DNN_max)){
-	  N_Signal_Triggers += 1;
-	  for (double Iso_bin = -0.5; Iso_bin < iso_max; Iso_bin += 0.5)
-	    if (isolation > Iso_bin && isolation < Iso_bin+0.5) Signal_pT_Dist->Fill(cluster_pt[n],isolation);
-	  for (int ipt = 0; ipt < nptbins; ipt++)
-	    if (cluster_pt[n] >ptbins[ipt] && cluster_pt[n] <ptbins[ipt+1])
-	      H_Signal_Triggers[ipt]->Fill(0);
-	}
-	//Low DNN Trigger BKGD
-	if ((cluster_s_nphoton[n][1]>0.0) && (cluster_s_nphoton[n][1]<0.3)){
-	  h_ntrig.Fill(0.5);
-	  N_BKGD_Triggers += 1;
-	  for (double Iso_bin = -0.5; Iso_bin < iso_max; Iso_bin += 0.5)
-	    if (isolation > Iso_bin && isolation < Iso_bin+0.5) 
-	      BKGD_pT_Dist->Fill(cluster_pt[n],isolation);
-	  for (int ipt = 0; ipt < nptbins; ipt++)
-	    if (cluster_pt[n] >ptbins[ipt] && cluster_pt[n] <ptbins[ipt+1]) 
-	      H_BKGD_Triggers[ipt]->Fill(0); 
-	}
+	Long64_t mix_range = mix_end-mix_start+1;
+	for (Long64_t imix = mix_start; imix < mix_end+1; imix++){
+	  Long64_t mix_event = mix_events[imix];
+	  //fprintf(stderr,"%s:%d: Pulling Mixed Event: %lu from hdf5 file.\n ME iteration %lu of %lu\n",__FILE__, __LINE__, mix_event, imix, imix-mix_start, mix_range);	  
 
-	//Track Loop
-	for (ULong64_t itrack = 0; itrack < ntrack; itrack++) {            
- 	  if(track_pt[itrack] < 0.5) continue; //500 MeV Tracks
- 	  if(track_pt[itrack] > 30) continue;
- 	  if((track_quality[itrack]&Track_Cut_Bit)==0) continue; //select only tracks that pass selection 
-	  if(abs(track_eta[itrack]) > 0.8) continue;
-	  if( not(track_its_ncluster[itrack]>4)) continue;
-	  if( not(track_its_chi_square[itrack]/track_its_ncluster[itrack] <36)) continue;
-	  if( not(TMath::Abs(track_dca_xy[itrack])<0.0231+0.0315/TMath::Power(track_pt[itrack],1.3 ))) continue;
+	  //if (mix_event == ievent) continue; //not needed for gamma-MB pairing: Different Triggers
+	  if(mix_event >= 9999999) continue;  
 
-	  //Electron Veto for associated tracks outside of isolation cone
-	  double dRmin = 0.02;
-	  bool Track_HasMatch = false;
-	  for (ULong64_t c = 0; c < ncluster; c++){
-	    Float_t deta =  cluster_eta[c]-track_eta_emcal[itrack];
-	    Float_t dphi =  TVector2::Phi_mpi_pi(cluster_phi[c]-track_phi_emcal[itrack])/TMath::Pi();
-	    float dR = sqrt(dphi*dphi + deta*deta);
-	    if (dR < dRmin) {
-	      Track_HasMatch = true;
-	      break;
+	  //adjust offset for next mixed event
+	  track_offset[0]=mix_event;
+	  track_dataspace.selectHyperslab( H5S_SELECT_SET, track_count, track_offset );
+	  track_dataset.read( track_data_out, PredType::NATIVE_FLOAT, track_memspace, track_dataspace );
+
+	  cluster_offset[0]=mix_event;
+	  cluster_dataspace.selectHyperslab( H5S_SELECT_SET, cluster_count, cluster_offset );
+	  cluster_dataset.read( cluster_data_out, PredType::NATIVE_FLOAT, cluster_memspace, cluster_dataspace );
+
+	  //MIX with Associated Tracks
+	  for (ULong64_t itrack = 0; itrack < ntrack_max; itrack++) {
+	    if (std::isnan(track_data_out[0][itrack][1])) continue;
+	    //if ((int(track_data_out[0][itrack][4]+0.5)&selection_number)==0) continue;
+	    if ((int(track_data_out[0][itrack][4]+ 0.5)&Track_Cut_Bit)==0) continue; //selection 16
+	    if (track_data_out[0][itrack][1] < 0.5) continue; //less than 1GeV
+	    if (track_data_out[0][itrack][1] > 30) continue; //less than 1GeV
+	    if (abs(track_data_out[0][itrack][2]) > 0.8) continue;
+	    if (track_data_out[0][itrack][7] < 4) continue;
+	    if ((track_data_out[0][itrack][8]/track_data_out[0][itrack][7]) > 36) continue;
+	    if( not(TMath::Abs(track_data_out[0][itrack][9])<0.0231+0.0315/TMath::Power(track_data_out[0][itrack][4],1.3 ))) continue;
+
+	    double dRmin = 0.02;
+	    //veto charged particles from mixed event tracks
+	    bool MixTrack_HasMatch = false;
+	    for (unsigned int l = 0; l < ncluster_max; l++){
+	      if (std::isnan(cluster_data_out[0][l][0])) break;
+		float dphi = TMath::Abs(cluster_data_out[0][l][2] - track_data_out[0][itrack][5]);
+		float deta = TMath::Abs(cluster_data_out[0][l][3] - track_data_out[0][itrack][6]);
+		float dR = sqrt(dphi*dphi + deta*deta);
+		if (dR < dRmin)	MixTrack_HasMatch = true;
+		break; 
 	    }
-	  }
- 	  if (Track_HasMatch) continue;
+	    if (MixTrack_HasMatch) continue;
+	    
+	    //fprintf(stderr, "%s:%d: Mixed Event: %llu Track: %llu\n", __FILE__, __LINE__, mix_event, itrack);
 
-	  //Observables:
-	  Double_t zt = track_pt[itrack]/cluster_pt[n];
-	  Float_t DeltaPhi = cluster_phi[n] - track_phi[itrack];
-	  if (DeltaPhi < -M_PI/2) DeltaPhi += 2*M_PI;
-	  if (DeltaPhi > 3*M_PI/2) DeltaPhi =DeltaPhi -2*M_PI;
-	  Float_t DeltaEta = cluster_eta[n] - track_eta[itrack];
-	  if ((TMath::Abs(DeltaPhi) < 0.005) && (TMath::Abs(DeltaEta) < 0.005)) continue; //Match Mixing Cut
+	    Float_t DeltaPhi = track_phi[outrack] - track_data_out[0][itrack][3];
+	    if (DeltaPhi < -M_PI/2){DeltaPhi += 2*M_PI;}  //if less then -pi/2 add 2pi              
+	    if (DeltaPhi > 3*M_PI/2){DeltaPhi =DeltaPhi -2*M_PI;}
+	    Float_t DeltaEta = track_eta[outrack] - track_data_out[0][itrack][2];
+	    if ((TMath::Abs(DeltaPhi) < 0.005) && (TMath::Abs(DeltaEta) < 0.005)) continue;
+	    Corr->Fill(DeltaPhi,DeltaEta);
 
-	  //fprintf(stderr,"%f   ",track_pt[itrack]);
-
-	  for (int ipt = 0; ipt < nptbins; ipt++){
-	    if (cluster_pt[n] >ptbins[ipt] && cluster_pt[n] <ptbins[ipt+1]){
-	      for(int izt = 0; izt<nztbins ; izt++){
-		if(zt>ztbins[izt] and  zt<ztbins[izt+1]){
-		  
-		  //2 DNN Regions
-		  if (cluster_s_nphoton[n][1] > DNN_min && cluster_s_nphoton[n][1] < DNN_max)
-		    IsoCorr[izt+ipt*nztbins]->Fill(DeltaPhi,DeltaEta);
-		  if (cluster_s_nphoton[n][1] > 0.0 && cluster_s_nphoton[n][1] < 0.3) //sel deep photons                                       
-		      BKGD_IsoCorr[izt+ipt*nztbins]->Fill(DeltaPhi,DeltaEta);
-		  Corr[izt+ipt*nztbins]->Fill(DeltaPhi,DeltaEta);
-		}//if in zt bin                                                                                               
-	      } // end loop over zt bins                                                                         
-	    }//end if in pt bin                                                                                                  
-	  }//end pt loop bin   
-	}//end loop over tracks
-	//fprintf(stderr,"\n"); 
-      }//end loop on clusters.
-    } //end loop over events  
-  }//end loop over samples
-
-  // Write to fout
-  
-  //TFile* fout = new TFile(Form("fout_Corr_config%s.root", opened_files.c_str()),"RECREATE");
-  TFile* fout = new TFile("Same_Event_Correlation_13defv1.root","RECREATE");
-  h_ntrig.Write("ntriggers");
-  std::cout<<"Clusters Passed Iosalation: "<<N_Signal_Triggers<<std::endl;
-  
-  Signal_pT_Dist->Write();
-  BKGD_pT_Dist->Write();
-
-  for (int ipt = 0; ipt<nptbins; ipt++)
-    H_Signal_Triggers[ipt]->Write();
-  
-  for (int ipt = 0; ipt<nptbins; ipt++)
-    H_BKGD_Triggers[ipt]->Write();
+	  }//end loop over hdf5 tracks
+	}//end loop over mixed events
+    }//end loop root tracks.       
+} //end loop over events
     
-  for (int ipt = 0; ipt<nptbins; ipt++){
-    for (int izt = 0; izt<nztbins; izt++)
-      Corr[izt+ipt*nztbins]->Write();
-    for (int izt = 0; izt<nztbins; izt++)
-      IsoCorr[izt+ipt*nztbins]->Write();
-    for (int izt = 0; izt<nztbins; izt++)
-      BKGD_IsoCorr[izt+ipt*nztbins]->Write();
-  }
-  //Seperate zt loops for easier file reading
-  fout->Close();     
   
-  std::cout << " ending " << std::endl;
-  return EXIT_SUCCESS;
+
+
+    // Write to fout    
+    size_t lastindex = std::string(root_file).find_last_of("."); 
+    std::string rawname = std::string(root_file).substr(0, lastindex);
+    //std::string rawname = std::string(argv[1]);
+    TFile* fout = new TFile(Form("%s_HadronHadron_Correlation_%1.1lu_to_%1.1lu.root",rawname.data(),mix_start,mix_end),"RECREATE");
+
+Corr->Write();
+
+fout->Close();     
+    
+    std::cout << " ending " << std::endl;
+    return EXIT_SUCCESS;
 }
