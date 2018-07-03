@@ -97,10 +97,16 @@ int main(int argc, char *argv[])
 
     dummyv[0] = strdup("main");
 
-    for (int iarg = 1; iarg < argc; iarg++) {
-      std::cout << "Opening: " << (TString)argv[iarg] << std::endl;
-        TFile *file = TFile::Open((TString)argv[iarg]);
 
+      std::cout << "Opening: " << (TString)argv[1] << std::endl;
+        TFile *file = TFile::Open((TString)argv[1]);
+ 
+        Int_t nevents = 0;
+        if(argc>2){
+            nevents = strtol(argv[2],NULL,0);
+	}
+        std::cout << " Number of events requested " << nevents << std::endl; 
+	
         if (file == NULL) {
 	  std::cout << " fail" << std::endl;
             exit(EXIT_FAILURE);
@@ -239,13 +245,16 @@ int main(int argc, char *argv[])
         _tree_event->SetBranchStatus("*time*",1);
         _tree_event->SetBranchStatus("*pileup*",1);
 	_tree_event->SetBranchStatus("*event*",1);
+	_tree_event->SetBranchStatus("*eg*",1);
 
         _tree_event->SetBranchStatus("*centrality*",1);
 	_tree_event->SetBranchStatus("*multiplicity*",1);
         _tree_event->SetBranchStatus("run_number",1);
         _tree_event->SetBranchStatus("*Mix*",1);
 	_tree_event->SetBranchStatus("*jet*",1);
+        _tree_event->SetBranchStatus("*ue*", 1);
 	_tree_event->SetBranchStatus("*muon*",0);
+        _tree_event->SetBranchStatus("*tpc*",0);
 
 
  	std::cout << " Total Number of entries in TTree: " << _tree_event->GetEntries() << std::endl;
@@ -256,16 +265,16 @@ int main(int argc, char *argv[])
         newtree->Branch("cluster_NN2", cluster_NN2, "cluster_NN2[ncluster]/F");
 
 	newtree->Branch("cluster_Lambda", cluster_Lambda, "cluster_Lambda[ncluster]/F");
-        newtree->Branch("cluster_Lambda_angle", cluster_Lambda_angle, "cluster_Lambda_angle[ncluster]/F");
+        //newtree->Branch("cluster_Lambda_angle", cluster_Lambda_angle, "cluster_Lambda_angle[ncluster]/F");
 
         newtree->Branch("cluster_isHardPhoton", cluster_isHardPhoton, "cluster_isHardPhoton[ncluster]/F");
-        newtree->Branch("cluster_minMass", cluster_minMass, "cluster_minMass[ncluster]/F");
+        
         newtree->Branch("cluster_mindR_trackbit16",cluster_mindR_trackbit16,"cluster_mindR_trackbit16[ncluster]/F");
-	newtree->Branch("cluster_mindR_trackbit3",cluster_mindR_trackbit3,"cluster_mindR_trackbit3[ncluster]/F");
+	
 	newtree->Branch("cluster_mindR_trackbit16_trackpt",cluster_mindR_trackbit16_trackpt,"cluster_mindR_trackbit16_trackpt[ncluster]/F");
-        newtree->Branch("cluster_mindR_trackbit3_trackpt",cluster_mindR_trackbit3_trackpt,"cluster_mindR_trackbit3_trackpt[ncluster]/F");
+        
         newtree->Branch("cluster_isoetaband_its", cluster_isoetaband_its, "cluster_isoetaband_its[ncluster]/F");
-	newtree->Branch("cluster_isoetaband_tpc", cluster_isoetaband_tpc, "cluster_isoetaband_tpc[ncluster]/F");
+	//newtree->Branch("cluster_isoetaband_tpc", cluster_isoetaband_tpc, "cluster_isoetaband_tpc[ncluster]/F");
 
         newtree->Branch("cluster_pi0tagged",cluster_pi0tagged,"cluster_pi0tagged[ncluster]/I");
      
@@ -273,8 +282,8 @@ int main(int argc, char *argv[])
 	Float_t cluster_b5x5[NTRACK_MAX];
 	Float_t cluster_b5x5_lin[NTRACK_MAX];
 	unsigned int cluster_SuperModule[NTRACK_MAX];
-	newtree->Branch("cluster_b5x5", cluster_b5x5, "cluster_b5x5[ncluster]/F");
-        newtree->Branch("cluster_b5x5_lin", cluster_b5x5_lin, "cluster_b5x5_lin[ncluster]/F");
+	//newtree->Branch("cluster_b5x5", cluster_b5x5, "cluster_b5x5[ncluster]/F");
+        //newtree->Branch("cluster_b5x5_lin", cluster_b5x5_lin, "cluster_b5x5_lin[ncluster]/F");
         newtree->Branch("cluster_SuperModule", cluster_SuperModule, "cluster_SuperModule[ncluster]/i");
        
 	_tree_event->GetEntry(0);
@@ -282,8 +291,11 @@ int main(int argc, char *argv[])
           c_eta_array[i] = cell_eta[i];
           c_phi_array[i] = cell_phi[i]; 
         }
-        const Long64_t nevents = _tree_event->GetEntries();
-	//const Long64_t nevents = 500;  
+        
+        if( not(nevents>0)){ 
+            nevents = _tree_event->GetEntries();
+	}
+	//const Long64_t nevents = 100000;  
 	for(Long64_t ievent = 0; ievent < nevents ; ievent++){     
 	  _tree_event->GetEntry(ievent);
           
@@ -397,9 +409,9 @@ int main(int argc, char *argv[])
 	      auto c_id = cell_id_5_5[i];
 	      if( not(c_id <17664)) continue;
 	      if( not(cell_e[c_id] >0.100)) continue;
-	      eta_center += cell_e[c_id]* c_eta_array[c_id];
-	      phi_center += cell_e[c_id]* c_phi_array[c_id];
-	      sumw       += cell_e[c_id];
+	      eta_center =+ cell_e[c_id]* c_eta_array[c_id];
+	      phi_center =+ cell_e[c_id]* c_phi_array[c_id];
+	      sumw       =+ cell_e[c_id];
 	    }
 	    eta_center = eta_center/sumw;
 	    phi_center = phi_center/sumw;
@@ -461,7 +473,7 @@ int main(int argc, char *argv[])
 	delete file;
 	delete newfile;
 	  
-    }//end loop over samples
+
 
     std::cout << " ending " << std::endl;
     return EXIT_SUCCESS;
