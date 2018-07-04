@@ -100,7 +100,11 @@ int main(int argc, char *argv[])
 
       std::cout << "Opening: " << (TString)argv[1] << std::endl;
         TFile *file = TFile::Open((TString)argv[1]);
- 
+
+	std::string filepath = argv[1];
+	filepath = filepath.substr(filepath.find_last_of("/")+1, filepath.find_last_of(".")-filepath.find_last_of("/")-1);
+	std::cout << filepath << std::endl;
+      
         Int_t nevents = 0;
         if(argc>2){
             nevents = strtol(argv[2],NULL,0);
@@ -259,7 +263,7 @@ int main(int argc, char *argv[])
 
  	std::cout << " Total Number of entries in TTree: " << _tree_event->GetEntries() << std::endl;
 
-	TFile *newfile = new TFile("Small.root","recreate");
+	TFile *newfile = new TFile(Form("Skimmed_%s.root",filepath.c_str()),"recreate");
 	TTree *newtree = _tree_event->CloneTree(0);
         newtree->Branch("cluster_NN1", cluster_NN1, "cluster_NN1[ncluster]/F");
         newtree->Branch("cluster_NN2", cluster_NN2, "cluster_NN2[ncluster]/F");
