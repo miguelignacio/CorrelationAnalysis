@@ -17,31 +17,35 @@
 
 const int MAX_INPUT_LENGTH = 200;
 
-//int main(int argc, char *argv[])
-int main()
+int main(int argc, char *argv[])
+//int main()
 {
-//    if (argc < 3){
-//     std::cout<<"Syntax is [Command] [Same_Event_root_file] [Mixed_Event_root_file]"<<std::endl;
-//     exit(EXIT_FAILURE);
-//   }
-//    TFile *corr = TFile::Open((TString)argv[1]);
+  if (argc < 3){
+    std::cout<<"Syntax is [Command] [Same_Event_root_file] [Mixed_Event_root_file]"<<std::endl;
+    exit(EXIT_FAILURE);
+  }
+   TFile *corr = TFile::Open((TString)argv[1]);
 
-  TFile *corr = TFile::Open("Same_Event_Correlation_13defv1.root");
+   //TFile *corr = TFile::Open("Same_Event_Correlation_13defv1.root");
   if (corr == NULL) {
     std::cout << "file 1 fail" << std::endl;
     exit(EXIT_FAILURE);
     }
 
-  int nTrackSkims = 3;
+  int nTrackSkims = 1;
   float* trackPtSkims;
   trackPtSkims = new float[nTrackSkims+1];
-  trackPtSkims[0] = 0.0; trackPtSkims[1] = 4.0; trackPtSkims[2] = 6.0; trackPtSkims[3] = 30.0;
+  trackPtSkims[0] = 0.0; trackPtSkims[1] = 30.0;
+  // trackPtSkims[1] = 4.0; trackPtSkims[2] = 6.0;
   //trackPtSkims[2] = 30.0;
 
   TFile* MixFile[nTrackSkims];
   for (int iSkim = 0; iSkim < nTrackSkims; iSkim ++){
-    MixFile[iSkim] = TFile::Open(Form("Mix_Correlation_%1.0fGeVTracks_13defv1_ALL.root",trackPtSkims[iSkim]));
-    std::cout<<Form("Mix_Correlation_%1.0fGeVTracks_13defv1_ALL.root",trackPtSkims[iSkim])<<std::endl;
+    std::string basic_name = argv[2];
+    //MixFile[iSkim] = TFile::Open(Form("Mix_Correlation_%1.0fGeVTracks_13defv1_ALL.root",trackPtSkims[iSkim]));
+    //MixFile[iSkim] = TFile::Open(Form("13d_4L_GMB_Correlation_%1.0fGeVTracks.root",trackPtSkims[iSkim]));
+    MixFile[iSkim] = TFile::Open(Form("%s_%1.0fGeVTracks.root",basic_name.c_str(),trackPtSkims[iSkim]));
+    std::cout<<Form("%s_%1.0fGeVTracks.root",basic_name.c_str(),trackPtSkims[iSkim])<<std::endl;
     if (MixFile[iSkim] == NULL) {
       std::cout<<MixFile[iSkim]<<std::endl;
       std::cout << " Mixed file "<<iSkim<<" failed" << std::endl;
