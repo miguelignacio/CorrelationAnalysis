@@ -88,11 +88,12 @@ int main(int argc, char *argv[])
         // Get the mixed event textfiles
         std::ifstream mixed_textfiles[num_of_files];
         for(int i = 0; i < num_of_files; i++) {
-            std::ostringstream filename;
-            filename << Form("%s_%iGeVTrack_Pairs_%i_to_%i.txt", rawname.data(), std::stoi((std::string)argv[trackpairenergyArg]), i*20, ((i+1)*20)-1);
-            mixed_textfiles[i].open(filename.str());
+	  std::ostringstream filename;
+	  filename << Form("%s_%iGeVTrack_Pairs_%i_to_%i.txt", rawname.data(), std::stoi((std::string)argv[trackpairenergyArg]), i*20, ((i+1)*20)-1);
+	  //filename << Form("%s_%iGeVTrack_Pairs_%i_to_%i.txt", rawname.data(), std::stoi((std::string)argv[trackpairenergyArg]), 0, 1);
+	    mixed_textfiles[i].open(filename.str());
 	    std::cout<<"Opening Text File: "<<Form("%s_%iGeVTrack_Pairs_%i_to_%i.txt", rawname.data(), std::stoi((std::string)argv[trackpairenergyArg]), i*20, ((i+1)*20)-1)<<std::endl;
-        }
+	}
         
         
         const Long64_t nevents = _tree_event->GetEntries();
@@ -105,7 +106,7 @@ int main(int argc, char *argv[])
             std::string eventlines[num_of_files];
             bool event_end = false;
             for(int i = 0; i < num_of_files; i++) {
-                getline(mixed_textfiles[i], eventlines[i]);
+	      getline(mixed_textfiles[i], eventlines[i]);
                 if (eventlines[i] == "") {
                     event_end = true;
 		    std::cout<<std::endl<<"reached end of file: "<<i<<std::endl;
@@ -124,9 +125,11 @@ int main(int argc, char *argv[])
             }
             int currentindex;
             // Loop over mixed events, fill the mixed_events histogram while at it
+	    //for (int m = 0; m<2; m++){
+	    //currentindex = m;
             for(int m = 0; m <300; m++) {
-                currentindex = m/20;
-                getline(parsers[currentindex], mixednum_string, '\t');
+	      currentindex = m/20;
+	      getline(parsers[currentindex], mixednum_string, '\t');
                 mixed_events[m] = stoul(mixednum_string);
 		//fprintf(stderr,"%lu\n",mixed_events[m]);
             }
