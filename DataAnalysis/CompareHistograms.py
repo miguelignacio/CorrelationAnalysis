@@ -65,7 +65,7 @@ from ROOT import TLatex
 SetAtlasStyle()
 
 
-color = [1,2,6,6,7,8]
+color = [1,2,4,7,9,8]
 style = [20,21,24,26] 
 
 def DivideGraphs(den,num): 
@@ -127,21 +127,26 @@ def plotHists(hists,files, xtitle, ytitle, title, pdfname,ly=False):
         label.Add(hists[i],tag[i],"L")
         multi.Add(hists[i])
 
-    
-    multi.Draw("AP")
+    #multi.SetMaximum(15)
+    #multi.SetMinimum(5)
+    multi.Draw("ALP")
     ROOT.gStyle.SetErrorX(0.0001);
     multi.SetMaximum(1.02*multi.GetHistogram().GetMaximum())
     multi.SetTitle(title)
     multi.GetXaxis().SetTitle(xtitle)
     multi.GetYaxis().SetTitle(ytitle)
+    multi.GetXaxis().SetTitle('Median density #rho [GeV]')
+    multi.GetYaxis().SetTitle('normalized counts')
     multi.GetXaxis().SetNdivisions(10)
 
-    label.Draw(0.2,.95)
+    label.Draw(0.6,.95)
 
     if ly==True:
         ROOT.gPad.SetLogy(1)
     latex = TLatex()
     latex.SetNDC()
+
+    
     c.SaveAs(pdfname)
     c.Clear()
     print "END OF PLOTTING FUNCTION " 
@@ -196,7 +201,15 @@ temp = get_hists(files,hists)
 for i in range(len(hists)):
     plotHists(temp[i], files, allhists[i][0].GetXaxis().GetTitle(),allhists[i][0].GetYaxis().GetTitle() ,  allhists[i][0].GetTitle(),  output_dir + "/"+hists[i]+Tag+'_Comparison.pdf',ly=False)
 
+print 'there are a total of ', len(tag)
 
+cRatio = ROOT.TCanvas()
+
+for i in range(len(hists)):
+    ref = allhists[i][0]
+    ratio =  DivideGraphs(ref, allhists[i][1])
+    ratio.Draw()
+    cRatio.SaveAs(output_dir + '/'+hists[i]+Tag+'_Ratio.pdf')
 
 
 
