@@ -39,6 +39,8 @@ int main(int argc, char *argv[])
   double pT_max = 0;
   double Eta_max = 0;
   double Cluster_min = 0;
+  float Cluster_DtoBad = 0;
+  UChar_t Cluster_NLocal_Max = 0;
   double EcrossoverE_min = 0;
   int Track_Cut_Bit = 0;
   double iso_max = 0;
@@ -100,6 +102,14 @@ int main(int argc, char *argv[])
       else if (strcmp(key, "Cluster_min") == 0) {
           Cluster_min = atof(value);
           std::cout << "Cluster_min: " << Cluster_min << std::endl; }
+
+      else if (strcmp(key, "Cluster_dist_to_bad_channel") == 0){
+	Cluster_DtoBad = atof(value);
+	std::cout << "Cluster_DtoBad: "<< Cluster_DtoBad << std::endl;}
+
+      else if (strcmp(key, "Cluster_Number_Local_Maxima") == 0){
+        Cluster_NLocal_Max = atof(value);
+	std::cout << "Cluster_NLocal_Max: "<< Cluster_NLocal_Max << std::endl;}
 
       else if (strcmp(key, "EcrossoverE_min") == 0) {
           EcrossoverE_min = atof(value);
@@ -318,6 +328,8 @@ int main(int argc, char *argv[])
     UShort_t  cluster_cell_id_max[NTRACK_MAX];
     Float_t cluster_lambda_square[NTRACK_MAX][2];   
     Float_t cell_e[17664];
+    Float_t cluster_distance_to_bad_channel[NTRACK_MAX];
+    UChar_t cluster_nlocal_maxima[NTRACK_MAX];
 
     //MC
     unsigned int nmc_truth;
@@ -365,6 +377,8 @@ int main(int argc, char *argv[])
     _tree_event->SetBranchAddress("cluster_iso_its_04",cluster_iso_its_04);
     _tree_event->SetBranchAddress("cluster_frixione_tpc_04_02",cluster_frixione_tpc_04_02);
     _tree_event->SetBranchAddress("cluster_frixione_its_04_02",cluster_frixione_its_04_02);
+    _tree_event->SetBranchAddress("cluster_distance_to_bad_channel", cluster_distance_to_bad_channel);
+    _tree_event->SetBranchAddress("cluster_nlocal_maxima", cluster_nlocal_maxima);
 
     _tree_event->SetBranchAddress("cluster_ncell", cluster_ncell);
     _tree_event->SetBranchAddress("cluster_cell_id_max", cluster_cell_id_max);
@@ -383,6 +397,8 @@ int main(int argc, char *argv[])
 	if( not(TMath::Abs(cluster_eta[n])<Eta_max)) continue;              //cut edges of detector
 	if( not(cluster_ncell[n]>Cluster_min)) continue;                    //removes clusters with 1 or 2 cells
 	if( not(cluster_e_cross[n]/cluster_e[n]>EcrossoverE_min)) continue; //removes "spiky" clusters
+	if( not(cluster_distance_to_bad_channel[n]>=Cluster_DtoBad)) continue; //removes clusters near bad channels
+	if( not(cluster_nlocal_maxima[n] < Cluster_NLocal_Max)) continue; //require to have at most 2 local maxima.
 
 	float isolation;
 	if (determiner == CLUSTER_ISO_TPC_04) isolation = cluster_iso_tpc_04[n];
@@ -415,7 +431,6 @@ int main(int argc, char *argv[])
 	//no iso, no dnn
 	for (int ipt = 0; ipt < nptbins; ipt++)
 	  Triggers[ipt]->Fill(0);
-
 
 	//Track Loop
 	for (ULong64_t itrack = 0; itrack < ntrack; itrack++) {            
