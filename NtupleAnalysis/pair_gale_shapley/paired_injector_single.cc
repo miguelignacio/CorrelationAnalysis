@@ -35,8 +35,8 @@ int trackpairenergyArg = 2;
 
 int main(int argc, char *argv[])
 {
-    if (argc < 3) {
-      fprintf(stderr,"Syntax is [Command] [root file] [13d, 13e or 13f] [TrackSkim GeV] \n");
+    if (argc < 5) {
+      fprintf(stderr,"Syntax is [Command] [root file] [13d, 13e or 13f] [TrackSkim GeV] [Mix Start] [Mix End]\n");
         exit(EXIT_FAILURE);
     }
     int dummyc = 1;
@@ -44,6 +44,8 @@ int main(int argc, char *argv[])
     
     dummyv[0] = strdup("main");
     
+    size_t mix_start = stoull(std::string(argv[3]));
+    size_t mix_end = stoull(std::string(argv[4]));
     
         std::cout << "Opening: " << (TString)argv[fileArg] << std::endl;
         TFile *file = TFile::Open((TString)argv[fileArg]);
@@ -73,7 +75,7 @@ int main(int argc, char *argv[])
 	size_t lastindex = std::string(argv[fileArg]).find_last_of("."); 
 	std::string rawname = std::string(argv[fileArg]).substr(0, lastindex);
 	std::cout<<rawname<<std::endl;
-	TFile *newfile = new TFile(Form("%s_%iGeVTrack_paired.root", rawname.data(), std::stoi((std::string)argv[trackpairenergyArg])), "RECREATE");
+	TFile *newfile = new TFile(Form("%s_%iGeVTrack_paired_test.root", rawname.data(), std::stoi((std::string)argv[trackpairenergyArg])), "RECREATE");
         TTree *newtree = _tree_event->CloneTree(0);
         
 	// TFile *newfile = new TFile(Form("%s_mixedadded_output.root", ((std::string)argv[runArg]).c_str()), "RECREATE");
@@ -89,9 +91,9 @@ int main(int argc, char *argv[])
         std::ifstream mixed_textfile;
 
 	std::ostringstream filename;
-	filename << Form("%s_%iGeVTrack_Pairs_%i_to_%i.txt", rawname.data(), std::stoi((std::string)argv[trackpairenergyArg]), 0, 10);
+	filename << Form("%s_%iGeVTrack_Pairs_%lu_to_%lu.txt", rawname.data(), std::stoi((std::string)argv[trackpairenergyArg]), mix_start, mix_end);
 	    mixed_textfile.open(filename.str());
-	    std::cout<<"Opening Text File: "<<Form("%s_%iGeVTrack_Pairs_%i_to_%i.txt", rawname.data(), std::stoi((std::string)argv[trackpairenergyArg]), 0, 10)<<std::endl;
+	    std::cout<<"Opening Text File: "<<Form("%s_%iGeVTrack_Pairs_%lu_to_%lu.txt", rawname.data(), std::stoi((std::string)argv[trackpairenergyArg]), mix_start, mix_end)<<std::endl;
 
         
         
@@ -115,9 +117,10 @@ int main(int argc, char *argv[])
             std::istringstream parsers[1];
 	    parsers[0].str(eventline);
             int currentindex;
+	    Long64_t mix_range = (mix_end - mix_start);
             // Loop over mixed events, fill the mixed_events histogram while at it
-            for(int m = 0; m <10; m++) {
-                currentindex = m/10;
+            for(int m = 0; m < mix_range; m++) {
+                currentindex = m/mix_range;
                 getline(parsers[currentindex], mixednum_string, '\t');
                 mixed_events[m] = stoul(mixednum_string);
 		//fprintf(stderr,"%lu\n",mixed_events[m]);
