@@ -30,227 +30,271 @@ int main(int argc, char *argv[])
   }
   int dummyc = 1;
   char **dummyv = new char *[1];
-    
+
+  Int_t nevents = 0;
+  Float_t ptmin = 12.0;
+  if(argc>2){
+    ptmin = strtol(argv[2],NULL,0);
+  }
+  Float_t ptmax = 15.0;
+  if(argc>3){
+    ptmax = strtol(argv[3],NULL,0);
+  }
+
+  Float_t jetptmin = 10.0;
+  if(argc>4){
+    jetptmin = strtol(argv[4],NULL,0);
+  }
+
+  if(argc>5){
+    nevents = strtol(argv[5],NULL,0);
+  }
+
+
+  std::cout << " Number of events requested " << nevents << std::endl;
+  std::cout << " ptmin " << ptmin << " ptmax = " << ptmax << std::endl;
+  std::cout << "minimum pt jet " <<jetptmin << std::endl;
+
   dummyv[0] = strdup("main");
   TApplication application("", &dummyc, dummyv);    
   std::cout <<" Number of arguments " << argc << std::endl; 
-  for (int iarg = 1; iarg < argc; iarg++) {
-    std::cout << "Opening: " << (TString)argv[iarg] << std::endl;
-    TFile *file = TFile::Open((TString)argv[iarg]);
-        
-    if (file == NULL) {
-      std::cout << " fail; could not open file" << std::endl;
-      exit(EXIT_FAILURE);
-    }
+
+  std::cout << "Opening: " << (TString)argv[1] << std::endl;
+  TFile *file = TFile::Open((TString)argv[1]);
+       
+  if (file == NULL) {
+    std::cout << " fail; could not open file" << std::endl;
+    exit(EXIT_FAILURE);
+  }
     file->Print();
         
-    // Get all the TTree variables from the file to open, I guess
-    TTree *_tree_event = NULL;
-    std::cout << " About to try getting the ttree" << std::endl;
-    _tree_event = dynamic_cast<TTree *> (file->Get("_tree_event"));
+  // Get all the TTree variables from the file to open, I guess
+  TTree *_tree_event = NULL;
+  std::cout << " About to try getting the ttree" << std::endl;
+  _tree_event = dynamic_cast<TTree *> (file->Get("_tree_event"));
+  if (_tree_event == NULL) {
+    std::cout << "First try did not got trying again" << std::endl;
+    _tree_event = dynamic_cast<TTree *> (dynamic_cast<TDirectoryFile *>   (file->Get("AliAnalysisTaskNTGJ"))->Get("_tree_event"));
     if (_tree_event == NULL) {
-      std::cout << "First try did not got trying again" << std::endl;
-      _tree_event = dynamic_cast<TTree *> (dynamic_cast<TDirectoryFile *>   (file->Get("AliAnalysisTaskNTGJ"))->Get("_tree_event"));
-      if (_tree_event == NULL) {
-	std::cout << " fail; could not find _tree_event " << std::endl;
-	exit(EXIT_FAILURE);
-      }
+    std::cout << " fail; could not find _tree_event " << std::endl;
+    exit(EXIT_FAILURE);
     }
+  }
 
-    if (_tree_event == NULL) {
-      std::cout << " fail; the _tree_event is NULL " << std::endl;
-      exit(EXIT_FAILURE);
-    }
+  if (_tree_event == NULL) {
+    std::cout << " fail; the _tree_event is NULL " << std::endl;
+    exit(EXIT_FAILURE);
+  }
         
     //
 
-    std::cout <<"_tree_event->GetEntries() " << _tree_event->GetEntries() << std::endl;
+  std::cout <<"_tree_event->GetEntries() " << _tree_event->GetEntries() << std::endl;
  
-    const int xjbins = 20;
-    const int phibins = 20;  
-    const int etabins = 20;
+  const int xjbins = 40;
+  const int phibins = 20;  
+  const int etabins = 20;
 
-    TH1D h_cutflow("h_cutflow","cut flow for photons", 10, -0.5,9.5);
-    TH1D h_evtcutflow("h_evtcutflow","Event cut flow", 5, -0.5,4.5);
-    TH1D h_evt_rho("h_evt_rho", "average UE density, rho", 100, 0, 10.0);
+  TH1D h_zvertex("h_zvertex","vertex z " , 100, -20.0, 20.0);
+
+  TH1D h_cutflow("h_cutflow","cut flow for photons", 10, -0.5,9.5);
+  TH1D h_evtcutflow("h_evtcutflow","Event cut flow", 7, -0.5,6.5);
+  TH1D h_evt_rho("h_evt_rho", "average UE density, rho", 100, 0, 10.0);
    
-    TH1D h_reco("h_reco", "reco photons filled with pt reco", 50, 0, 50);    
-    TH1D h_reco_truthpt("h_reco_truthpt", "reco photons filled with truthpt reco", 50, 0, 50); 
-    TH1D h_truth("h_truth", "truth photons", 50, 0, 50);
+  TH1D h_evt_rhoITS("h_evt_rhoITS", "average UE density, rho, from ITS", 100, 0, 10.0);
+  TH1D h_evt_rhoTPC("h_evt_rhoTPC", "average UE density, rho, from TPC", 100, 0, 10.0);
+   
+  TH1D h_reco("h_reco", "reco photons filled with pt reco", 50, 0, 50);    
+  TH1D h_reco_truthpt("h_reco_truthpt", "reco photons filled with truthpt reco", 50, 0, 50); 
+  TH1D h_truth("h_truth", "truth photons", 50, 0, 50);
 
 
-    TH1D hSR_njet("hSR_njet", "Number of associated jets, signal region" , 5, -0.5, 4.5);
-    TH1D hBR_njet("hBR_njet", "Number of associated jets, bkg region" , 5, -0.5, 4.5);
+  TH1D hSR_njet("hSR_njet", "Number of associated jets, signal region" , 5, -0.5, 4.5);
+  TH1D hBR_njet("hBR_njet", "Number of associated jets, bkg region" , 5, -0.5, 4.5);
   
 
-    TH1D hBR_clusterpt("hBR_clusterpt", "Isolated cluster pt [GeV], bkg region", 40, 10.0, 20.0);
-    TH1D hSR_clusterpt("hSR_clusterpt", "Isolated cluster pt [GeV], signal region", 40, 10.0, 20.0);
+  TH1D hBR_clusterpt("hBR_clusterpt", "Isolated cluster pt [GeV], bkg region", 40, 10.0, 20.0);
+  TH1D hSR_clusterpt("hSR_clusterpt", "Isolated cluster pt [GeV], signal region", 40, 10.0, 20.0);
 
-    TH1D hBR_clustereta("hBR_clustereta", "Isolated cluster eta, bkg region", 40, -1.0, 1.0);
-    TH1D hSR_clustereta("hSR_clustereta", "Isolated cluster eta, signal region", 40, -1.0, 1.0);
-    TH1D hBR_clusterphi("hBR_clusterphi", "Isolated cluster phi, bkg region", 40, -1.0*TMath::Pi(), TMath::Pi());
-    TH1D hSR_clusterphi("hSR_clusterphi", "Isolated cluster phi, signal region", 40, -1.0*TMath::Pi(), TMath::Pi());
+  TH1D hBR_clustereta("hBR_clustereta", "Isolated cluster eta, bkg region", 40, -1.0, 1.0);
+  TH1D hSR_clustereta("hSR_clustereta", "Isolated cluster eta, signal region", 40, -1.0, 1.0);
+  TH1D hBR_clusterphi("hBR_clusterphi", "Isolated cluster phi, bkg region", 40, -1.0*TMath::Pi(), TMath::Pi());
+  TH1D hSR_clusterphi("hSR_clusterphi", "Isolated cluster phi, signal region", 40, -1.0*TMath::Pi(), TMath::Pi());
 
-    TH1D h_clusterphi("h_clusterphi", "all photon cluster phi", 100, -1.0*TMath::Pi(), TMath::Pi());
-    TH1D h_clusterphi_iso("h_clusterphi_iso", "all photon cluster phi, passing isolation", 100, -1.0*TMath::Pi(), TMath::Pi());
-    TH1D h_trackphi("h_trackphi", " track phi" , 100,  -1.0*TMath::Pi(), TMath::Pi());
-    TH1D h_jetphi("h_jetphi", " jetphi phi" , 100,  -1.0*TMath::Pi(), TMath::Pi());
+  TH1D h_clustereta("h_clustereta", "all photon cluster eta", 40, -1.0, 1.0);
+  TH1D h_clustereta_iso("h_clustereta_iso", "all photon cluster eta, passing isolation", 40, -1.0, 1.0);
 
-
-    TH1D hBR_jetpt("hBR_jetpt",   "Associated jet pt spectrum (reco), bkg region", 30, 0, 30);
-    TH1D hSR_jetpt("hSR_jetpt",   "Associated jet pt spectrum (reco), signal region", 30, 0, 30);
-    TH1D hBR_jeteta("hBR_jeteta", "Associated jet eta spectrum (reco), bkg region", 20, -1.0, 1.0);
-    TH1D hSR_jeteta("hSR_jeteta", "Associated jet eta spectrum (reco), signal region", 20, -1.0, 1.0); 
-    TH1D hBR_jetphi("hBR_jetphi", "Associated jet phi spectrum (reco), bkg region", 20, -1.0*TMath::Pi(), TMath::Pi());
-    TH1D hSR_jetphi("hSR_jetphi", "Associated jet phi spectrum (reco), signal region", 20, -1.0*TMath::Pi(), TMath::Pi());
+  TH1D h_clusterphi("h_clusterphi", "all photon cluster phi", 100, -1.0*TMath::Pi(), TMath::Pi());
+  TH1D h_clusterphi_iso("h_clusterphi_iso", "all photon cluster phi, passing isolation", 100, -1.0*TMath::Pi(), TMath::Pi());
+  TH1D h_trackphi("h_trackphi", " track phi" , 100,  -1.0*TMath::Pi(), TMath::Pi());
+  TH1D h_jetphi("h_jetphi", " jetphi phi" , 100,  -1.0*TMath::Pi(), TMath::Pi());
 
 
-    TH1D hBR_jetpt_truth("hBR_jetpt_truth",   "Associated jet pt spectrum (truth), bkg region", 30, 0, 30);
-    TH1D hSR_jetpt_truth("hSR_jetpt_truth",   "Associated jet pt spectrum (truth), signal region", 30, 0, 30);
-    TH1D hBR_jeteta_truth("hBR_jeteta_truth", "Associated jet eta spectrum (truth), bkg region", 20, -1.0, 1.0);
-    TH1D hSR_jeteta_truth("hSR_jeteta_truth", "Associated jet eta spectrum (truth), signal region", 20, -1.0, 1.0);
-    TH1D hBR_jetphi_truth("hBR_jetphi_truth", "Associated jet phi spectrum (truth), bkg region", 20, -1.0*TMath::Pi(), TMath::Pi());
-    TH1D hSR_jetphi_truth("hSR_jetphi_truth", "Associated jet phi spectrum (truth), signal region", 20, -1.0*TMath::Pi(), TMath::Pi());
+  TH1D hBR_jetpt("hBR_jetpt",   "Associated jet pt spectrum (reco), bkg region", 30, 0, 30);
+  TH1D hSR_jetpt("hSR_jetpt",   "Associated jet pt spectrum (reco), signal region", 30, 0, 30);
+  TH1D hBR_jeteta("hBR_jeteta", "Associated jet eta spectrum (reco), bkg region", 20, -1.0, 1.0);
+  TH1D hSR_jeteta("hSR_jeteta", "Associated jet eta spectrum (reco), signal region", 20, -1.0, 1.0); 
+  TH1D hBR_jetphi("hBR_jetphi", "Associated jet phi spectrum (reco), bkg region", 20, -1.0*TMath::Pi(), TMath::Pi());
+  TH1D hSR_jetphi("hSR_jetphi", "Associated jet phi spectrum (reco), signal region", 20, -1.0*TMath::Pi(), TMath::Pi());
 
-    TH1D h_jetpt_truth("h_jetpt_truth", "truth jet pt", 30, 0, 30);
-    TH1D h_jetpt_truthreco("h_jetpt_truthreco", "reco jet truth pt (numerator of efficiency)", 30, 0, 30);
-    TH1D h_jetpt_reco("h_jetpt_reco", "reco jet reco pt", 30, 0, 30);
+
+  TH1D hBR_jetpt_truth("hBR_jetpt_truth",   "Associated jet pt spectrum (truth), bkg region", 30, 0, 30);
+  TH1D hSR_jetpt_truth("hSR_jetpt_truth",   "Associated jet pt spectrum (truth), signal region", 30, 0, 30);
+  TH1D hBR_jeteta_truth("hBR_jeteta_truth", "Associated jet eta spectrum (truth), bkg region", 20, -1.0, 1.0);
+  TH1D hSR_jeteta_truth("hSR_jeteta_truth", "Associated jet eta spectrum (truth), signal region", 20, -1.0, 1.0);
+  TH1D hBR_jetphi_truth("hBR_jetphi_truth", "Associated jet phi spectrum (truth), bkg region", 20, -1.0*TMath::Pi(), TMath::Pi());
+  TH1D hSR_jetphi_truth("hSR_jetphi_truth", "Associated jet phi spectrum (truth), signal region", 20, -1.0*TMath::Pi(), TMath::Pi());
+
+  TH1D h_jetpt_truth("h_jetpt_truth", "truth jet pt", 30, 0, 30);
+  TH1D h_jetpt_truthreco("h_jetpt_truthreco", "reco jet truth pt (numerator of efficiency)", 30, 0, 30);
+  TH1D h_jetpt_reco("h_jetpt_reco", "reco jet reco pt", 30, 0, 30);
     
  
 
-    TH1D hSR_Xj("hSR_Xj", "Xj distribution, Signal region", xjbins, 0.0,2.0);
-    TH1D hBR_Xj("hBR_Xj", "Xj distribution, BKG region", xjbins, 0.0,2.0);
-    TH1D hSR_pTD("hSR_pTD", "pTD distribution, Signal region", 40, 0.0,1.0);
-    TH1D hBR_pTD("hBR_pTD", "pTD distribution, BKG region", 40, 0.0,1.0);
-    TH1D hSR_Multiplicity("hSR_Multiplicity", "Jet Multiplicity distribution, Signal region", 20, -0.5 , 19.5);
-    TH1D hBR_Multiplicity("hBR_Multiplicity", "Jet Multiplicity distribution, BKG region", 20, -0.5, 19.5);
-    TH1D hSR_jetwidth("hSR_jetwidth", "jet width distribution, Signal region", 20, -10, 0);
-    TH1D hBR_jetwidth("hBR_jetwidth", "jet width distribution, BKG region", 20, -10, 0);
+  TH1D hSR_Xj("hSR_Xj", "Xj distribution, Signal region", xjbins, 0.0,2.0);
+  TH1D hBR_Xj("hBR_Xj", "Xj distribution, BKG region", xjbins, 0.0,2.0);
+  TH1D hSR_pTD("hSR_pTD", "pTD distribution, Signal region", 60, 0.0,1.0);
+  TH1D hBR_pTD("hBR_pTD", "pTD distribution, BKG region", 60, 0.0,1.0);
+  TH1D hSR_Multiplicity("hSR_Multiplicity", "Jet Multiplicity distribution, Signal region", 20, 0.0 , 20.0);
+  TH1D hBR_Multiplicity("hBR_Multiplicity", "Jet Multiplicity distribution, BKG region", 20, 0.0, 20.0);
+  TH1D hSR_jetwidth("hSR_jetwidth", "jet width distribution, Signal region", 20, -10, 0);
+  TH1D hBR_jetwidth("hBR_jetwidth", "jet width distribution, BKG region", 20, -10, 0);
 
 
-    TH1D hSR_Xj_truth("hSR_Xj_truth", "True Xj distribution, Signal region", xjbins, 0.0,2.0);
-    TH1D hBR_Xj_truth("hBR_Xj_truth", "True Xj distribution, BKG region",xjbins, 0.0,2.0);
-    TH2D h_Xj_Matrix("h_Xj_Matrix", "Truth/Reco matrix", xjbins, 0.0,2.0, xjbins, 0.0,2.0);
-    TH1D h_Xj_truth("h_Xj_truth", "Xj truth distribution", xjbins, 0.0,2.0);    
+  TH1D hSR_Xj_truth("hSR_Xj_truth", "True Xj distribution, Signal region", xjbins, 0.0,2.0);
+  TH1D hBR_Xj_truth("hBR_Xj_truth", "True Xj distribution, BKG region",xjbins, 0.0,2.0);
+  TH2D h_Xj_Matrix("h_Xj_Matrix", "Truth/Reco matrix", xjbins, 0.0,2.0, xjbins, 0.0,2.0);
+  TH1D h_Xj_truth("h_Xj_truth", "Xj truth distribution", xjbins, 0.0,2.0);    
 
-    TH1D hSR_dPhi("hSR_dPhi", "delta phi gamma-jet signal region", phibins, 0, TMath::Pi());
-    TH1D hBR_dPhi("hBR_dPhi", "delta phi gamma-jet background region", phibins, 0, TMath::Pi());
-    TH1D hSR_dPhi_truth("hSR_dPhi_truth", "delta phi gamma-jet signal region, truth", phibins, 0, TMath::Pi());
-    TH1D hBR_dPhi_truth("hBR_dPhi_truth", "delta phi gamma-jet background region, truth", phibins, 0, TMath::Pi());
-
-
-    TH1D hSR_dEta("hSR_dEta", "delta eta gamma-jet signal region", etabins, -1.2, 1.2);
-    TH1D hBR_dEta("hBR_dEta", "delta eta gamma-jet background region", etabins, -1.2, 1.2);
-    TH1D hSR_dEta_truth("hSR_dEta_truth", "delta eta gamma-jet signal region, truth", etabins, -1.2, 1.2);
-    TH1D hBR_dEta_truth("hBR_dEta_truth", "delta eta gamma-jet background region, truth", etabins, -1.2, 1.2);
-
-    TH1D hSR_AvgEta("hSR_AvgEta", "Average eta gamma-jet signal region", 2*etabins, -1.2, 1.2);
-    TH1D hBR_AvgEta("hBR_AvgEta", "Average eta gamma-jet background region", 2*etabins, -1.2, 1.2);
-    TH1D hSR_AvgEta_truth("hSR_AvgEta_truth", "Average eta gamma-jet signal region, truth", 2*etabins, -1.2, 1.2);
-    TH1D hBR_AvgEta_truth("hBR_AvgEta_truth", "Average eta gamma-jet background region, truth", 2*etabins, -1.2, 1.2);
+  TH1D hSR_dPhi("hSR_dPhi", "delta phi gamma-jet signal region", phibins, 0, TMath::Pi());
+  TH1D hBR_dPhi("hBR_dPhi", "delta phi gamma-jet background region", phibins, 0, TMath::Pi());
+  TH1D hSR_dPhi_truth("hSR_dPhi_truth", "delta phi gamma-jet signal region, truth", phibins, 0, TMath::Pi());
+  TH1D hBR_dPhi_truth("hBR_dPhi_truth", "delta phi gamma-jet background region, truth", phibins, 0, TMath::Pi());
 
 
-    TH1D h_dPhi_truth("h_dPhi_truth", "delta phi gamma-jet truth MC", phibins, 0, TMath::Pi());
+  TH1D hSR_dEta("hSR_dEta", "delta eta gamma-jet signal region", etabins, -1.2, 1.2);
+  TH1D hBR_dEta("hBR_dEta", "delta eta gamma-jet background region", etabins, -1.2, 1.2);
+  TH1D hSR_dEta_truth("hSR_dEta_truth", "delta eta gamma-jet signal region, truth", etabins, -1.2, 1.2);
+  TH1D hBR_dEta_truth("hBR_dEta_truth", "delta eta gamma-jet background region, truth", etabins, -1.2, 1.2);
+
+  TH1D hSR_AvgEta("hSR_AvgEta", "Average eta gamma-jet signal region", 2*etabins, -1.2, 1.2);
+  TH1D hBR_AvgEta("hBR_AvgEta", "Average eta gamma-jet background region", 2*etabins, -1.2, 1.2);
+  TH1D hSR_AvgEta_truth("hSR_AvgEta_truth", "Average eta gamma-jet signal region, truth", 2*etabins, -1.2, 1.2);
+  TH1D hBR_AvgEta_truth("hBR_AvgEta_truth", "Average eta gamma-jet background region, truth", 2*etabins, -1.2, 1.2);
 
 
-
-    h_clusterphi.Sumw2();
-    h_clusterphi_iso.Sumw2();
-    h_trackphi.Sumw2();
-    h_jetphi.Sumw2();
-
-    hSR_pTD.Sumw2();
-    hBR_pTD.Sumw2();
-    hSR_Multiplicity.Sumw2();
-    hBR_Multiplicity.Sumw2();
-    hSR_jetwidth.Sumw2();
-    hBR_jetwidth.Sumw2();
-
-    h_evt_rho.Sumw2();
-    hSR_Xj.Sumw2();
-    hBR_Xj.Sumw2();
-    hSR_Xj_truth.Sumw2();
-    hBR_Xj_truth.Sumw2();
-    h_Xj_truth.Sumw2();     
-
-    hSR_njet.Sumw2();
-    hBR_njet.Sumw2();
-
-    hSR_dPhi.Sumw2();
-    hBR_dPhi.Sumw2();
-    hSR_dPhi_truth.Sumw2();
-    hBR_dPhi_truth.Sumw2();
-
-    hSR_dEta.Sumw2();
-    hBR_dEta.Sumw2();
-    hSR_dEta_truth.Sumw2();
-    hBR_dEta_truth.Sumw2();
-
-    hSR_AvgEta.Sumw2();
-    hBR_AvgEta.Sumw2();
-    hSR_AvgEta_truth.Sumw2();
-    hBR_AvgEta_truth.Sumw2();
+  TH1D h_dPhi_truth("h_dPhi_truth", "delta phi gamma-jet truth MC", phibins, 0, TMath::Pi());
 
 
-    h_jetpt_truth.Sumw2();
-    h_jetpt_truthreco.Sumw2();
-    h_jetpt_reco.Sumw2();
-
-    h_dPhi_truth.Sumw2();
-
-    hSR_clusterpt.Sumw2();
-    hBR_clusterpt.Sumw2();
-    hSR_clustereta.Sumw2();
-    hBR_clustereta.Sumw2();
-    hSR_clusterphi.Sumw2();
-    hBR_clusterphi.Sumw2();
-
-    hBR_jetpt.Sumw2();
-    hSR_jetpt.Sumw2();
-    hBR_jeteta.Sumw2();
-    hSR_jeteta.Sumw2();
-    hBR_jetphi.Sumw2();
-    hSR_jetphi.Sumw2();
+  TH1D h_weights("h_weights", "weights; bin1 is for SR and bin2 is for BR", 2, -0.5, 1.5);
     
-    hBR_jetpt_truth.Sumw2();
-    hSR_jetpt_truth.Sumw2();
-    hBR_jeteta_truth.Sumw2();
-    hSR_jeteta_truth.Sumw2();
-    hBR_jetphi_truth.Sumw2();
-    hSR_jetphi_truth.Sumw2();
+
+  h_clusterphi.Sumw2();
+  h_clusterphi_iso.Sumw2();
+
+  h_clustereta.Sumw2();
+  h_clustereta_iso.Sumw2();
+
+  h_trackphi.Sumw2();
+  h_jetphi.Sumw2();
+
+  hSR_pTD.Sumw2();
+  hBR_pTD.Sumw2();
+  hSR_Multiplicity.Sumw2();
+  hBR_Multiplicity.Sumw2();
+  hSR_jetwidth.Sumw2();
+  hBR_jetwidth.Sumw2();
+
+  h_evt_rho.Sumw2();
+  hSR_Xj.Sumw2();
+  hBR_Xj.Sumw2();
+  hSR_Xj_truth.Sumw2();
+  hBR_Xj_truth.Sumw2();
+  h_Xj_truth.Sumw2();     
+
+  hSR_njet.Sumw2();
+  hBR_njet.Sumw2();
+
+  hSR_dPhi.Sumw2();
+  hBR_dPhi.Sumw2();
+  hSR_dPhi_truth.Sumw2();
+  hBR_dPhi_truth.Sumw2();
+
+  hSR_dEta.Sumw2();
+  hBR_dEta.Sumw2();
+  hSR_dEta_truth.Sumw2();
+  hBR_dEta_truth.Sumw2();
+
+  hSR_AvgEta.Sumw2();
+  hBR_AvgEta.Sumw2();
+  hSR_AvgEta_truth.Sumw2();
+  hBR_AvgEta_truth.Sumw2();
 
 
-    h_Xj_Matrix.Sumw2();
+  h_jetpt_truth.Sumw2();
+  h_jetpt_truthreco.Sumw2();
+  h_jetpt_reco.Sumw2();
 
-    hSR_Xj.SetTitle("; X_{j} ; 1/N_{#gamma} dN_{J#gamma}/dX_{j}");
-    hBR_Xj.SetTitle("; X_{j} ; 1/N_{#gamma} dN_{J#gamma}/dX_{j}");   
-    h_Xj_truth.SetTitle("; X_{j}^{true} ; counts");
+  h_dPhi_truth.Sumw2();
+
+  hSR_clusterpt.Sumw2();
+  hBR_clusterpt.Sumw2();
+  hSR_clustereta.Sumw2();
+  hBR_clustereta.Sumw2();
+  hSR_clusterphi.Sumw2();
+  hBR_clusterphi.Sumw2();
+
+  hBR_jetpt.Sumw2();
+  hSR_jetpt.Sumw2();
+  hBR_jeteta.Sumw2();
+  hSR_jeteta.Sumw2();
+  hBR_jetphi.Sumw2();
+  hSR_jetphi.Sumw2();
+    
+  hBR_jetpt_truth.Sumw2();
+  hSR_jetpt_truth.Sumw2();
+  hBR_jeteta_truth.Sumw2();
+  hSR_jeteta_truth.Sumw2();
+  hBR_jetphi_truth.Sumw2();
+  hSR_jetphi_truth.Sumw2();
+
+  h_evt_rhoITS.Sumw2();
+  h_evt_rhoTPC.Sumw2();
+
+  h_Xj_Matrix.Sumw2();
+
+  hSR_Xj.SetTitle("; X_{j} ; 1/N_{#gamma} dN_{J#gamma}/dX_{j}");
+  hBR_Xj.SetTitle("; X_{j} ; 1/N_{#gamma} dN_{J#gamma}/dX_{j}");   
+  h_Xj_truth.SetTitle("; X_{j}^{true} ; counts");
 
     
-    TCanvas* canvas = new TCanvas();
+  TCanvas* canvas = new TCanvas();
         
     //you define variables
-    Double_t primary_vertex[3];
-    Bool_t is_pileup_from_spd_5_08;
-    Bool_t is_pileup_from_spd_3_08;
-    Float_t ue_estimate_its_const;
+  Double_t primary_vertex[3];
+  Bool_t is_pileup_from_spd_5_08;
+  Bool_t is_pileup_from_spd_3_08;
+  Float_t ue_estimate_its_const;
+  Float_t ue_estimate_tpc_const;
    
-    UInt_t ntrack;
-    Float_t track_e[NTRACK_MAX];
-    Float_t track_pt[NTRACK_MAX];
-    Float_t track_eta[NTRACK_MAX];
-    Float_t track_phi[NTRACK_MAX];
-    UChar_t track_quality[NTRACK_MAX];
+  UInt_t ntrack;
+  Float_t track_e[NTRACK_MAX];
+  Float_t track_pt[NTRACK_MAX];
+  Float_t track_eta[NTRACK_MAX];
+  Float_t track_phi[NTRACK_MAX];
+  UChar_t track_quality[NTRACK_MAX];
         
-    UInt_t ncluster;
-    Float_t cluster_e[NTRACK_MAX];
+  UInt_t ncluster;
+  Float_t cluster_e[NTRACK_MAX];
     Float_t cluster_e_cross[NTRACK_MAX];
     Float_t cluster_pt[NTRACK_MAX];
     Float_t cluster_eta[NTRACK_MAX];
     Float_t cluster_phi[NTRACK_MAX];
-    Float_t cluster_iso_tpc_04[NTRACK_MAX];
+   
     Float_t cluster_iso_its_04[NTRACK_MAX];
-    Float_t cluster_frixione_tpc_04_02[NTRACK_MAX];
+    
+    Float_t cluster_iso_its_04_ue[NTRACK_MAX];
+  
+
     Float_t cluster_frixione_its_04_02[NTRACK_MAX];
     Float_t cluster_s_nphoton[NTRACK_MAX][4];
     UChar_t cluster_nlocal_maxima[NTRACK_MAX];
@@ -277,7 +321,7 @@ int main(int argc, char *argv[])
     Int_t   jet_ak04its_truth_index_z_reco[NTRACK_MAX][2];
     Float_t jet_ak04its_truth_z_reco[NTRACK_MAX][2];
     Float_t jet_ak04its_ptd_raw[NTRACK_MAX];
-    Float_t jet_ak04its_width_sigma[NTRACK_MAX];
+    Float_t jet_ak04its_width_sigma[NTRACK_MAX][2];
     UShort_t jet_ak04its_multiplicity[NTRACK_MAX];
 
     //Truth Jets
@@ -314,6 +358,8 @@ int main(int argc, char *argv[])
     _tree_event->SetBranchAddress("is_pileup_from_spd_5_08", &is_pileup_from_spd_5_08);
     _tree_event->SetBranchAddress("is_pileup_from_spd_3_08", &is_pileup_from_spd_3_08);
     _tree_event->SetBranchAddress("ue_estimate_its_const", &ue_estimate_its_const);
+    _tree_event->SetBranchAddress("ue_estimate_tpc_const", &ue_estimate_tpc_const);
+
     _tree_event->SetBranchAddress("trigger_mask", &trigger_mask);
 
 
@@ -333,9 +379,10 @@ int main(int argc, char *argv[])
     _tree_event->SetBranchAddress("cluster_s_nphoton", cluster_s_nphoton); // here
     _tree_event->SetBranchAddress("cluster_mc_truth_index", cluster_mc_truth_index);
     _tree_event->SetBranchAddress("cluster_lambda_square", cluster_lambda_square);
-    _tree_event->SetBranchAddress("cluster_iso_tpc_04",cluster_iso_tpc_04);
+   
     _tree_event->SetBranchAddress("cluster_iso_its_04",cluster_iso_its_04);
-    _tree_event->SetBranchAddress("cluster_frixione_tpc_04_02",cluster_frixione_tpc_04_02);
+    _tree_event->SetBranchAddress("cluster_iso_its_04_ue",cluster_iso_its_04_ue);
+
     _tree_event->SetBranchAddress("cluster_frixione_its_04_02",cluster_frixione_its_04_02);
     _tree_event->SetBranchAddress("cluster_nlocal_maxima", cluster_nlocal_maxima);        
     _tree_event->SetBranchAddress("cluster_distance_to_bad_channel", cluster_distance_to_bad_channel);
@@ -393,33 +440,59 @@ int main(int argc, char *argv[])
  
     std::cout<<" About to start looping over events to get weights" << std::endl;
 
-    TH1D hBR("hBR", "Isolated cluster, bkg region", 40, 10.0, 20.0);
-    TH1D hweight("hweight", "Isolated cluster, signal region", 40, 10.0, 20.0);
+    TH1D hBR("hBR", "Isolated cluster, bkg region", 40, 10.0, 50.0);
+    TH1D hweight("hweight", "Isolated cluster, signal region", 40, 10.0, 50.0);
+
+    if( not(nevents>0)){
+      nevents = _tree_event->GetEntries();
+    }
+
+   
 
     if(isRealData){
-      for(Long64_t ievent = 0; ievent < _tree_event->GetEntries() ; ievent++){
+      for(Long64_t ievent = 0; ievent < nevents ; ievent++){
 	    if (ievent % 100000 == 0) std::cout << " event " << ievent << std::endl;
 
             _tree_event->GetEntry(ievent);
             if(not( TMath::Abs(primary_vertex[2])<10.0)) continue; //vertex z position
+            if(not (primary_vertex[2]!=0.00 )) continue; //removes default of vertex z = 0
             if(is_pileup_from_spd_5_08) continue; //removes pileup
+
+
+            h_zvertex.Fill(primary_vertex[2]);
+            //fill UE: 
+	    h_evt_rhoITS.Fill(ue_estimate_its_const);
+            h_evt_rhoTPC.Fill(ue_estimate_tpc_const);
+
+
+
             ULong64_t one1 = 1;
             ULong64_t triggerMask_13data = (one1 << 17) | (one1 << 18) | (one1 << 19) | (one1 << 20); //EG1 or EG2 or EJ1 or EJ2
             //if(triggerMask_13data & trigger_mask[0] == 0) continue; //trigger selection
 
             for (ULong64_t n = 0; n < ncluster; n++) {
-                if( not(cluster_pt[n]>10.0)) continue; //select pt of photons
-                if( not(cluster_pt[n]<16.0)) continue;
+
+	        double isolation = cluster_iso_its_04[n] + cluster_iso_its_04_ue[n]; //remove UE subtraction
+	        isolation = isolation - ue_estimate_its_const*0.4*0.4*TMath::Pi(); //Use rhoxA subtraction
+
+                if( not(cluster_pt[n]>ptmin)) continue; //select pt of photons
+                if( not(cluster_pt[n]<ptmax)) continue;
                 if( not(cluster_ncell[n]>2)) continue;   //removes clusters with 1 or 2 cells
                 if( not(cluster_e_cross[n]/cluster_e[n]>0.05)) continue; //removes "spiky" clusters
                 if( not(cluster_nlocal_maxima[n]<= 2)) continue; //require to have at most 2 local maxima.
                 if( not(cluster_distance_to_bad_channel[n]>=2.0)) continue;
-                if( not(cluster_iso_its_04[n] < 1.0)) continue;
+                if( not(isolation < 1.0)) continue;
 
-                if(cluster_s_nphoton[n][1] > 0.55 and cluster_s_nphoton[n][1]<0.85){
+                //Bool_t inSignalRegion = cluster_s_nphoton[n][1] > 0.55 and cluster_s_nphoton[n][1]<0.85;
+                //Bool_t inBkgRegion    = cluster_s_nphoton[n][1]<0.30;
+                Bool_t inSignalRegion = cluster_lambda_square[n][0]<0.40;
+                Bool_t inBkgRegion    = cluster_lambda_square[n][0]>0.50;
+     
+           
+                if(inSignalRegion){
 		    hweight.Fill(cluster_pt[n]);
 		}
-                else if(cluster_s_nphoton[n][1]<0.30){
+                else if(inBkgRegion){
 		    hBR.Fill(cluster_pt[n]);
 		}
 	    } //cluster
@@ -441,24 +514,26 @@ int main(int argc, char *argv[])
 
     h_evtcutflow.GetXaxis()->SetBinLabel(1, "All");
     h_evtcutflow.GetXaxis()->SetBinLabel(2, "Vertex |z| < 10 cm");
-    h_evtcutflow.GetXaxis()->SetBinLabel(3, "Pileup rejection");
-    h_evtcutflow.GetXaxis()->SetBinLabel(4, "Trigger Selection");
+    h_evtcutflow.GetXaxis()->SetBinLabel(3, "z!=0.0 cm");
 
-    for(Long64_t ievent = 0; ievent < _tree_event->GetEntries() ; ievent++){
+    h_evtcutflow.GetXaxis()->SetBinLabel(4, "Pileup rejection");
+    h_evtcutflow.GetXaxis()->SetBinLabel(5, "Trigger Selection");
+
+    for(Long64_t ievent = 0; ievent < nevents ; ievent++){
       if(ievent%2) continue;
-      // std::cout << ievent << std::endl;
-    //    for(Long64_t ievent = 0; ievent < 5000 ; ievent++){
       _tree_event->GetEntry(ievent);
       h_evtcutflow.Fill(0);
       //Eevent Selection: 
-      if(not( TMath::Abs(primary_vertex[2])<10.0)) continue; //vertex z position    
+      if(not( TMath::Abs(primary_vertex[2])<10.0)) continue; //vertex z position   
       h_evtcutflow.Fill(1);
-      // if(is_pileup_from_spd_5_08) continue; //removes pileup
-      h_evtcutflow.Fill(2);     
+      if(not (primary_vertex[2]!=0.00 )) continue; //removes default of vertex z = 0
+      h_evtcutflow.Fill(2);
+      if(is_pileup_from_spd_5_08) continue; //removes pileup
+      h_evtcutflow.Fill(3);     
       ULong64_t one1 = 1;
       ULong64_t triggerMask_13data = (one1 << 17) | (one1 << 18) | (one1 << 19) | (one1 << 20); //EG1 or EG2 or EJ1 or EJ2
       //if(isRealData and (triggerMask_13data & trigger_mask[0]) == 0) continue; //trigger selection
-      h_evtcutflow.Fill(3);
+      h_evtcutflow.Fill(4);
 
       N_eventpassed +=1;
 
@@ -483,7 +558,7 @@ int main(int argc, char *argv[])
 
       //loop over jets
       for (ULong64_t ijet = 0; ijet < njet_ak04its; ijet++) { //start loop over jets
-	if(not (jet_ak04its_pt_raw[ijet]>5)) continue;
+	if(not (jet_ak04its_pt_raw[ijet]>jetptmin)) continue;
 	if(not (TMath::Abs(jet_ak04its_eta_raw[ijet]) <0.5)) continue;
         h_jetphi.Fill(jet_ak04its_phi[ijet], weight);
       }
@@ -493,9 +568,12 @@ int main(int argc, char *argv[])
       for (ULong64_t n = 0; n < ncluster; n++) {
         //Photon Selection
        
-        if( not(cluster_pt[n]>10.0)) continue; //select pt of photons
+        double isolation = cluster_iso_its_04[n] + cluster_iso_its_04_ue[n]; //remove UE subtraction
+        isolation = isolation - ue_estimate_its_const*0.4*0.4*TMath::Pi(); //Use rhoxA subtraction
+
+        if( not(cluster_pt[n]>ptmin)) continue; //select pt of photons
 	h_cutflow.Fill(0);
-        if( not(cluster_pt[n]<16.0)) continue;
+        if( not(cluster_pt[n]<ptmax)) continue;
         h_cutflow.Fill(1);
         if( not(cluster_ncell[n]>2)) continue;   //removes clusters with 1 or 2 cells
         h_cutflow.Fill(2);
@@ -505,11 +583,13 @@ int main(int argc, char *argv[])
         h_cutflow.Fill(4);
 	if( not(cluster_distance_to_bad_channel[n]>=2.0)) continue;
         h_cutflow.Fill(5);
-        if( not(cluster_iso_its_04[n] < 2.0)) continue;
+	h_clusterphi.Fill(cluster_phi[n], weight);
+        h_clustereta.Fill(cluster_eta[n], weight);
+        if( not(isolation < 2.0)) continue;
         h_cutflow.Fill(6);
-        h_clusterphi.Fill(cluster_phi[n], weight);
-	if( not(cluster_iso_its_04[n] < 1.0)) continue;
+	if( not(isolation < 1.0)) continue;
         h_clusterphi_iso.Fill(cluster_phi[n], weight);
+        h_clustereta_iso.Fill(cluster_eta[n], weight);
         h_cutflow.Fill(7);
 
 
@@ -541,26 +621,25 @@ int main(int argc, char *argv[])
 	}
 	
 	//start jet loop 
+	//Bool_t inSignalRegion = cluster_s_nphoton[n][1] > 0.55 and cluster_s_nphoton[n][1]<0.85;
+	//Bool_t inBkgRegion    = cluster_s_nphoton[n][1]<0.30;
+	Bool_t inSignalRegion = cluster_lambda_square[n][0]<0.40;
+	Bool_t inBkgRegion    = cluster_lambda_square[n][0]>0.50;       
 
-        Bool_t inSignalRegion = false;
-        Bool_t inBkgRegion    = false;                
-	//if( cluster_lambda_square[n][0]<0.30){
-        if(cluster_s_nphoton[n][1] > 0.55 and cluster_s_nphoton[n][1]<0.85){
+
+        if(inSignalRegion){
            N_SR +=weight;
-           inSignalRegion = true;
 	}
-        else if(cluster_s_nphoton[n][1]<0.30){
+        else if(inBkgRegion){
             double bkg_weight = hweight.GetBinContent(hweight.FindBin(cluster_pt[n]));
-	    //std::cout << bkg_weight << " " << cluster_pt[n] << std::endl;
 	    if( isRealData) weight = weight*bkg_weight; //pt-dependent weight for background;					      
             N_BR +=weight;
-            inBkgRegion = true;
 	}
 
         Int_t njets_SR = 0; 
         Int_t njets_BR = 0;
 	for (ULong64_t ijet = 0; ijet < njet_ak04its; ijet++) { //start loop over jets
-          if(not (jet_ak04its_pt_raw[ijet]>5)) continue; 
+          if(not (jet_ak04its_pt_raw[ijet]>jetptmin)) continue; 
           if(not (TMath::Abs(jet_ak04its_eta_raw[ijet]) <0.5)) continue;
           Float_t dphi = TMath::Abs(TVector2::Phi_mpi_pi(jet_ak04its_phi[ijet] - cluster_phi[n]));
 	  Float_t deta = jet_ak04its_eta_raw[ijet] - cluster_eta[n];
@@ -605,7 +684,7 @@ int main(int argc, char *argv[])
             hSR_pTD.Fill(jet_ak04its_ptd_raw[ijet],weight);
 	    //	    std::cout << jet_ak04its_multiplicity[ijet] << " " << jet_ak04its_width_sigma[ijet] << " " << jet_ak04its_ptd_raw[ijet] << std::endl;
             hSR_Multiplicity.Fill(jet_ak04its_multiplicity[ijet],weight);
-            hSR_jetwidth.Fill(TMath::Log(jet_ak04its_width_sigma[ijet]), weight);
+            hSR_jetwidth.Fill(TMath::Log(jet_ak04its_width_sigma[ijet][0]), weight);
 
             //associated jet rate
 	    hSR_jetpt.Fill(jet_ak04its_pt_raw[ijet], weight);
@@ -631,7 +710,7 @@ int main(int argc, char *argv[])
 
 	    hBR_pTD.Fill(jet_ak04its_ptd_raw[ijet],weight);
 	    hBR_Multiplicity.Fill(jet_ak04its_multiplicity[ijet],weight);
-            hBR_jetwidth.Fill(TMath::Log(jet_ak04its_width_sigma[ijet]), weight);
+            hBR_jetwidth.Fill(TMath::Log(jet_ak04its_width_sigma[ijet][0]), weight);
 
 	    //Associated jet rate
 	    hBR_jetpt.Fill(jet_ak04its_pt_raw[ijet], weight);
@@ -680,7 +759,7 @@ int main(int argc, char *argv[])
     
       std::set<int> temp; //to store truth indices associated with reco jets
       for (ULong64_t ijet = 0; ijet < njet_ak04its; ijet++) { 
-	if(not (jet_ak04its_pt_raw[ijet]>5)) continue;
+	if(not (jet_ak04its_pt_raw[ijet]>jetptmin)) continue;
 	if(not (TMath::Abs(jet_ak04its_eta_raw[ijet])  <0.5 ) ) continue;
 	h_jetpt_reco.Fill(jet_ak04its_pt_raw[ijet], weight);
 	temp.insert(jet_ak04its_truth_index_z_reco[ijet][0]);
@@ -693,8 +772,8 @@ int main(int argc, char *argv[])
       }//end loop over indices of reco jets
 
       for (ULong64_t nmc = 0; nmc < nmc_truth; nmc++) {
-        if(not(mc_truth_pt[nmc]>10.0)) continue;
-	if(not(mc_truth_pt[nmc]<16.0)) continue;
+        if(not(mc_truth_pt[nmc]>ptmin)) continue;
+	if(not(mc_truth_pt[nmc]<ptmax)) continue;
 	if(mc_truth_pdg_code[nmc]==22 && int(mc_truth_status[nmc])>0 &&  mc_truth_first_parent_pdg_code[nmc]==22){
 	  //std::cout << mc_truth_pt[nmc] << "phi " << mc_truth_phi[nmc] << " eta " << mc_truth_eta[nmc] << 
 	  //  " code: " << mc_truth_pdg_code[nmc] << " status " << int(mc_truth_status[nmc]) << " parentpdg " << mc_truth_first_parent_pdg_code[nmc] << std::endl;    
@@ -702,7 +781,7 @@ int main(int argc, char *argv[])
           N_truth +=1;
 	  //std::cout << " number of truth jets " << njet_truth_ak04 << std::endl;
 	  for (ULong64_t ijet = 0; ijet < njet_truth_ak04; ijet++) {
-            if(not(jet_truth_ak04_pt[ijet]>5.0)) continue;
+            if(not(jet_truth_ak04_pt[ijet]>jetptmin)) continue;
 	    if(not(TMath::Abs(jet_truth_ak04_eta[ijet])<0.5)) continue;
 	    Float_t dphi_truth = TMath::Abs(TVector2::Phi_mpi_pi(jet_truth_ak04_phi[ijet] - mc_truth_phi[nmc]));
 	    //std::cout<< dphi_truth << std::endl;
@@ -740,11 +819,24 @@ int main(int argc, char *argv[])
 
     std::string opened_files = "";
     //  for (int iarg = 1; iarg < argc; iarg++) {
-    std::string filepath = argv[iarg];    
+    std::string filepath = argv[1];    
     opened_files = "_" + filepath.substr(filepath.find_last_of("/")+1, filepath.find_last_of(".")-filepath.find_last_of("/")-1);
     
-    TFile* fout = new TFile(Form("GammaJet_config%s.root", opened_files.c_str()),"RECREATE");
+    TFile* fout = new TFile(Form("GammaJet_config_ptmin%2.1f_ptmax%2.1f_JETPTMIN_%2.1f_DATANAME_%s.root", ptmin, ptmax, jetptmin, opened_files.c_str()),"RECREATE");
     fout->Print();
+
+    //Save the sum of weights 
+    h_weights.SetBinContent(1, N_SR);
+    h_weights.SetBinContent(2, N_BR);
+    
+    h_zvertex.Write("zvertex");
+    h_evt_rhoITS.Write("h_evt_rhoITS");
+    h_evt_rhoTPC.Write("h_evt_rhoTPC");
+
+    h_weights.Write("h_weights");
+
+
+    ///weighting
     hSR_njet.Scale(1.0/N_SR);
     hBR_njet.Scale(1.0/N_BR);
 
@@ -797,8 +889,25 @@ int main(int argc, char *argv[])
     hSR_clusterphi.Scale(1.0/N_SR);
     hBR_clusterphi.Scale(1.0/N_BR);
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
     h_dPhi_truth.Scale(1.0/N_truth);
     h_Xj_truth.Scale(1.0/N_truth);
+
 
     h_evtcutflow.Write("EventCutFlow");
     h_cutflow.Write("ClusterCutFlow");
@@ -863,6 +972,13 @@ int main(int argc, char *argv[])
 
     h_clusterphi.Write("h_clusterphi");
     h_clusterphi_iso.Write("h_clusterphi_iso");
+    h_clusterphi_iso.Divide(&h_clusterphi);
+    h_clusterphi_iso.Write("h_clusterphi_isoratio");
+
+    h_clustereta.Write("h_clustereta");
+    h_clustereta_iso.Write("h_clustereta_iso");
+    h_clustereta_iso.Divide(&h_clustereta);
+    h_clustereta_iso.Write("h_clustereta_isoratio");
 
     //MC truth 
     h_dPhi_truth.Write("h_dPhi_truth");
@@ -882,7 +998,7 @@ int main(int argc, char *argv[])
  
     std::cout << " ending " << std::endl;
     fout->Close();
-  }//end of arguments
+  //end of arguments
   return EXIT_SUCCESS;
  
 }

@@ -35,8 +35,8 @@ int trackpairenergyArg = 2;
 
 int main(int argc, char *argv[])
 {
-    if (argc < 3) {
-      fprintf(stderr,"Syntax is [Command] [root file] [13d, 13e or 13f] [TrackSkim GeV] \n");
+    if (argc < 5) {
+      fprintf(stderr,"Syntax is [Command] [root file] [13d, 13e or 13f] [TrackSkim GeV] [Mix Start] [Mix End]\n");
         exit(EXIT_FAILURE);
     }
     int dummyc = 1;
@@ -44,6 +44,8 @@ int main(int argc, char *argv[])
     
     dummyv[0] = strdup("main");
     
+    size_t mix_start = stoull(std::string(argv[3]));
+    size_t mix_end = stoull(std::string(argv[4]));
     
         std::cout << "Opening: " << (TString)argv[fileArg] << std::endl;
         TFile *file = TFile::Open((TString)argv[fileArg]);
@@ -73,7 +75,7 @@ int main(int argc, char *argv[])
 	size_t lastindex = std::string(argv[fileArg]).find_last_of("."); 
 	std::string rawname = std::string(argv[fileArg]).substr(0, lastindex);
 	std::cout<<rawname<<std::endl;
-	TFile *newfile = new TFile(Form("%s_%iGeVTrack_paired.root", rawname.data(), std::stoi((std::string)argv[trackpairenergyArg])), "RECREATE");
+	TFile *newfile = new TFile(Form("%s_%iGeVTrack_paired_test.root", rawname.data(), std::stoi((std::string)argv[trackpairenergyArg])), "RECREATE");
         TTree *newtree = _tree_event->CloneTree(0);
         
 	// TFile *newfile = new TFile(Form("%s_mixedadded_output.root", ((std::string)argv[runArg]).c_str()), "RECREATE");
@@ -86,14 +88,13 @@ int main(int argc, char *argv[])
         std::cout<< "New branch successfully created " <<std::endl;
         
         // Get the mixed event textfiles
-        std::ifstream mixed_textfiles[num_of_files];
-        for(int i = 0; i < num_of_files; i++) {
-	  std::ostringstream filename;
-	  filename << Form("%s_%iGeVTrack_Pairs_%i_to_%i.txt", rawname.data(), std::stoi((std::string)argv[trackpairenergyArg]), i*20, ((i+1)*20)-1);
-	  //filename << Form("%s_%iGeVTrack_Pairs_%i_to_%i.txt", rawname.data(), std::stoi((std::string)argv[trackpairenergyArg]), 0, 1);
-	    mixed_textfiles[i].open(filename.str());
-	    std::cout<<"Opening Text File: "<<Form("%s_%iGeVTrack_Pairs_%i_to_%i.txt", rawname.data(), std::stoi((std::string)argv[trackpairenergyArg]), i*20, ((i+1)*20)-1)<<std::endl;
-	}
+        std::ifstream mixed_textfile;
+
+	std::ostringstream filename;
+	filename << Form("%s_%iGeVTrack_Pairs_%lu_to_%lu.txt", rawname.data(), std::stoi((std::string)argv[trackpairenergyArg]), mix_start, mix_end);
+	    mixed_textfile.open(filename.str());
+	    std::cout<<"Opening Text File: "<<Form("%s_%iGeVTrack_Pairs_%lu_to_%lu.txt", rawname.data(), std::stoi((std::string)argv[trackpairenergyArg]), mix_start, mix_end)<<std::endl;
+
         
         
         const Long64_t nevents = _tree_event->GetEntries();
@@ -103,33 +104,24 @@ int main(int argc, char *argv[])
 	  fprintf(stderr, "\r%s:%d: %llu / %llu", __FILE__, __LINE__, ievent, _tree_event->GetEntries());
             _tree_event->GetEntry(ievent);
             // Get the appropriate line from each file, break out of the loop if you hit an empty file
-            std::string eventlines[num_of_files];
-            bool event_end = false;
-            for(int i = 0; i < num_of_files; i++) {
-	      getline(mixed_textfiles[i], eventlines[i]);
-                if (eventlines[i] == "") {
-                    event_end = true;
-		    std::cout<<std::endl<<"reached end of file: "<<i<<std::endl;
-		    break;
-                }
-            }
-           if(event_end)
-	    break;
+            std::string eventline;
+	    getline(mixed_textfile, eventline);
+	    if (eventline == "") {
+	      std::cout<<std::endl<<"reached end of file: "<<std::endl;
+	      break;
+	    }
 	
             //try {
             std::string mixednum_string;
             long mixednum;
-            std::istringstream parsers[num_of_files];
-            for(int i = 0; i < num_of_files; i++) {
-                parsers[i].str(eventlines[i]);
-            }
+            std::istringstream parsers[1];
+	    parsers[0].str(eventline);
             int currentindex;
+	    Long64_t mix_range = (mix_end - mix_start);
             // Loop over mixed events, fill the mixed_events histogram while at it
-	    //for (int m = 0; m<2; m++){
-	    //currentindex = m;
-            for(int m = 0; m <300; m++) {
-	      currentindex = m/20;
-	      getline(parsers[currentindex], mixednum_string, '\t');
+            for(int m = 0; m < mix_range; m++) {
+                currentindex = m/mix_range;
+                getline(parsers[currentindex], mixednum_string, '\t');
                 mixed_events[m] = stoul(mixednum_string);
 		//fprintf(stderr,"%lu\n",mixed_events[m]);
             }
