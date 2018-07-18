@@ -1,17 +1,20 @@
-pT_min:                       10
-pT_max:                       16
+pT_min:                       12
+pT_max:                       15
 DNN_min:                      0.55
 DNN_max:                      0.85
-Eta_max:                      0.6
+Eta_max:                      0.67
 Cluster_min:                  2
-EcrossoverE_min:              0.03
+Cluster_dist_to_bad_channel:  2
+Cluster_N_Local_Maxima:  3.0
+EcrossoverE_min:              0.05
 iso_max:                      1.0
 noniso_min:                   5.0
 noniso_max:                   10.0
 deta_max:                     0.6
-N_Phi_Bins:                   24
+N_Phi_Bins:                   16
 N_Eta_Bins:                   14
 Track_Cut_Bit:                16
 Zt_bins:               [0.0, 0.1, 0.2, 0.4, 0.6, 0.8, 1.0, 1.2]
-Pt_bins:               [10.0, 16]
+#Zt_bins:	       [0.05, 0.07670637, 0.11767734, 0.18053204, 0.27695915, 0.42489062, 0.65183634, 1]
+Pt_bins:               [12.0, 15]
 Cluster_isolation_determinant: cluster_iso_its_04
