@@ -41,12 +41,20 @@ int main(int argc, char *argv[])
     ptmax = strtol(argv[3],NULL,0);
   }
 
+  Float_t jetptmin = 10.0;
   if(argc>4){
-    nevents = strtol(argv[4],NULL,0);
+    jetptmin = strtol(argv[4],NULL,0);
   }
+
+  if(argc>5){
+    nevents = strtol(argv[5],NULL,0);
+  }
+
+
   std::cout << " Number of events requested " << nevents << std::endl;
   std::cout << " ptmin " << ptmin << " ptmax = " << ptmax << std::endl;
-  
+  std::cout << "minimum pt jet " <<jetptmin << std::endl;
+
   dummyv[0] = strdup("main");
   TApplication application("", &dummyc, dummyv);    
   std::cout <<" Number of arguments " << argc << std::endl; 
@@ -86,8 +94,10 @@ int main(int argc, char *argv[])
   const int phibins = 20;  
   const int etabins = 20;
 
+  TH1D h_zvertex("h_zvertex","vertex z " , 100, -20.0, 20.0);
+
   TH1D h_cutflow("h_cutflow","cut flow for photons", 10, -0.5,9.5);
-  TH1D h_evtcutflow("h_evtcutflow","Event cut flow", 5, -0.5,4.5);
+  TH1D h_evtcutflow("h_evtcutflow","Event cut flow", 7, -0.5,6.5);
   TH1D h_evt_rho("h_evt_rho", "average UE density, rho", 100, 0, 10.0);
    
   TH1D h_evt_rhoITS("h_evt_rhoITS", "average UE density, rho, from ITS", 100, 0, 10.0);
@@ -430,8 +440,8 @@ int main(int argc, char *argv[])
  
     std::cout<<" About to start looping over events to get weights" << std::endl;
 
-    TH1D hBR("hBR", "Isolated cluster, bkg region", 40, 10.0, 20.0);
-    TH1D hweight("hweight", "Isolated cluster, signal region", 40, 10.0, 20.0);
+    TH1D hBR("hBR", "Isolated cluster, bkg region", 40, 10.0, 50.0);
+    TH1D hweight("hweight", "Isolated cluster, signal region", 40, 10.0, 50.0);
 
     if( not(nevents>0)){
       nevents = _tree_event->GetEntries();
@@ -445,9 +455,11 @@ int main(int argc, char *argv[])
 
             _tree_event->GetEntry(ievent);
             if(not( TMath::Abs(primary_vertex[2])<10.0)) continue; //vertex z position
+            if(not (primary_vertex[2]!=0.00 )) continue; //removes default of vertex z = 0
             if(is_pileup_from_spd_5_08) continue; //removes pileup
 
 
+            h_zvertex.Fill(primary_vertex[2]);
             //fill UE: 
 	    h_evt_rhoITS.Fill(ue_estimate_its_const);
             h_evt_rhoTPC.Fill(ue_estimate_tpc_const);
@@ -502,22 +514,26 @@ int main(int argc, char *argv[])
 
     h_evtcutflow.GetXaxis()->SetBinLabel(1, "All");
     h_evtcutflow.GetXaxis()->SetBinLabel(2, "Vertex |z| < 10 cm");
-    h_evtcutflow.GetXaxis()->SetBinLabel(3, "Pileup rejection");
-    h_evtcutflow.GetXaxis()->SetBinLabel(4, "Trigger Selection");
+    h_evtcutflow.GetXaxis()->SetBinLabel(3, "z!=0.0 cm");
+
+    h_evtcutflow.GetXaxis()->SetBinLabel(4, "Pileup rejection");
+    h_evtcutflow.GetXaxis()->SetBinLabel(5, "Trigger Selection");
 
     for(Long64_t ievent = 0; ievent < nevents ; ievent++){
       if(ievent%2) continue;
       _tree_event->GetEntry(ievent);
       h_evtcutflow.Fill(0);
       //Eevent Selection: 
-      if(not( TMath::Abs(primary_vertex[2])<10.0)) continue; //vertex z position    
+      if(not( TMath::Abs(primary_vertex[2])<10.0)) continue; //vertex z position   
       h_evtcutflow.Fill(1);
-      // if(is_pileup_from_spd_5_08) continue; //removes pileup
-      h_evtcutflow.Fill(2);     
+      if(not (primary_vertex[2]!=0.00 )) continue; //removes default of vertex z = 0
+      h_evtcutflow.Fill(2);
+      if(is_pileup_from_spd_5_08) continue; //removes pileup
+      h_evtcutflow.Fill(3);     
       ULong64_t one1 = 1;
       ULong64_t triggerMask_13data = (one1 << 17) | (one1 << 18) | (one1 << 19) | (one1 << 20); //EG1 or EG2 or EJ1 or EJ2
       //if(isRealData and (triggerMask_13data & trigger_mask[0]) == 0) continue; //trigger selection
-      h_evtcutflow.Fill(3);
+      h_evtcutflow.Fill(4);
 
       N_eventpassed +=1;
 
@@ -542,7 +558,7 @@ int main(int argc, char *argv[])
 
       //loop over jets
       for (ULong64_t ijet = 0; ijet < njet_ak04its; ijet++) { //start loop over jets
-	if(not (jet_ak04its_pt_raw[ijet]>5)) continue;
+	if(not (jet_ak04its_pt_raw[ijet]>jetptmin)) continue;
 	if(not (TMath::Abs(jet_ak04its_eta_raw[ijet]) <0.5)) continue;
         h_jetphi.Fill(jet_ak04its_phi[ijet], weight);
       }
@@ -623,7 +639,7 @@ int main(int argc, char *argv[])
         Int_t njets_SR = 0; 
         Int_t njets_BR = 0;
 	for (ULong64_t ijet = 0; ijet < njet_ak04its; ijet++) { //start loop over jets
-          if(not (jet_ak04its_pt_raw[ijet]>5)) continue; 
+          if(not (jet_ak04its_pt_raw[ijet]>jetptmin)) continue; 
           if(not (TMath::Abs(jet_ak04its_eta_raw[ijet]) <0.5)) continue;
           Float_t dphi = TMath::Abs(TVector2::Phi_mpi_pi(jet_ak04its_phi[ijet] - cluster_phi[n]));
 	  Float_t deta = jet_ak04its_eta_raw[ijet] - cluster_eta[n];
@@ -743,7 +759,7 @@ int main(int argc, char *argv[])
     
       std::set<int> temp; //to store truth indices associated with reco jets
       for (ULong64_t ijet = 0; ijet < njet_ak04its; ijet++) { 
-	if(not (jet_ak04its_pt_raw[ijet]>5)) continue;
+	if(not (jet_ak04its_pt_raw[ijet]>jetptmin)) continue;
 	if(not (TMath::Abs(jet_ak04its_eta_raw[ijet])  <0.5 ) ) continue;
 	h_jetpt_reco.Fill(jet_ak04its_pt_raw[ijet], weight);
 	temp.insert(jet_ak04its_truth_index_z_reco[ijet][0]);
@@ -756,8 +772,8 @@ int main(int argc, char *argv[])
       }//end loop over indices of reco jets
 
       for (ULong64_t nmc = 0; nmc < nmc_truth; nmc++) {
-        if(not(mc_truth_pt[nmc]>15.0)) continue;
-	if(not(mc_truth_pt[nmc]<20.0)) continue;
+        if(not(mc_truth_pt[nmc]>ptmin)) continue;
+	if(not(mc_truth_pt[nmc]<ptmax)) continue;
 	if(mc_truth_pdg_code[nmc]==22 && int(mc_truth_status[nmc])>0 &&  mc_truth_first_parent_pdg_code[nmc]==22){
 	  //std::cout << mc_truth_pt[nmc] << "phi " << mc_truth_phi[nmc] << " eta " << mc_truth_eta[nmc] << 
 	  //  " code: " << mc_truth_pdg_code[nmc] << " status " << int(mc_truth_status[nmc]) << " parentpdg " << mc_truth_first_parent_pdg_code[nmc] << std::endl;    
@@ -765,7 +781,7 @@ int main(int argc, char *argv[])
           N_truth +=1;
 	  //std::cout << " number of truth jets " << njet_truth_ak04 << std::endl;
 	  for (ULong64_t ijet = 0; ijet < njet_truth_ak04; ijet++) {
-            if(not(jet_truth_ak04_pt[ijet]>5.0)) continue;
+            if(not(jet_truth_ak04_pt[ijet]>jetptmin)) continue;
 	    if(not(TMath::Abs(jet_truth_ak04_eta[ijet])<0.5)) continue;
 	    Float_t dphi_truth = TMath::Abs(TVector2::Phi_mpi_pi(jet_truth_ak04_phi[ijet] - mc_truth_phi[nmc]));
 	    //std::cout<< dphi_truth << std::endl;
@@ -806,13 +822,14 @@ int main(int argc, char *argv[])
     std::string filepath = argv[1];    
     opened_files = "_" + filepath.substr(filepath.find_last_of("/")+1, filepath.find_last_of(".")-filepath.find_last_of("/")-1);
     
-    TFile* fout = new TFile(Form("GammaJet_config_ptmin%2.1f_ptmax%2.1f_DATANAME_%s.root", ptmin, ptmax, opened_files.c_str()),"RECREATE");
+    TFile* fout = new TFile(Form("GammaJet_config_ptmin%2.1f_ptmax%2.1f_JETPTMIN_%2.1f_DATANAME_%s.root", ptmin, ptmax, jetptmin, opened_files.c_str()),"RECREATE");
     fout->Print();
 
     //Save the sum of weights 
     h_weights.SetBinContent(1, N_SR);
     h_weights.SetBinContent(2, N_BR);
     
+    h_zvertex.Write("zvertex");
     h_evt_rhoITS.Write("h_evt_rhoITS");
     h_evt_rhoTPC.Write("h_evt_rhoTPC");
 
@@ -890,6 +907,7 @@ int main(int argc, char *argv[])
 
     h_dPhi_truth.Scale(1.0/N_truth);
     h_Xj_truth.Scale(1.0/N_truth);
+
 
     h_evtcutflow.Write("EventCutFlow");
     h_cutflow.Write("ClusterCutFlow");
