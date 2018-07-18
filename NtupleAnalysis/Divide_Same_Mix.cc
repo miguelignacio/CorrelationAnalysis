@@ -147,7 +147,13 @@ int main(int argc, char *argv[])
   TH1D* N_Iso_Triggers[nptbins];
   TH1D* N_BKGD_Triggers[nptbins];
 
-  TFile *MyFile = new TFile("Same_Mix_Ratio_v1.root","RECREATE");
+  TString root_file = (TString)argv[1];
+  size_t lastindex = std::string(root_file).find_last_of(".");
+  std::string rawname = std::string(root_file).substr(0, lastindex);
+  TFile *MyFile = new TFile(Form("%s_GMB_Ratio.root",rawname.data()),"RECREATE");
+  //TFile* fout = new TFile(Form("%s_%luGeVTracks_Correlation_%1.1lu_to_%1.1lu.root",rawname.data(),GeV_Track_Skim,mix_start,mix_end),"RECREATE");
+
+
 
   for(int ipt = 0; ipt < nptbins; ipt++){
     for (int izt = 0; izt<nztbins; izt++){
@@ -199,28 +205,45 @@ int main(int argc, char *argv[])
     TAxis *mix_xaxis = Mix_DNN1_Corr[izt+ipt*nztbins]->GetXaxis();
     TAxis *mix_yaxis = Mix_DNN1_Corr[izt+ipt*nztbins]->GetYaxis();
 
-    Double_t mix_DNN1_intgrl = Mix_DNN1_Corr[izt+ipt*nztbins]->GetBinContent
-      (mix_xaxis->FindBin(0.0),mix_yaxis->FindBin(0.0));
-    std::cout<<"Mix Event DNN1 Value at (0,0) = "<<mix_DNN1_intgrl<<std::endl;
+//     Double_t mix_DNN1_intgrl = Mix_DNN1_Corr[izt+ipt*nztbins]->GetBinContent
+//       (mix_xaxis->FindBin(0.0),mix_yaxis->FindBin(0.0));
+//     std::cout<<"Mix Event DNN1 Value at (0,0) = "<<mix_DNN1_intgrl<<std::endl;
+    Double_t mix_DNN1_intgrl = Mix_DNN1_Corr[izt+ipt*nztbins]->GetBinContent(Mix_DNN1_Corr[izt+ipt*nztbins]->GetMaximumBin());
+    std::cout<<"Max DNN1 Value at) = "<<mix_DNN1_intgrl<<std::endl;
+    //std::cout<<"Max Value of 2D DNN1 = "<<Mix_DNN1_Corr[izt+ipt*nztbins]->GetBinContent(Mix_DNN1_Corr[izt+ipt*nztbins]->GetMaximumBin())<<std::endl;
 
-    Double_t mix_DNN2_intgrl = Mix_DNN2_Corr[izt+ipt*nztbins]->GetBinContent
-      (mix_xaxis->FindBin(0.0),mix_yaxis->FindBin(0.0)); //binning is the same
+//     Double_t mix_DNN2_intgrl = Mix_DNN2_Corr[izt+ipt*nztbins]->GetBinContent
+//       (mix_xaxis->FindBin(0.0),mix_yaxis->FindBin(0.0)); //binning is the same
+//     std::cout<<"Mix Event DNN2 Value at (0,0) = "<<mix_DNN2_intgrl<<std::endl;
+
+    Double_t mix_DNN2_intgrl = Mix_DNN2_Corr[izt+ipt*nztbins]->GetBinContent(Mix_DNN2_Corr[izt+ipt*nztbins]->GetMaximumBin());
+    std::cout<<"Max DNN2 Value = "<<mix_DNN2_intgrl<<std::endl;
+    //std::cout<<"Max Value of 2D DNN2 = "<<Mix_DNN2_Corr[izt+ipt*nztbins]->GetBinContent(Mix_DNN2_Corr[izt+ipt*nztbins]->GetMaximumBin())<<std::endl;
 
     Mix_DNN1_Corr[izt+ipt*nztbins]->Scale(1.0/mix_DNN1_intgrl);
     Mix_DNN2_Corr[izt+ipt*nztbins]->Scale(1.0/mix_DNN2_intgrl);
+
+    fprintf(stderr, "%s: %d: scaled Mixed Events by value at 0,0\n",__FILE__,__LINE__);
 
     //DIVIDE MIXING
     Same_DNN1_Corr[izt+ipt*nztbins]->Divide(Mix_DNN1_Corr[izt+ipt*nztbins]);
     Same_DNN2_Corr[izt+ipt*nztbins]->Divide(Mix_DNN2_Corr[izt+ipt*nztbins]);
 
+    fprintf(stderr, "%s: %d: Division OK\n",__FILE__,__LINE__);
+
     Same_DNN1_Corr[izt+ipt*nztbins]->Write();
+    fprintf(stderr, "%s: %d: Write DNN1 OK\n",__FILE__,__LINE__);
     }//zt bin
-    N_Iso_Triggers[ipt] = (TH1D*)corr->Get(Form("N_DNN%i_Triggers_pT%1.0f_%1.0f",1,ptbins[ipt],ptbins[ipt+1]));
-    N_BKGD_Triggers[ipt] = (TH1D*)corr->Get(Form("N_DNN%i_Triggers_pT%1.0f_%1.0f",2,ptbins[ipt],ptbins[ipt+1]));
     
     for (int izt = 0; izt < nztbins; izt++){
       Same_DNN2_Corr[izt+ipt*nztbins]->Write();
+    fprintf(stderr, "%s: %d: Write DNN2 OK\n",__FILE__,__LINE__);
     }
+
+    N_Iso_Triggers[ipt] = (TH1D*)corr->Get(Form("N_DNN%i_Triggers_pT%1.0f_%1.0f",1,ptbins[ipt],ptbins[ipt+1]));
+    N_BKGD_Triggers[ipt] = (TH1D*)corr->Get(Form("N_DNN%i_Triggers_pT%1.0f_%1.0f",2,ptbins[ipt],ptbins[ipt+1]));
+    fprintf(stderr, "%s: %d: Write Trigger Get OK",__FILE__,__LINE__);
+
     N_Iso_Triggers[ipt]->Write();
     N_BKGD_Triggers[ipt]->Write();
     std::cout<<N_Iso_Triggers[ipt]->GetEntries()<<std::endl;
