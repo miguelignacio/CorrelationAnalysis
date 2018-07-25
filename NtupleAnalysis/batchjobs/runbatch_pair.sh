@@ -1,7 +1,7 @@
 #!/bin/bash
 
-if [[ $# -eq 0 ]] ; then
-    echo 'Please Give Dataset Argument [13d] [13e] [13f]'
+if [[ $# -eq 1 ]] ; then
+    echo 'Please Give Dataset Argument [triggered root] [MB root] [full/test]'
     exit 0
 fi
 
@@ -14,7 +14,12 @@ do
     do
 	mix_min=$i
 	mix_max="$((i + 19))"
-	sbatch -p shared-chos -t 20:00:00 runpairing.sh $1 $mix_min $mix_max $p
-	#./runpairing.sh $1 $mix_min $mix_max $p
+
+        if [[ $3 == full ]]; then
+	    sbatch -p shared-chos -t 20:00:00 runpairing.sh $1 $2 $mix_min $mix_max $p
+        else
+	./runpairing.sh $1 $2 $mix_min $mix_max $p
+        fi
+
     done
 done
