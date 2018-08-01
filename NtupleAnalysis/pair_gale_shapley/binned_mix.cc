@@ -14,7 +14,6 @@
 //#define HI_TREE "hiEvtAnalyzer/HiTree"
 #define HI_TREE "AliAnalysisTaskNTGJ/_tree_event"
 #define HI_TREE2 "_tree_event"
-
 namespace {
 
 	typedef unsigned short index_t;
@@ -32,7 +31,7 @@ namespace {
 		  hi_tree = dynamic_cast<TTree *>(root_file->Get(HI_TREE2));
 		  if (hi_tree == NULL){
 		    fprintf(stderr,"%s:%d: tree fail",__FILE__,__LINE__);
-		    return 0;
+		    exit(EXIT_FAILURE);
 		  }
 		}
 
@@ -49,22 +48,26 @@ namespace {
 		     std::vector <float> &m_ranges, 
 		     std::vector <float> &v_ranges) {
     
+    //FIXME: Probably need to change to non-dataset dependant values. i.e. absolute ranges in z-vertex and multiplicity (NOT centrality)
+
     TFile *root_file = TFile::Open(filename);
     
     if (root_file == NULL) {
-    fprintf(stderr, "%s:%d:%s\n",__FILE__, __LINE__, "bin_extract: TFile Failed");
-    return;
+      fprintf(stderr, "%s:%d:%s\n",__FILE__, __LINE__, "bin_extract: TFile Failed");
+	exit(EXIT_FAILURE);
     }
-
+    
     TTree *hi_tree = dynamic_cast<TTree *>(root_file->Get(HI_TREE));
-
     if (hi_tree == NULL) {
-      fprintf(stderr, "%s:%d:%s\n",__FILE__, __LINE__, "bin_extract: TTree Failed");
-      return; 
+      hi_tree = dynamic_cast<TTree *>(root_file->Get(HI_TREE2));
+      if (hi_tree == NULL){
+	fprintf(stderr,"%s:%d: tree fail",__FILE__,__LINE__);
+	exit(EXIT_FAILURE);
+      }
     }
+    
 
     size_t nentries = hi_tree->GetEntries();
-
     //float centrality_v0m;
 
     double vtx[3];
@@ -93,7 +96,7 @@ namespace {
     
     //    std::sort(multps.begin(), multps.end(), std::greater<float>());
     std::sort(multps.begin(), multps.end());
-    std::sort(vertxs.begin(), vertxs.end());
+    //std::sort(vertxs.begin(), vertxs.end());
     
     fprintf(stderr, "%s:%d:%s\n",__FILE__, __LINE__, "range_extract: Sorted Vectors");
     
@@ -103,13 +106,26 @@ namespace {
       fprintf(stderr, "%s:%d:%s: %f\n",__FILE__, __LINE__, "range_extract:",bin_start);
     }
 
-    for(int v = 0; v<n_vert_bins+1; v++){
-      float bin_start = vertxs[(v*nentries)/n_vert_bins];
-      v_ranges.push_back(bin_start);
-    }
+    // for(int v = 0; v<n_vert_bins+1; v++){
+    //   float bin_start = vertxs[(v*nentries)/n_vert_bins];
+    //   v_ranges.push_back(bin_start);
+    // }
+    //FIXME::Vector should be filled with hardcoded values
+    //v_ranges.Clear();
+    v_ranges.push_back(-9);
+    v_ranges.push_back(-7);
+    v_ranges.push_back(-5);
+    v_ranges.push_back(-3);
+    v_ranges.push_back(-1);
+    v_ranges.push_back(1);
+    v_ranges.push_back(3);
+    v_ranges.push_back(5);
+    v_ranges.push_back(7);
+    v_ranges.push_back(9);
   }
 
-
+//returns a vector of pairs, where the first is z-vertx, and the second is multp.
+//FIXME::Changing this function to the hardcoded bin values:
   std::vector<std::pair<int,int> >bin_extract(const char *filename,
 					     std::vector <float> &m_ranges,
 					     std::vector <float> &v_ranges)
@@ -117,16 +133,23 @@ namespace {
     TFile *root_file = TFile::Open(filename);
     
     if (root_file == NULL) {
-      return std::vector<std::pair<int,int> >();
-    }
-    
+      fprintf(stderr,"%s: %d: ROOTFILE FAILED\n",__FILE__,__LINE__);
+      exit(EXIT_FAILURE);
+    }   
+
     TTree *hi_tree = dynamic_cast<TTree *>(root_file->Get(HI_TREE));
-    
     if (hi_tree == NULL) {
-      return std::vector<std::pair<int,int> >();
+      hi_tree = dynamic_cast<TTree *>(root_file->Get(HI_TREE2));
+      if (hi_tree == NULL){
+	fprintf(stderr,"%s:%d: tree fail",__FILE__,__LINE__);
+	exit(EXIT_FAILURE);
+      }
     }
-   
+    
+
+
     size_t nentries = hi_tree->GetEntries(); 
+    //size_t nentries = 15000;
     double vtx[3];
     // float centrality_v0m;
     int multiplicity_size = 64;
@@ -177,43 +200,49 @@ void Write_TTree (const char *filename, TString ProximityBranch, TString LimitUs
 		  std::vector <std::vector<size_t> > LimitUse_Matches){
 
     TFile *root_file = new TFile(filename,"update");
-    TTree *hi_tree = dynamic_cast<TTree *>
-      (dynamic_cast<TDirectoryFile *>
-       (root_file->Get("AliAnalysisTaskNTGJ"))->Get("_tree_event"));
+    TTree *hi_tree = dynamic_cast<TTree *>(root_file->Get(HI_TREE));
+    if (hi_tree == NULL) {
+      hi_tree = dynamic_cast<TTree *>(root_file->Get(HI_TREE2));
+      if (hi_tree == NULL){
+	fprintf(stderr,"%s:%d: tree fail",__FILE__,__LINE__);
+	exit(EXIT_FAILURE);
+      }
+    }
 
-    TFile *newfile = new TFile("Bin_Mixed.root","recreate");
+    TFile *newfile = new TFile("13d_Bin_Mixed.root","recreate");
     TTree *newtree = hi_tree->CloneTree(0);
     
-    unsigned int n_mix_events = 10;
+
+    unsigned int n_mix_events = 20;
     ULong64_t nentries = hi_tree->GetEntries();
+    //ULong64_t nentries = 15000;
     Long64_t Prox_Mix_Events[n_mix_events];
     Long64_t LimUse_Mix_Events[n_mix_events];
 
+    newtree->Branch("mixed_events",LimUse_Mix_Events,"LimUse_Mix_Events[20]/L");
+
     fprintf(stderr, "%llu\n",nentries);
     
-    //TBranch *MixE = newtree->Branch("Simple_Mix_Events", Simple_Mix_Events, "&Simple_Mix_Events[10]/L");
-    //    TString Branch = Branchname + "[10]/L";
-    TString ProximityBranchForm = ProximityBranch + "[10]/L";
-    TBranch *PMixE = newtree->Branch(ProximityBranch, Prox_Mix_Events, ProximityBranchForm);
-    TString LimitUseBranchForm = LimitUseBranch + "[10]/L";
-    TBranch *LMixE = newtree->Branch(LimitUseBranch, LimUse_Mix_Events, LimitUseBranchForm);
+    //FIXME::Found the problem
 
     for (ULong64_t t = 0; t<nentries;t++){
       hi_tree->GetEntry(t);
       
-      if(t < Proximity_Matches.size()){
-	for (size_t s=1; s<(Proximity_Matches[t]).size();s++){
-	  Prox_Mix_Events[s-1] = Proximity_Matches[t][s];
-	  LimUse_Mix_Events[s-1] = LimitUse_Matches[t][s];
-	  fprintf(stderr, "%llu:%lld %lld\n", t,Prox_Mix_Events[s-1],LimUse_Mix_Events[s-1]);
+      if(t < LimitUse_Matches.size()){
+	for (size_t s=0; s<(LimitUse_Matches[t]).size();s++){
+	  //Prox_Mix_Events[s-1] = Proximity_Matches[t][s];
+	  //std::cout<<"Writing Event "<<LimitUse_Matches[t][s]<<std::endl;
+	  fprintf(stderr,"%s: %d: Writing EVent %lu\n",__FILE__,__LINE__,LimitUse_Matches[t][s]);
+	  LimUse_Mix_Events[s] = LimitUse_Matches[t][s];
+	  fprintf(stderr, "%s: %d:  %llu:%lld %lld\n",__FILE__,__LINE__,t,LimUse_Mix_Events[s]);
 	}
       }
       
-      else if (t >= Proximity_Matches.size()){
+      else if (t >= LimitUse_Matches.size()){
 	for(size_t u = 0; u<n_mix_events; u++){
-	  Prox_Mix_Events[u] = t; //Fill with own event number. Skip During correlation function                                                
-	  LimUse_Mix_Events[u] = t;
-	  fprintf(stderr, "%llu:%lld %lld\n", t,Prox_Mix_Events[u],LimUse_Mix_Events[u]);
+	  //Prox_Mix_Events[u] = t; //Fill with own event number. Skip During correlation function                                                
+	  LimUse_Mix_Events[u] = 99999999;
+	  fprintf(stderr, "%llu: %lld\n",t,LimUse_Mix_Events[u]);
 	}
       }
       
@@ -234,71 +263,78 @@ void Write_TTree (const char *filename, TString ProximityBranch, TString LimitUs
   }
   
 
-  void Match_Events(const char *filename){
+void Match_Events(const char *filename, const char *filename_2){
     
     int n_multp_bins = 20;
-    int n_vert_bins = 7;
+    int n_vert_bins = 8;
 
     std::vector <float> multp_ranges, vertx_ranges;
-    range_extract(filename, n_multp_bins, n_vert_bins, multp_ranges, vertx_ranges) ;
+    range_extract(filename, n_multp_bins, n_vert_bins, multp_ranges, vertx_ranges);
+
+    std::vector <float> multp_ranges_2, vertx_ranges_2;
+    range_extract(filename, n_multp_bins, n_vert_bins, multp_ranges_2, vertx_ranges_2);
+
+    std::vector<std::pair<int,int> > Binned_Events_2 = bin_extract(filename_2, multp_ranges_2, vertx_ranges_2);
+    fprintf(stderr, "%s:%d:%s: %s\n", __FILE__, __LINE__,"Match_Events","Bins Extracted");
 
     std::vector<std::pair<int,int> > Binned_Events = bin_extract(filename, multp_ranges, vertx_ranges);
     fprintf(stderr, "%s:%d:%s: %s\n", __FILE__, __LINE__,"Match_Events","Bins Extracted");
 
-    size_t n_mix = 10;
+    //change direct bin comparison to variable range comparison
+
+    size_t n_mix = 20;
     std::vector<std::vector<size_t> > Proximity_Matches, LimitUse_Matches;
     std::vector <size_t> flat;
 
     fprintf(stderr, "%s:%d:%s: %s\n", __FILE__, __LINE__,"Match_Events","Starting Matching");
 
-    for (size_t i = 0; i < Binned_Events.size(); i++){
-      fprintf(stderr, "%s:%d:%s: %lu\n", __FILE__, __LINE__,"Match_Events Proximity",i);
-      flat.push_back(i);
-      size_t j;
-      if (i>500) j = i-500;//rough sliding window
-      else j = 0;
-      while (flat.size() < n_mix+1){
-	if (j==i) {
-	  j++;
-	  continue;
-	}
-	if (j == Binned_Events.size()) j = i-1000;
-	if (bin_compare(Binned_Events[i],Binned_Events[j])){
-	  flat.push_back(j);
-	}
-	j++;
-      }
+    // for (size_t i = 0; i < Binned_Events.size(); i++){
+    //   fprintf(stderr, "%s:%d:%s: %lu\n", __FILE__, __LINE__,"Match_Events Proximity",i);
+    //   flat.push_back(i);
+    //   size_t j;
+    //   if (i>500) j = i-500;//rough sliding window
+    //   else j = 0;
+    //   // while (flat.size() < n_mix+1){
+    //   // 	if (j==i) {
+    //   // 	  j++;
+    //   // 	  continue;
+    //   // 	}
+    //   // 	if (j == Binned_Events.size()) j = i-1000;
+    //   // 	if (bin_compare(Binned_Events[i],Binned_Events[j])){
+    //   flat.push_back(j);
+    //   j++;
+    
 
-      Proximity_Matches.push_back(flat);
-      flat.clear();
-    }
+    //   Proximity_Matches.push_back(flat);
+    //   flat.clear();
+    // }
     fprintf(stderr, "%s:%d:%s: %s\n", __FILE__, __LINE__,"Match_Events","Proximity Mixed Events Done");
 
-    int n_events = Binned_Events.size();
-    int counters [n_events];
-    counters [n_events] = {0};
-    std::cout<<counters[3]<<std::endl;
+    Long64_t n_events = Binned_Events_2.size();
+    fprintf(stderr, "%s:%d: Binned_Events_2.size() = %lu \n", __FILE__, __LINE__,Binned_Events_2.size());
+    // int counters [n_events];//number of times minbias event used for mixing
+    // counters [n_events] = {0};
+    // std::cout<<counters[3]<<std::endl;
 
     for (size_t i = 0; i < Binned_Events.size(); i++){
-    //for(size_t i = 0; i < 1; i++){
+      std::cout<<"Starting Limit Use"<<std::endl;
+      //for(size_t i = 0; i < 15000; i++){
       fprintf(stderr, "%s:%d:%s: %lu\n", __FILE__, __LINE__,"Match_Events Limit Use",i);
-      flat.push_back(i);
       size_t j=0;
-      while (flat.size() < n_mix+1){
-	if (j == Binned_Events.size()) j = 0;
-	if (j==i){
-	    j++;
-	    continue;
-	  }
-	if (counters[j] >= 50){
-	  j++;
-	  continue;
-	}
-	if (bin_compare(Binned_Events[i],Binned_Events[j])){
+      while (flat.size() < n_mix){
+	if (j == Binned_Events_2.size()) j = 0;
+	// if (counters[j] >= 50){
+	//   j++;
+	//   continue;
+	// }
+	//FIXME include offset = j + int(nevents_2/nevents_1) 
+	if (bin_compare(Binned_Events[i],Binned_Events_2[j])){
+	  fprintf(stderr,"%s: %d: Mixed Event: %lu\n",__FILE__,__LINE__,j);
 	  flat.push_back(j);
-	  counters[j] = counters[j]+1;
+	  //counters[j] = counters[j]+1;
 	  if(i%10000==0){
-	    fprintf(stderr, "%s:%d:%s: %i\n", __FILE__, __LINE__,"Match_Events Limit Use",counters[j]); 
+	    //fprintf(stderr, "%s:%d:%s: %i\n", __FILE__, __LINE__,"Match_Events Limit Use",counters[j]); 
+	    fprintf(stderr, "%s:%d:%s:\n", __FILE__, __LINE__,"Match_Events Limit Use"); 
 	  }
 	}
 	j++;
@@ -502,7 +538,7 @@ void Write_TTree (const char *filename, TString ProximityBranch, TString LimitUs
 
 // 	  fprintf(stderr, "%llu\n",nentries);
 	  
-// 	  TBranch *MixE = newtree->Branch("Mix_Events", Mix_Events, "&Mix_Events[10]/L");
+// 	  TBranch *MixE = newtree->Branch("Mix_Events", Mix_Events, "&Mix_Events[20]/L");
 	  
 // 	  for (ULong64_t t = 0; t<nentries;t++){
 // 	    hi_tree->GetEntry(t);
@@ -540,10 +576,10 @@ void Write_TTree (const char *filename, TString ProximityBranch, TString LimitUs
 
 int main(int argc, char *argv[])
 {
-	if (argc < 2) {
-	  fprintf(stderr,"%s\n","Argument Syntax is [Command] [File]");
+	if (argc < 3) {
+	  fprintf(stderr,"%s\n","Argument Syntax is [Command] [Gamma Root] [MinBias Root]");
 		return EXIT_FAILURE;
 	}
 	
-	Match_Events(argv[1]);
+	Match_Events(argv[1],argv[2]);
 }
