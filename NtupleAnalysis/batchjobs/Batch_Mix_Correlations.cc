@@ -1,4 +1,4 @@
-#include <TFile.h>
+ #include <TFile.h>
 #include <TTree.h>
 #include <TLorentzVector.h>
 
@@ -130,7 +130,7 @@ int main(int argc, char *argv[])
         Cluster_DtoBad = atof(value);
 	std::cout << "Cluster_DtoBad: "<< Cluster_DtoBad << std::endl;}
 
-      else if (strcmp(key, "Cluster_Number_Local_Maxima") == 0){
+      else if (strcmp(key, "Cluster_N_Local_Maxima") == 0){
         Cluster_NLocal_Max = atof(value);
 	std::cout << "Cluster_NLocal_Max: "<< Cluster_NLocal_Max << std::endl;}
 
@@ -260,6 +260,19 @@ int main(int argc, char *argv[])
   float N_Signal_Triggers = 0;
   float N_BKGD_Triggers = 0;
   
+
+  TH1D* z_Vertices_individual = new TH1D("Primary_Vertex_root", "Z-vertex (ROOT)",240, -12, 12);
+  TH1D* z_Vertices_hdf5 = new TH1D("Primary_Vertex_hdf5", "Z-vertex (hdf5)", 240,-12, 12);
+  TH1D* z_Vertices = new TH1D("Delta_Primary_Vertex", "#Delta V_z Distribution", 240,-12, 12);
+
+  TH1D* Multiplicity_individual = new TH1D("Multiplicity_root", "Multiplicity (ROOT)", 1000, 0, 1000);
+  TH1D* Multiplicity_hdf5 = new TH1D("Multplicity_hdf5", "Multiplicity (hdf5)", 500, 0, 1000);
+  TH1D* Multiplicity = new TH1D("Delta_Multiplicity", "#Delta Multiplicit Distribution", 500, 0, 1000);
+
+  TH2D* N_ME = new TH2D("N_ME", "Distribution No. Mixed Events Passed",300,0,300,500,0,1000);
+
+
+
   //FIXME: Add to config file
 
     for (int ipt = 0; ipt <nptbins; ipt++) {
@@ -503,13 +516,17 @@ int main(int argc, char *argv[])
       float multiplicity_sum = 0;
       for (int k = 0; k < 64; k++)  multiplicity_sum += multiplicity_v0[k];
 
+      int ME_pass_Counter = 0;
+
+      bool first_cluster = true;
       for (ULong64_t n = 0; n < ncluster; n++) {
 	if( not(cluster_pt[n]>pT_min and cluster_pt[n]<pT_max)) continue;   //select pt of photons
 	if( not(TMath::Abs(cluster_eta[n])<Eta_max)) continue;              //cut edges of detector                                                                          
         if( not(cluster_ncell[n]>Cluster_min)) continue;                    //removes clusters with 1 or 2 cells 
 	if( not(cluster_e_cross[n]/cluster_e[n]>EcrossoverE_min)) continue; //removes "spiky" clusters
         if( not(cluster_distance_to_bad_channel[n]>=Cluster_DtoBad)) continue; //removes clusters near bad channels
-        if( not(cluster_nlocal_maxima[n] < Cluster_NLocal_Max)) continue; //require to have at most 2 local maxima.
+        //if( not(cluster_nlocal_maxima[n] < Cluster_NLocal_Max)) continue; //require to have at most 2 local maxima.
+        if( not(cluster_nlocal_maxima[n] < 3)) continue; //require to have at most 2 local maxima.
 
         float isolation;
         if (determiner == CLUSTER_ISO_TPC_04) isolation = cluster_iso_tpc_04[n];
@@ -517,6 +534,10 @@ int main(int argc, char *argv[])
         else if (determiner == CLUSTER_FRIXIONE_TPC_04_02) isolation = cluster_frixione_tpc_04_02[n];
         else isolation = cluster_frixione_its_04_02[n];
 
+	if(first_cluster){
+	  z_Vertices_individual->Fill(primary_vertex[2]);
+	  Multiplicity_individual->Fill(multiplicity_sum);
+	}
 
 	Long64_t mix_range = mix_end-mix_start+1;
 	for (Long64_t imix = mix_start; imix < mix_end+1; imix++){
@@ -539,11 +560,20 @@ int main(int argc, char *argv[])
 	  event_dataspace.selectHyperslab( H5S_SELECT_SET, event_count, event_offset );
 	  event_dataset.read( event_data_out, PredType::NATIVE_FLOAT, event_memspace, event_dataspace );
 
+	  //Fill ∆Event Distro's
+	  if (first_cluster){
+	    z_Vertices->Fill(TMath::Abs(event_data_out[0][0] - primary_vertex[2]));
+	    z_Vertices_hdf5->Fill(event_data_out[0][0]);
+	    Multiplicity->Fill(TMath::Abs(event_data_out[0][1] - multiplicity_sum));
+	    Multiplicity_hdf5->Fill(event_data_out[0][1]);
+	  }
+
 	  //Cut Paring Tails
 	  if (std::isnan(event_data_out[0][0])) continue;
 	  if (std::isnan(event_data_out[0][1])) continue;
-	  if (std::abs(primary_vertex[2]-event_data_out[0][0]) > 2);
-	  if (std::abs(multiplicity_sum - event_data_out[0][1]) > 40);
+	  if (std::abs(primary_vertex[2]-event_data_out[0][0]) > 2) continue;
+	  if (std::abs(multiplicity_sum - event_data_out[0][1]) > 40) continue;
+	  if (first_cluster) ME_pass_Counter ++;  //simple conuter for ME that pass
 
 	  //MIX with Associated Tracks
 	  for (ULong64_t itrack = 0; itrack < ntrack_max; itrack++) {
@@ -598,10 +628,10 @@ int main(int argc, char *argv[])
 	    }//end pt loop bin
 	  }//end loop over tracks
 	}//end loop over mixed events
-      }//end loop on clusters. 
-      
+	first_cluster = false;
+      }//end loop on clusters.
+      N_ME->Fill(ME_pass_Counter,multiplicity_sum);       
     } //end loop over events
-    
     //}//end loop over samples
 
 
@@ -622,6 +652,14 @@ int main(int argc, char *argv[])
 	BKGD_IsoCorr[izt+ipt*nztbins]->Write();	
       }
     }
+    z_Vertices->Write();
+    Multiplicity->Write();
+    z_Vertices_individual->Write();
+    z_Vertices_hdf5->Write();
+    Multiplicity_individual->Write();
+    Multiplicity_hdf5->Write();
+    N_ME->Write();
+
     fout->Close();     
     
     std::cout << " ending " << std::endl;
