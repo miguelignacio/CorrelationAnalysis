@@ -105,11 +105,17 @@ int main(int argc, char *argv[])
 	filepath = filepath.substr(filepath.find_last_of("/")+1, filepath.find_last_of(".")-filepath.find_last_of("/")-1);
 	std::cout << filepath << std::endl;
       
-        Int_t nevents = 0;
+	Float_t ptmin = 12.0;
         if(argc>2){
-            nevents = strtol(argv[2],NULL,0);
+	  ptmin = strtol(argv[2],NULL,0);
+        }
+        Int_t nevents = 0;
+        if(argc>3){
+            nevents = strtol(argv[3],NULL,0);
 	}
+
         std::cout << " Number of events requested " << nevents << std::endl; 
+	std::cout << " Minimum pt for skimming " << ptmin << std::endl;
 	
         if (file == NULL) {
 	  std::cout << " fail" << std::endl;
@@ -119,10 +125,10 @@ int main(int argc, char *argv[])
 	std::cout<<"About to get TTree" << std::endl;
 
         TTree *_tree_event = NULL;
-        _tree_event = dynamic_cast<TTree *> (dynamic_cast<TDirectoryFile *>   (file->Get("AliAnalysisTaskNTGJ"))->Get("_tree_event"));
+	_tree_event = dynamic_cast<TTree *> (file->Get("_tree_event"));
 	if (_tree_event == NULL) {
 	  std::cout << "First try did not got (AliAnalysisTaskNTGJ does not exist, trying again" << std::endl;
-	  _tree_event = dynamic_cast<TTree *> (file->Get("_tree_event"));
+	  _tree_event = dynamic_cast<TTree *> (dynamic_cast<TDirectoryFile *>   (file->Get("AliAnalysisTaskNTGJ"))->Get("_tree_event"));
 	  if (_tree_event == NULL) {
 	      std::cout << " fail " << std::endl;
 	      exit(EXIT_FAILURE);
@@ -130,14 +136,17 @@ int main(int argc, char *argv[])
         }  
         //_tree_event->Print();
 
-
    	UInt_t ncluster;
         UInt_t cluster_nmc_truth[NTRACK_MAX];
         Float_t cluster_e[NTRACK_MAX];
         Float_t cluster_pt[NTRACK_MAX];
         Float_t cluster_eta[NTRACK_MAX];
         Float_t cluster_phi[NTRACK_MAX];
-          
+
+	Float_t cluster_iso_its_04[NTRACK_MAX];
+    
+	Float_t cluster_iso_its_04_ue[NTRACK_MAX];
+            
 	UShort_t  cluster_cell_id_max[NTRACK_MAX];
 
         //MC
@@ -168,6 +177,8 @@ int main(int argc, char *argv[])
 	Float_t cluster_mindR_trackbit16_trackpt[NTRACK_MAX];
         Float_t cluster_mindR_trackbit3_trackpt[NTRACK_MAX];
         Float_t cluster_isoetaband_its[NTRACK_MAX];
+        Float_t cluster_iso_its_new[NTRACK_MAX];
+
 	Float_t cluster_isoetaband_tpc[NTRACK_MAX];
 
         Int_t cluster_pi0tagged[NTRACK_MAX];
@@ -192,6 +203,8 @@ int main(int argc, char *argv[])
 	Float_t track_dca_z[NTRACK_MAX];
 	Float_t track_its_chi_square[NTRACK_MAX];
 
+	Float_t ue_estimate_its_const;
+        _tree_event->SetBranchAddress("ue_estimate_its_const",&ue_estimate_its_const);
 	_tree_event->SetBranchAddress("ntrack", &ntrack);
         _tree_event->SetBranchAddress("track_e", track_e);
         _tree_event->SetBranchAddress("track_pt", track_pt);
@@ -214,6 +227,10 @@ int main(int argc, char *argv[])
 	_tree_event->SetBranchAddress("cluster_lambda_square_angle",  cluster_lambda_square_angle);
         _tree_event->SetBranchAddress("cluster_nmc_truth", cluster_nmc_truth);
 	_tree_event->SetBranchAddress("cluster_cell_id_max", cluster_cell_id_max);
+	_tree_event->SetBranchAddress("cluster_iso_its_04",cluster_iso_its_04);
+	_tree_event->SetBranchAddress("cluster_iso_its_04_ue",cluster_iso_its_04_ue);
+
+
 
 	Float_t cell_e[17664];
         Float_t cell_eta[17664];
@@ -258,18 +275,21 @@ int main(int argc, char *argv[])
 	_tree_event->SetBranchStatus("*jet*",1);
         _tree_event->SetBranchStatus("*ue*", 1);
 	_tree_event->SetBranchStatus("*muon*",0);
-        _tree_event->SetBranchStatus("*tpc*",0);
+        //_tree_event->SetBranchStatus("*tpc*",0);
 
 
  	std::cout << " Total Number of entries in TTree: " << _tree_event->GetEntries() << std::endl;
 
-	TFile *newfile = new TFile(Form("Skimmed_%s.root",filepath.c_str()),"recreate");
+	if( not(nevents>0)){
+	  nevents = _tree_event->GetEntries();
+        }
+	TFile *newfile = new TFile(Form("Skimmed_%s_ptmin%2.1f_Nevent_%5.0i.root",filepath.c_str(),ptmin,nevents),"recreate");
 	TTree *newtree = _tree_event->CloneTree(0);
         newtree->Branch("cluster_NN1", cluster_NN1, "cluster_NN1[ncluster]/F");
         newtree->Branch("cluster_NN2", cluster_NN2, "cluster_NN2[ncluster]/F");
 
 	newtree->Branch("cluster_Lambda", cluster_Lambda, "cluster_Lambda[ncluster]/F");
-        //newtree->Branch("cluster_Lambda_angle", cluster_Lambda_angle, "cluster_Lambda_angle[ncluster]/F");
+        newtree->Branch("cluster_Lambda_angle", cluster_Lambda_angle, "cluster_Lambda_angle[ncluster]/F");
 
         newtree->Branch("cluster_isHardPhoton", cluster_isHardPhoton, "cluster_isHardPhoton[ncluster]/F");
         
@@ -278,6 +298,9 @@ int main(int argc, char *argv[])
 	newtree->Branch("cluster_mindR_trackbit16_trackpt",cluster_mindR_trackbit16_trackpt,"cluster_mindR_trackbit16_trackpt[ncluster]/F");
         
         newtree->Branch("cluster_isoetaband_its", cluster_isoetaband_its, "cluster_isoetaband_its[ncluster]/F");
+
+        newtree->Branch("cluster_iso_its_new", cluster_iso_its_new, "cluster_iso_its_new[ncluster]/F");
+ 
 	//newtree->Branch("cluster_isoetaband_tpc", cluster_isoetaband_tpc, "cluster_isoetaband_tpc[ncluster]/F");
 
         newtree->Branch("cluster_pi0tagged",cluster_pi0tagged,"cluster_pi0tagged[ncluster]/I");
@@ -296,14 +319,16 @@ int main(int argc, char *argv[])
           c_phi_array[i] = cell_phi[i]; 
         }
         
-        if( not(nevents>0)){ 
-            nevents = _tree_event->GetEntries();
-	}
-	//const Long64_t nevents = 100000;  
+       	//const Long64_t nevents = 100000;  
 	for(Long64_t ievent = 0; ievent < nevents ; ievent++){     
 	  _tree_event->GetEntry(ievent);
           
-          bool KeepEvent = false;
+          bool KeepEvent = true;
+          if(ptmin>0.0) KeepEvent = false;
+
+	  if(TMath::Abs(primary_vertex[2])>10) continue;
+          if(primary_vertex[2]==0.00) continue;
+
 	  for (ULong64_t n = 0; n < ncluster; n++) {
             Float_t IsTrueHardPhoton = -666.0;
 	    cluster_NN1[n] = cluster_s_nphoton[n][1]; 
@@ -311,11 +336,19 @@ int main(int argc, char *argv[])
             cluster_Lambda[n] = cluster_lambda_square[n][0];
 	    cluster_Lambda_angle[n] = cluster_lambda_square_angle[n][0];
 
+	    //std::cout << " pt " << cluster_pt[n] << " " << cluster_nmc_truth[n] << std::endl;
+
+            Float_t truept = -999.9;
 	    for(UInt_t counter = 0 ; counter<cluster_nmc_truth[n]; counter++)
 	      {
                 unsigned short index = cluster_mc_truth_index[n][counter];
+	
                 if(index!=65535){
-		  if(mc_truth_pdg_code[index]==22 && mc_truth_first_parent_pdg_code[index]==22) IsTrueHardPhoton = 1.0;
+		  // std::cout << mc_truth_pdg_code[index] << " " << mc_truth_first_parent_pdg_code[index] << std::endl;
+		  if(mc_truth_pdg_code[index]==22 && mc_truth_first_parent_pdg_code[index]==22){
+		    IsTrueHardPhoton = 1.0;
+		    //std::cout <<cluster_pt[n] << " " << cluster_pt << " true: " << mc_truth_pt[index] << std::endl; 
+		  }
                 }
 	      }//end loop over indices
             cluster_isHardPhoton[n] = IsTrueHardPhoton;
@@ -323,24 +356,14 @@ int main(int argc, char *argv[])
             float minmass = 1.0;
             Int_t pi0tag = 0;
 
-            TLorentzVector v1;
-	    v1.SetPtEtaPhiM(cluster_pt[n], cluster_eta[n], cluster_phi[n], 0.0);
-	    for (ULong64_t m = 0; m < ncluster; m++) {
-	      if(cluster_pt[m]<0.7) continue;
-	      if(m==n) continue;
-	      TLorentzVector v2;
-	      v2.SetPtEtaPhiM(cluster_pt[m], cluster_eta[m],   cluster_phi[m], 0.0);
-	      TLorentzVector pi0 = v1+v2;
-              if(pi0.M()<minmass) minmass = pi0.M();
-              if(pi0.M()<0.160 and pi0.M()>0.100) pi0tag=1;
-	    }
 	    cluster_pi0tagged[n] =pi0tag; 
 	    cluster_minMass[n] = minmass;
             cluster_SuperModule[n] = GetSuperModule(cluster_cell_id_max[n]);
 
-	    if(cluster_pt[n]>10.0){
+	    if(cluster_pt[n]>ptmin){
               KeepEvent = true;
             }
+
 
             //Save Variables to veto high-pt tracks matching to clusters
             double dRmin = 1.0;
@@ -401,6 +424,7 @@ int main(int argc, char *argv[])
 	      iso_etaband = iso_etaband + track_pt[itrack];
             }
 	    cluster_isoetaband_tpc[n] = iso_etaband;
+            cluster_iso_its_new[n]    = cluster_iso_its_04[n] + cluster_iso_its_04_ue[n] - 0.4*0.4*TMath::Pi()*ue_estimate_its_const;
 
 	    unsigned int cell_id_5_5[25];
 	    cell_5_5(cell_id_5_5, cluster_cell_id_max[n]);
@@ -465,7 +489,7 @@ int main(int argc, char *argv[])
 	    newtree->Fill();
 	    //std::cout <<" cell e, eta , phi " << cell_e[0] << " " << cell_eta[0] << std::endl;
 	  }
-	  if(TMath::Abs(primary_vertex[2])>10) continue;
+
 	  if(KeepEvent){
             newtree->Fill();
           }
