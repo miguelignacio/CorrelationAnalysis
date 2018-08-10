@@ -54,11 +54,10 @@ int main(int argc, char *argv[])
         }
         file->Print();
         
-        TTree *_tree_event = NULL;
-        _tree_event = dynamic_cast<TTree *> (dynamic_cast<TDirectoryFile *>   (file->Get("AliAnalysisTaskNTGJ"))->Get("_tree_event"));
+	TTree *_tree_event = dynamic_cast<TTree *> (file->Get("_tree_event"));
         if (_tree_event == NULL) {
             std::cout << "Failed to grab tree, perhaps AliAnalysisTaskNTGJ does not exist, trying again" << std::endl;
-            _tree_event = dynamic_cast<TTree *> (file->Get("_tree_event"));
+	    _tree_event = dynamic_cast<TTree *> (dynamic_cast<TDirectoryFile *>   (file->Get("AliAnalysisTaskNTGJ"))->Get("_tree_event"));
             if (_tree_event == NULL) {
                 std::cout << " fail " << std::endl;
                 exit(EXIT_FAILURE);
