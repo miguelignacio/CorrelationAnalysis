@@ -12,10 +12,14 @@ module add ROOT/6.08.00
 #for p in {0,4,6}
 for p in 0
 do
-    name=$(echo "$filename" | cut -f 1 -d '.')
+    echo $1
+    name=${1%.*}
+    #name=$(basename ../$1 .root)
+    echo "THIS IS THE NAME"
+    echo $name
     if [ ! -f $name_${p}GeVTrack_paired.root ]; then
-	echo "calling paired Injector with file $1.root and track Gev $p"
-	./../pair_gale_shapley/paired_injector $1.root $p
+	echo "calling paired Injector with file $name.root and track Gev $p"
+	./../pair_gale_shapley/paired_injector $name.root $p
     fi
     
     for i in {0..280..20} #Mix 300 events
@@ -23,10 +27,10 @@ do
 	mix_min=$i
 	mix_max="$((i + 19))"
 	if [[ $3 == full ]]; then
-	    sbatch -p shared-chos -t 16:00:00 runCorr.sh $1_${p}GeVTrack_paired.root $2 $mix_min $mix_max $p	  
+	    sbatch -p shared-chos -t 16:00:00 runCorr.sh $name_${p}GeVTrack_paired.root $2 $mix_min $mix_max $p	  
 	else
-	./runCorr.sh $1_${p}GeVTrack_paired.root $2 $mix_min $mix_max $p
+	./runCorr.sh $name_${p}GeVTrack_paired.root $2 $mix_min $mix_max $p
 	fi
-    echo "$mix_min $mix_max $1"
+    echo "$mix_min $mix_max $name"
     done
 done
