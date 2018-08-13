@@ -35,6 +35,7 @@ int main(int argc, char *argv[])
   FILE* config = fopen("Corr_config.yaml", "r");
   double DNN_min = 0;
   double DNN_max = 0;
+  double Lambda0_cut = 0; 
   double pT_min = 0;
   double pT_max = 0;
   double Eta_max = 0;
@@ -50,6 +51,7 @@ int main(int argc, char *argv[])
   isolationDet determiner = CLUSTER_ISO_ITS_04;
   int n_eta_bins = 0;
   int n_phi_bins = 0;  
+  std::string shower_shape = "DNN";
 
   // Zt bins
   //FIXME: Will have to likely set nztbins first, then initialize array
@@ -86,6 +88,11 @@ int main(int argc, char *argv[])
       else if (strcmp(key, "DNN_max") == 0) {
           DNN_max = atof(value);
           std::cout << "DNN_max: " << DNN_max << std::endl; }
+
+      else if (strcmp(key, "Lambda0_cut") == 0){
+	Lambda0_cut = atof(value);
+	std::cout << "Lambda0_cut: " << Lambda0_cut << std::endl;}
+
 
       else if (strcmp(key, "pT_min") == 0) {
           pT_min = atof(value);
@@ -207,6 +214,12 @@ int main(int argc, char *argv[])
               exit(EXIT_FAILURE); }
       }
 
+      else if (strcmp(key, "Shower_Shape") == 0){
+	  shower_shape = value;
+	  std::cout<<"Shower Shape: "<<shower_shape.data()<<std::endl;
+	  //if (strcmp(shower_shape.data(),"Lambda")== 0) std::cout<<"test worked"<<std::endl;
+      }
+
       else std::cout << "WARNING: Unrecognized keyvariable " << key << std::endl;
   
   }
@@ -257,19 +270,19 @@ int main(int argc, char *argv[])
       for (int izt = 0; izt<nztbins; izt++){
 
       Corr[izt+ipt*nztbins] = new TH2D(Form("Correlation__pT%1.0f_%1.0f__zT%1.0f_zT%1.0f",ptbins[ipt],ptbins[ipt+1],
-      10*ztbins[izt],10*ztbins[izt+1]),"#gamma-H [all] Correlation", n_phi_bins,0,M_PI, n_eta_bins, -1.4, 1.4);
+      100*ztbins[izt],100*ztbins[izt+1]),"#gamma-H [all] Correlation", n_phi_bins,0,M_PI, n_eta_bins, -1.4, 1.4);
 
       Corr[izt+ipt*nztbins]->Sumw2();
       Corr[izt+ipt*nztbins]->SetMinimum(0.);
 
       IsoCorr[izt+ipt*nztbins] = new TH2D(Form("DNN%i_Correlation__pT%1.0f_%1.0f__zT%1.0f_zT%1.0f",1,ptbins[ipt],ptbins[ipt+1],
-      10*ztbins[izt],10*ztbins[izt+1]),"#gamma-H [Iso] Correlation", n_phi_bins,0,M_PI,n_eta_bins, -1.4, 1.4);
+      100*ztbins[izt],100*ztbins[izt+1]),"#gamma-H [Iso] Correlation", n_phi_bins,0,M_PI,n_eta_bins, -1.4, 1.4);
 
       IsoCorr[izt+ipt*nztbins]->Sumw2();
       IsoCorr[izt+ipt*nztbins]->SetMinimum(0.);
 
       BKGD_IsoCorr[izt+ipt*nztbins] = new TH2D(Form("DNN%i_Correlation__pT%1.0f_%1.0f__zT%1.0f_zT%1.0f",2,ptbins[ipt],ptbins[ipt+1],
-      10*ztbins[izt],10*ztbins[izt+1]),"#gamma-H [AntiIso] Correlation", n_phi_bins,0,M_PI, n_eta_bins, -1.4, 1.4);
+      100*ztbins[izt],100*ztbins[izt+1]),"#gamma-H [AntiIso] Correlation", n_phi_bins,0,M_PI, n_eta_bins, -1.4, 1.4);
 
       BKGD_IsoCorr[izt+ipt*nztbins]->Sumw2();
       BKGD_IsoCorr[izt+ipt*nztbins]->SetMinimum(0.);
@@ -281,7 +294,6 @@ int main(int argc, char *argv[])
     int iarg = 1;
     TString root_file = (TString)argv[iarg];
     std::cout << "Opening: " << (TString)argv[iarg] << std::endl;
-  
 
     TFile *file = TFile::Open(root_file);
 
@@ -349,6 +361,8 @@ int main(int argc, char *argv[])
     Float_t mc_truth_first_parent_eta[NTRACK_MAX];
     Float_t mc_truth_first_parent_phi[NTRACK_MAX];
     UChar_t mc_truth_status[NTRACK_MAX];
+    //Float_t eg_cross_section;
+    //Int_t   eg_ntrial;
      
     // Set the branch addresses of the branches in the TTrees
     _tree_event->SetBranchStatus("*mc*", 0);
@@ -388,6 +402,9 @@ int main(int argc, char *argv[])
     _tree_event->SetBranchAddress("cluster_cell_id_max", cluster_cell_id_max);
     _tree_event->SetBranchAddress("cell_e", cell_e);
 
+    //_tree_event->SetBranchAddress("eg_cross_section",&eg_cross_section);
+    //_tree_event->SetBranchAddress("eg_ntrial",&eg_ntrial);
+
     Long64_t nentries = _tree_event->GetEntries();         
     std::cout << " Total Number of entries in TTree: " << nentries << std::endl;
 
@@ -396,32 +413,54 @@ int main(int argc, char *argv[])
       _tree_event->GetEntry(ievent);
       fprintf(stderr, "\r%s:%d: %llu / %llu", __FILE__, __LINE__, ievent, nentries);
 
+      //double weight = (double)eg_cross_section/(double)eg_ntrial;
+
       for (ULong64_t n = 0; n < ncluster; n++) {
 	if( not(cluster_pt[n]>pT_min and cluster_pt[n]<pT_max)) continue;   //select pt of photons
 	if( not(TMath::Abs(cluster_eta[n])<Eta_max)) continue;              //cut edges of detector
 	if( not(cluster_ncell[n]>Cluster_min)) continue;                    //removes clusters with 1 or 2 cells
 	if( not(cluster_e_cross[n]/cluster_e[n]>EcrossoverE_min)) continue; //removes "spiky" clusters
 	if( not(cluster_distance_to_bad_channel[n]>=Cluster_DtoBad)) continue; //removes clusters near bad channels
-	if( not(cluster_nlocal_maxima[n] < Cluster_NLocal_Max)) continue; //require to have at most 2 local maxima.
+	//	if( not(cluster_nlocal_maxima[n] < Cluster_NLocal_Max)) continue; //require to have at most 2 local maxima.
+	if( not(cluster_nlocal_maxima[n] < 3)) continue; //require to have at most 2 local maxima.
 
 	float isolation;
 	if (determiner == CLUSTER_ISO_TPC_04) isolation = cluster_iso_tpc_04[n];
 	else if (determiner == CLUSTER_ISO_ITS_04) isolation = cluster_iso_its_04[n];
 	else if (determiner == CLUSTER_FRIXIONE_TPC_04_02) isolation = cluster_frixione_tpc_04_02[n];
 	else isolation = cluster_frixione_its_04_02[n];
+	
+	Bool_t Signal = false;
+	Bool_t Background = false;
+
+	if (strcmp(shower_shape.data(),"Lambda")== 0) {
+	  if ((cluster_lambda_square[n][0] < Lambda0_cut))
+	    Signal = true;
+	  
+	  if ((cluster_lambda_square[n][0] > Lambda0_cut))
+	    Background = true;
+	}
+	
+	else if (strcmp(shower_shape.data(),"DNN")==0){
+	  if ((cluster_s_nphoton[n][1] > DNN_min) && (cluster_s_nphoton[n][1]<DNN_max))
+	    Signal = true;
+	  if (cluster_lambda_square[n][0] > Lambda0_cut)
+	    Background = true;
+	}
+	
 
 	//count triggers	
 	if (isolation<iso_max){	
-	  if ((cluster_s_nphoton[n][1] > DNN_min) && (cluster_s_nphoton[n][1]<DNN_max)){
+	  if (Signal){  
 	    N_Signal_Triggers += 1;
 	    for (double Iso_bin = -0.5; Iso_bin < iso_max; Iso_bin += 0.5)
 	      if (isolation > Iso_bin && isolation < Iso_bin+0.5) Signal_pT_Dist->Fill(cluster_pt[n],isolation);
 	    for (int ipt = 0; ipt < nptbins; ipt++)
 	      if (cluster_pt[n] >ptbins[ipt] && cluster_pt[n] <ptbins[ipt+1])
-		H_Signal_Triggers[ipt]->Fill(0);
+		H_Signal_Triggers[ipt]->Fill(1);
 	  }
 	  //Low DNN Trigger BKGD
-	  if ((cluster_s_nphoton[n][1]>0.0) && (cluster_s_nphoton[n][1]<0.3)){
+	  if (Background){
 	    h_ntrig.Fill(0.5);
 	    N_BKGD_Triggers += 1;
 	    for (double Iso_bin = -0.5; Iso_bin < iso_max; Iso_bin += 0.5)
@@ -429,12 +468,12 @@ int main(int argc, char *argv[])
 		BKGD_pT_Dist->Fill(cluster_pt[n],isolation);
 	    for (int ipt = 0; ipt < nptbins; ipt++)
 	      if (cluster_pt[n] >ptbins[ipt] && cluster_pt[n] <ptbins[ipt+1]) 
-		H_BKGD_Triggers[ipt]->Fill(0); 
+		H_BKGD_Triggers[ipt]->Fill(1); 
 	  }
 	}
 	//no iso, no dnn
 	for (int ipt = 0; ipt < nptbins; ipt++)
-	  Triggers[ipt]->Fill(0);
+	  Triggers[ipt]->Fill(1);
 
 	//Track Loop
 	for (ULong64_t itrack = 0; itrack < ntrack; itrack++) {            
@@ -473,9 +512,14 @@ int main(int argc, char *argv[])
 		  
 		  //2 DNN Regions
 		  if (isolation<iso_max){
-		    if (cluster_s_nphoton[n][1] > DNN_min && cluster_s_nphoton[n][1] < DNN_max)
+		    //if (cluster_s_nphoton[n][1] > DNN_min && cluster_s_nphoton[n][1] < DNN_max)
+		    //if ((cluster_lambda_square[n][0] < Lambda0_cut))   
+		    if (Signal)
 		      IsoCorr[izt+ipt*nztbins]->Fill(DeltaPhi,DeltaEta);
-		    if (cluster_s_nphoton[n][1] > 0.0 && cluster_s_nphoton[n][1] < 0.3) //sel deep photons                                       
+
+		    //if (cluster_s_nphoton[n][1] > 0.0 && cluster_s_nphoton[n][1] < 0.3) //sel deep photons       
+		    //if ((cluster_lambda_square[n][0] > Lambda0_cut))                       
+		    if (Background)
 		      BKGD_IsoCorr[izt+ipt*nztbins]->Fill(DeltaPhi,DeltaEta);
 		  }		  
 		  //No Iso, no DNN

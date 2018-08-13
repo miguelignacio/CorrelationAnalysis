@@ -56,9 +56,10 @@ int main(int argc, char *argv[])
   fprintf(stderr,"Number of Mixed Events: %i \n",nmix);
 
   //Config File
-  FILE* config = fopen("Corr_config.yaml", "r");
+  FILE* config = fopen("../Corr_config.yaml", "r");
   double DNN_min = 0;
   double DNN_max = 0;
+  double Lambda0_cut = 0;
   double pT_min = 0;
   double pT_max = 0;
   double Eta_max = 0;
@@ -73,7 +74,8 @@ int main(int argc, char *argv[])
   double deta_max = 0;
   isolationDet determiner = CLUSTER_ISO_ITS_04; //replaced by config file. Check on Print
   int n_eta_bins = 0;
-  int n_phi_bins = 0;  
+  int n_phi_bins = 0;
+  std::string shower_shape = "DNN";
 
   // zT & pT bins
   int nztbins = 7;
@@ -109,6 +111,10 @@ int main(int argc, char *argv[])
       else if (strcmp(key, "DNN_max") == 0) {
           DNN_max = atof(value);
           std::cout << "DNN_max: " << DNN_max << std::endl; }
+
+      else if (strcmp(key,"Lambda0_cut") == 0){
+	Lambda0_cut = atof(value);
+	std::cout << "Lambda0 cut at: " <<Lambda0_cut <<std::endl;}
 
       else if (strcmp(key, "pT_min") == 0) {
           pT_min = atof(value);
@@ -229,6 +235,12 @@ int main(int argc, char *argv[])
               std::cout << "ERROR: Cluster_isolation_determinant in configuration file must be \"cluster_iso_tpc_04\", \"cluster_iso_its_04\", \"cluster_frixione_tpc_04_02\", or \"cluster_frixione_its_04_02\"" << std::endl << "Aborting the program" << std::endl;
               exit(EXIT_FAILURE); }
       }
+
+      else if (strcmp(key, "Shower_Shape") == 0){
+	shower_shape = value;
+	std::cout<<"Shower Shape: "<<shower_shape.data()<<std::endl;
+      }
+      
 
       else std::cout << "WARNING: Unrecognized keyvariable " << key << std::endl;
   
@@ -534,6 +546,24 @@ int main(int argc, char *argv[])
         else if (determiner == CLUSTER_FRIXIONE_TPC_04_02) isolation = cluster_frixione_tpc_04_02[n];
         else isolation = cluster_frixione_its_04_02[n];
 
+	Bool_t Signal = false;
+        Bool_t Background = false;
+
+        if (strcmp(shower_shape.data(),"Lambda")== 0) {
+          if ((cluster_lambda_square[n][0] < Lambda0_cut))
+            Signal = true;
+
+          if ((cluster_lambda_square[n][0] > Lambda0_cut))
+            Background = true;
+        }
+
+        else if (strcmp(shower_shape.data(),"DNN")==0){
+          if ((cluster_s_nphoton[n][1] > DNN_min) && (cluster_s_nphoton[n][1]<DNN_max))
+            Signal = true;
+          if (cluster_lambda_square[n][0] > Lambda0_cut)
+            Background = true;
+        }
+
 	if(first_cluster){
 	  z_Vertices_individual->Fill(primary_vertex[2]);
 	  Multiplicity_individual->Fill(multiplicity_sum);
@@ -612,15 +642,13 @@ int main(int argc, char *argv[])
 		  if(zt>ztbins[izt] and  zt<ztbins[izt+1]){
 
 		    if(isolation< iso_max){
-		      if (cluster_s_nphoton[n][1] > DNN_min && cluster_s_nphoton[n][1] < DNN_max){
-			IsoCorr[izt+ipt*nztbins]->Fill(DeltaPhi,DeltaEta);
-		      }
-		    }
+		      if (Signal)
+			IsoCorr[izt+ipt*nztbins]->Fill(DeltaPhi,DeltaEta);}
+
 		    if(isolation<iso_max){
-		      if (cluster_s_nphoton[n][1] > 0.0 && cluster_s_nphoton[n][1] < 0.3){ //sel deep photons 
-			BKGD_IsoCorr[izt+ipt*nztbins]->Fill(DeltaPhi,DeltaEta);
-		      }
-		    }
+		      if (Background)
+			BKGD_IsoCorr[izt+ipt*nztbins]->Fill(DeltaPhi,DeltaEta);}
+
 		    Corr[izt+ipt*nztbins]->Fill(DeltaPhi,DeltaEta);
 		  }//if in zt bin
 		} // end loop over zt bins
