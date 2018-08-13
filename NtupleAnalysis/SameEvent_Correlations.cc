@@ -542,7 +542,14 @@ int main(int argc, char *argv[])
   size_t lastindex = std::string(root_file).find_last_of(".");
   std::string rawname = std::string(root_file).substr(0, lastindex);
   fprintf(stderr,"%s: %d: Creating new file",__FILE__,__LINE__);
-  TFile* fout = new TFile(Form("%s_SE_Correlation.root",rawname.data()),"RECREATE");
+
+  TFile* fout;
+  if (strcmp(shower_shape.data(),"Lambda")== 0) 
+    fout = new TFile(Form("%s_SE_L0_Correlation.root",rawname.data()),"RECREATE");
+  else if (strcmp(shower_shape.data(),"DNN")== 0)
+    fout = new TFile(Form("%s_SE_NN_Correlation.root",rawname.data()),"RECREATE");
+  else
+    fout = new TFile(Form("%s_SE_Correlation.root",rawname.data()),"RECREATE");
 
   // TFile* fout = new TFile("Same_Event_Correlation_13defv1.root","RECREATE");
   h_ntrig.Write("ntriggers");

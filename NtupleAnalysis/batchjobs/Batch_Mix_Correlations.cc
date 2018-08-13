@@ -667,7 +667,15 @@ int main(int argc, char *argv[])
     size_t lastindex = std::string(root_file).find_last_of("."); 
     std::string rawname = std::string(root_file).substr(0, lastindex);
     //std::string rawname = std::string(argv[1]);
-    TFile* fout = new TFile(Form("%s_%luGeVTracks_Correlation_%1.1lu_to_%1.1lu.root",rawname.data(),GeV_Track_Skim,mix_start,mix_end),"RECREATE");
+
+    TFile* fout;
+    if (strcmp(shower_shape.data(),"Lambda")== 0)
+      fout = new TFile(Form("%s_%luGeVTracks_Correlation_Lambda_%1.1lu_to_%1.1lu.root",rawname.data(),GeV_Track_Skim,mix_start,mix_end),"RECREATE");
+    else if (strcmp(shower_shape.data(),"DNN")== 0)
+      fout = new TFile(Form("%s_%luGeVTracks_Correlation_DNN_%1.1lu_to_%1.1lu.root",rawname.data(),GeV_Track_Skim,mix_start,mix_end),"RECREATE");
+    else
+      fout = new TFile(Form("%s_%luGeVTracks_Correlation_%1.1lu_to_%1.1lu.root",rawname.data(),GeV_Track_Skim,mix_start,mix_end),"RECREATE");
+
 
     for (int ipt = 0; ipt<nptbins; ipt++){    
       for (int izt = 0; izt<nztbins; izt++){
