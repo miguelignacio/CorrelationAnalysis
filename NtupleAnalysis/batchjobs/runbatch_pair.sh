@@ -16,7 +16,7 @@ do
 	mix_max="$((i + 19))"
 
         if [[ $3 == full ]]; then
-	    sbatch -p shared-chos -t 20:00:00 runpairing.sh $1 $2 $mix_min $mix_max $p
+	    sbatch -p shared-chos -t 24:00:00 runpairing.sh $1 $2 $mix_min $mix_max $p
         else
 	./runpairing.sh $1 $2 $mix_min $mix_max $p
         fi
