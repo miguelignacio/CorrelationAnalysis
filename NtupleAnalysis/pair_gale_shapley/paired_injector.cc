@@ -36,7 +36,7 @@ int trackpairenergyArg = 2;
 int main(int argc, char *argv[])
 {
     if (argc < 3) {
-      fprintf(stderr,"Syntax is [Command] [root file] [13d, 13e or 13f] [TrackSkim GeV] \n");
+      fprintf(stderr,"\nSyntax is [Command] [root file] [TrackSkim GeV] \nThis Assumes 15 .txt files \n\n");
         exit(EXIT_FAILURE);
     }
     int dummyc = 1;

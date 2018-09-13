@@ -15,9 +15,7 @@ do
     echo $1
     name=${1%.*}
     #name=$(basename ../$1 .root)
-    echo "THIS IS THE NAME"
-    echo $name
-    if [ ! -f $name_${p}GeVTrack_paired.root ]; then
+    if [ ! -f ${name}_${p}GeVTrack_paired.root ]; then
 	echo "calling paired Injector with file $name.root and track Gev $p"
 	./../pair_gale_shapley/paired_injector $name.root $p
     fi
@@ -27,9 +25,9 @@ do
 	mix_min=$i
 	mix_max="$((i + 19))"
 	if [[ $3 == full ]]; then
-	    sbatch -p shared-chos -t 16:00:00 runCorr.sh $name_${p}GeVTrack_paired.root $2 $mix_min $mix_max $p	  
+	    sbatch -p shared-chos -t 16:00:00 runCorr.sh ${name}_${p}GeVTrack_paired.root $2 $mix_min $mix_max $p	  
 	else
-	./runCorr.sh $name_${p}GeVTrack_paired.root $2 $mix_min $mix_max $p
+	./runCorr.sh ${name}_${p}GeVTrack_paired.root $2 $mix_min $mix_max $p
 	fi
     echo "$mix_min $mix_max $name"
     done
