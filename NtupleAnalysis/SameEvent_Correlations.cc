@@ -36,6 +36,8 @@ int main(int argc, char *argv[])
   double DNN_min = 0;
   double DNN_max = 0;
   double Lambda0_cut = 0; 
+  double Emax_min = 0;
+  double Emax_max = 0;
   double pT_min = 0;
   double pT_max = 0;
   double Eta_max = 0;
@@ -93,6 +95,13 @@ int main(int argc, char *argv[])
 	Lambda0_cut = atof(value);
 	std::cout << "Lambda0_cut: " << Lambda0_cut << std::endl;}
 
+      if (strcmp(key, "EMax_EClus_min") == 0) {
+	Emax_min = atof(value);
+	std::cout << "EMax_EClus_min:" << Emax_min << std::endl; }
+
+      else if (strcmp(key, "EMax_EClus_max") == 0) {
+	Emax_max = atof(value);
+	std::cout << "EMax_EClus_max: " << Emax_max << std::endl; }
 
       else if (strcmp(key, "pT_min") == 0) {
           pT_min = atof(value);
@@ -237,6 +246,23 @@ int main(int argc, char *argv[])
   TCanvas canvas("canvas", "");
 
   TH1D h_ntrig("h_ntrig", "", 2, -0.5,1.0);
+  TH1D h_purity("h_purity","purity distribution",100,0,1);
+
+  TH1D *h_cluster_phi = new TH1D("cluster_phi","#phi distribution of paired clusters",32,1,M_PI);  
+  TH1D *h_cluster_eta = new TH1D("cluster_eta","#eta distribution of paired clusters",28,-0.8,0.8);  
+
+  h_cluster_phi->Sumw2();
+  h_cluster_eta->Sumw2();
+
+  //Following purities for pT range: 12.5,13.2,14.4,15.8
+  float pT_Ranges[4] = {12,13.2,14.4,16.1};//under/overshoot extremes for inclusivity
+  float purities[3];
+  if (strcmp(shower_shape.data(), "DNN") == 0){
+    purities[0]=0.33;purities[1]=0.37;purities[2]=0.46;}
+  else if (strcmp(shower_shape.data(), "Lambda") == 0){
+    purities[0]=0.24;purities[1]=0.29;purities[2]=0.36;}
+  else {
+    purities[0]=0.27;purities[1]=0.32;purities[2]=0.37;}//Emax/Ecluster
 
   TH2D* Signal_pT_Dist = new TH2D("Signal_pT_Dist","Cluster Pt Spectrum For Isolation (its_04) bins 0.55 < DNN < 0.85",24,10,16,5,-0.5,2);
   TH2D* BKGD_pT_Dist = new TH2D("BKGD_pT_Dist","Cluster Pt Spectrum For Isolation (its_04) bins 0.0 < DNN < 0.3",24,10,16,5,-0.5,2);
@@ -248,6 +274,10 @@ int main(int argc, char *argv[])
   TH1D* H_Signal_Triggers[nptbins];
   TH1D* H_BKGD_Triggers[nptbins];
   TH1D* Triggers[nptbins];
+
+  TH2D * h_track_phi_eta[nztbins*nptbins];
+  TH1D * h_track_eta[nztbins*nptbins];
+  TH1D * h_track_phi[nztbins*nptbins];
 
   float N_Signal_Triggers = 0;
   float N_BKGD_Triggers = 0;
@@ -286,6 +316,18 @@ int main(int argc, char *argv[])
 
       BKGD_IsoCorr[izt+ipt*nztbins]->Sumw2();
       BKGD_IsoCorr[izt+ipt*nztbins]->SetMinimum(0.);
+
+      h_track_phi_eta[izt+ipt*nztbins] = new TH2D(Form("track_phi_eta__pT%1.0f_%1.0f__zT%1.0f_zT%1.0f",2,ptbins[ipt],ptbins[ipt+1],
+      100*ztbins[izt],100*ztbins[izt+1]),"Paired Track #phi #eta distribution", n_phi_bins*2,0,M_PI, n_eta_bins*2, -1, 1);
+
+      h_track_phi_eta[izt+ipt*nztbins]->Sumw2();
+
+      h_track_eta[izt+ipt*nztbins] = new TH1D(Form("track_eta__pT%1.0f_%1.0f__zT%1.0f_zT%1.0f",2,ptbins[ipt],ptbins[ipt+1],
+      100*ztbins[izt],100*ztbins[izt+1]),"Paired Track #eta distribution",n_eta_bins*2, -0.8, 0.8);
+
+      h_track_phi[izt+ipt*nztbins] = new TH1D(Form("track_phi__pT%1.0f_%1.0f__zT%1.0f_zT%1.0f",2,ptbins[ipt],ptbins[ipt+1],
+      100*ztbins[izt],100*ztbins[izt+1]),"Paired Track #phi distribution", n_phi_bins*2,0,M_PI);
+
 
     }//zt bins
   }//pt bins                           
@@ -330,6 +372,7 @@ int main(int argc, char *argv[])
     //Clusters
     UInt_t ncluster;
     Float_t cluster_e[NTRACK_MAX];
+    Float_t cluster_e_max[NTRACK_MAX];
     Float_t cluster_e_cross[NTRACK_MAX];
     Float_t cluster_pt[NTRACK_MAX];
     Float_t cluster_eta[NTRACK_MAX];
@@ -384,6 +427,7 @@ int main(int argc, char *argv[])
     //Cluster Addresses
     _tree_event->SetBranchAddress("ncluster", &ncluster);
     _tree_event->SetBranchAddress("cluster_e", cluster_e);
+    _tree_event->SetBranchAddress("cluster_e_max", cluster_e_max);
     _tree_event->SetBranchAddress("cluster_e_cross", cluster_e_cross);
     _tree_event->SetBranchAddress("cluster_pt", cluster_pt);
     _tree_event->SetBranchAddress("cluster_eta", cluster_eta);
@@ -415,6 +459,7 @@ int main(int argc, char *argv[])
 
       //double weight = (double)eg_cross_section/(double)eg_ntrial;
 
+      bool first_cluster = true;
       for (ULong64_t n = 0; n < ncluster; n++) {
 	if( not(cluster_pt[n]>pT_min and cluster_pt[n]<pT_max)) continue;   //select pt of photons
 	if( not(TMath::Abs(cluster_eta[n])<Eta_max)) continue;              //cut edges of detector
@@ -430,6 +475,10 @@ int main(int argc, char *argv[])
 	else if (determiner == CLUSTER_FRIXIONE_TPC_04_02) isolation = cluster_frixione_tpc_04_02[n];
 	else isolation = cluster_frixione_its_04_02[n];
 	
+	h_cluster_phi->Fill(cluster_phi[n]);
+	h_cluster_eta->Fill(cluster_eta[n]);
+	
+
 	Bool_t Signal = false;
 	Bool_t Background = false;
 
@@ -447,11 +496,25 @@ int main(int argc, char *argv[])
 	  if (cluster_lambda_square[n][0] > Lambda0_cut)
 	    Background = true;
 	}
+
+	else if (strcmp(shower_shape.data(),"EMax")==0){
+          if (cluster_e_max[n]/cluster_e[n] > Emax_max)
+            Signal = true;
+          if (cluster_e_max[n]/cluster_e[n] < Emax_min)
+            Background = true;
+        }
+
 	
 
 	//count triggers	
 	if (isolation<iso_max){	
 	  if (Signal){  
+	    
+	    for (int ipt = 0; ipt < 3; ipt++){
+	      if ((cluster_pt[n] > pT_Ranges[ipt]) && (cluster_pt[n] < pT_Ranges[ipt+1]))
+		h_purity.Fill(purities[ipt]);
+	    }
+	    
 	    N_Signal_Triggers += 1;
 	    for (double Iso_bin = -0.5; Iso_bin < iso_max; Iso_bin += 0.5)
 	      if (isolation > Iso_bin && isolation < Iso_bin+0.5) Signal_pT_Dist->Fill(cluster_pt[n],isolation);
@@ -497,7 +560,7 @@ int main(int argc, char *argv[])
 	      break;
 	    }
 	  }
- 	  if (Track_HasMatch) continue;
+ 	  //if (Track_HasMatch) continue;
 
 	  //Observables:
 	  Double_t zt = track_pt[itrack]/cluster_pt[n];
@@ -509,7 +572,8 @@ int main(int argc, char *argv[])
 	    if (cluster_pt[n] >ptbins[ipt] && cluster_pt[n] <ptbins[ipt+1]){
 	      for(int izt = 0; izt<nztbins ; izt++){
 		if(zt>ztbins[izt] and  zt<ztbins[izt+1]){
-		  
+		  if (first_cluster)
+		    h_track_phi_eta[izt+ipt*nztbins]->Fill(track_phi[itrack],track_eta[itrack]);	  
 		  //2 DNN Regions
 		  if (isolation<iso_max){
 		    //if (cluster_s_nphoton[n][1] > DNN_min && cluster_s_nphoton[n][1] < DNN_max)
@@ -531,6 +595,7 @@ int main(int argc, char *argv[])
 	  }//end pt loop bin   
 	}//end loop over tracks
 	//fprintf(stderr,"\n"); 
+	first_cluster = false;
       }//end loop on clusters.
     } //end loop over events  
     //}//end loop over samples
@@ -544,10 +609,13 @@ int main(int argc, char *argv[])
   fprintf(stderr,"%s: %d: Creating new file",__FILE__,__LINE__);
 
   TFile* fout;
+
   if (strcmp(shower_shape.data(),"Lambda")== 0) 
     fout = new TFile(Form("%s_SE_L0_Correlation.root",rawname.data()),"RECREATE");
   else if (strcmp(shower_shape.data(),"DNN")== 0)
     fout = new TFile(Form("%s_SE_NN_Correlation.root",rawname.data()),"RECREATE");
+  else if (strcmp(shower_shape.data(),"EMax")== 0)
+    fout = new TFile(Form("%s_SE_EMax_Correlation.root",rawname.data()),"RECREATE");
   else
     fout = new TFile(Form("%s_SE_Correlation.root",rawname.data()),"RECREATE");
 
@@ -555,6 +623,11 @@ int main(int argc, char *argv[])
   h_ntrig.Write("ntriggers");
   std::cout<<"Clusters Passed Iosalation: "<<N_Signal_Triggers<<std::endl;
 			  
+  h_purity.Write("purities");
+
+  h_cluster_phi->Write();
+  h_cluster_eta->Write();
+
   Signal_pT_Dist->Write();
   BKGD_pT_Dist->Write();
 
@@ -568,6 +641,12 @@ int main(int argc, char *argv[])
     Triggers[ipt]->Write();
 
   for (int ipt = 0; ipt<nptbins; ipt++){
+    for (int izt = 0; izt<nztbins; izt++)
+      h_track_phi_eta[izt+ipt*nztbins]->Write();
+    // for (int izt = 0; izt<nztbins; izt++)
+    //   h_track_eta[nztbins*nptbins]->Write();
+    // for (int izt = 0; izt<nztbins; izt++)
+    //   h_track_phi[nztbins*nptbins]->Write();
     for (int izt = 0; izt<nztbins; izt++)
       Corr[izt+ipt*nztbins]->Write();
     for (int izt = 0; izt<nztbins; izt++)
