@@ -85,7 +85,7 @@ class TemplateFit:
             model = N * (f * self.signal + (1 - f) * self.bkg)
             totalerror = np.sqrt(np.square(self.dataerr) + np.square(N * (1 - f) * self.bkgerr))
             return np.sum(np.power(np.divide(self.data - model, totalerror,
-                                             out=np.zeros_like(totalerror), where=totalerror != 0), 2.0)[slice(*self.fitRange)])
+                                             where=np.array(totalerror)!=0), 2.0)[slice(*self.fitRange)])
 
         mt = iminuit.Minuit(Chi2, N=np.sum(self.data), f=0.12, error_N=1, error_f=1,
                             errordef=1, print_level=self.verbosity)
@@ -102,8 +102,7 @@ class TemplateFit:
         self.fitBkgerr = self.fitN * (1 - self.fitf) * self.bkgerr
 
         fitTotal = self.fitSignal + self.fitBkg
-        self.residuals = np.divide(fitTotal - self.data, self.dataerr,
-                                   out=np.zeros_like(self.dataerr), where=self.dataerr != 0)
+        self.residuals = np.divide(fitTotal - self.data, self.dataerr, where=np.array(self.dataerr)!=0)
         self.chi2 = Chi2(self.fitN, self.fitf)
         self.dof = len(self.data[slice(*self.fitRange)]) - 3
 
