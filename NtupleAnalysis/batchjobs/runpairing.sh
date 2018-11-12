@@ -9,7 +9,7 @@ which root
 module list
 date
 #echo "Command runpairing with file $1.root, mix_start = $2, mix_end = $3, and TrackSkim GeV = $4"
-echo "Command runpairing with [$1] [$2] [mix_start = $3] [mix_end = $4] [TrackSkim = 0]"
+echo "Command runpairing with [$1] [$2] [mix_start = $3] [mix_end = $4] [TrackSkim = $5]"
 
 export cwd=$(pwd)
 cd $cwd/../pair_gale_shapley/

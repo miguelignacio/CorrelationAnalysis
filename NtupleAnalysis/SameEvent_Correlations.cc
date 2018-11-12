@@ -258,7 +258,8 @@ int main(int argc, char *argv[])
   float pT_Ranges[4] = {12,13.2,14.4,16.1};//under/overshoot extremes for inclusivity
   float purities[3];
   if (strcmp(shower_shape.data(), "DNN") == 0){
-    purities[0]=0.33;purities[1]=0.37;purities[2]=0.46;}
+    //    purities[0]=0.33;purities[1]=0.37;purities[2]=0.46;}
+    purities[0]=0.016;purities[1]=0.016;purities[2]=0.03;}
   else if (strcmp(shower_shape.data(), "Lambda") == 0){
     purities[0]=0.24;purities[1]=0.29;purities[2]=0.36;}
   else {
@@ -491,7 +492,7 @@ int main(int argc, char *argv[])
 	}
 	
 	else if (strcmp(shower_shape.data(),"DNN")==0){
-	  if ((cluster_s_nphoton[n][1] > DNN_min) && (cluster_s_nphoton[n][1]<DNN_max))
+	  if ( (cluster_s_nphoton[n][1] > DNN_min) && (cluster_s_nphoton[n][1]<DNN_max) && (cluster_lambda_square[n][0] < Lambda0_cut) )
 	    Signal = true;
 	  if (cluster_lambda_square[n][0] > Lambda0_cut)
 	    Background = true;
@@ -504,14 +505,14 @@ int main(int argc, char *argv[])
             Background = true;
         }
 
-	
-
 	//count triggers	
 	if (isolation<iso_max){	
+
+	  //High DNN Trigger SGNL
 	  if (Signal){  
 	    
-	    for (int ipt = 0; ipt < 3; ipt++){
-	      if ((cluster_pt[n] > pT_Ranges[ipt]) && (cluster_pt[n] < pT_Ranges[ipt+1]))
+	    for (int ipt = 0; ipt < nptbins; ipt++){
+	      if ((cluster_pt[n] >= pT_Ranges[ipt]) && (cluster_pt[n] < pT_Ranges[ipt+1]))
 		h_purity.Fill(purities[ipt]);
 	    }
 	    
@@ -530,7 +531,7 @@ int main(int argc, char *argv[])
 	      if (isolation > Iso_bin && isolation < Iso_bin+0.5) 
 		BKGD_pT_Dist->Fill(cluster_pt[n],isolation);
 	    for (int ipt = 0; ipt < nptbins; ipt++)
-	      if (cluster_pt[n] >ptbins[ipt] && cluster_pt[n] <ptbins[ipt+1]) 
+	      if (cluster_pt[n] >= ptbins[ipt] && cluster_pt[n] <ptbins[ipt+1]) 
 		H_BKGD_Triggers[ipt]->Fill(1); 
 	  }
 	}
@@ -569,35 +570,31 @@ int main(int argc, char *argv[])
 	  if ((TMath::Abs(DeltaPhi) < 0.005) && (TMath::Abs(DeltaEta) < 0.005)) continue; //Match Mixing Cut
 
 	  for (int ipt = 0; ipt < nptbins; ipt++){
-	    if (cluster_pt[n] >ptbins[ipt] && cluster_pt[n] <ptbins[ipt+1]){
+	    if (cluster_pt[n] >= ptbins[ipt] && cluster_pt[n] < ptbins[ipt+1]){
 	      for(int izt = 0; izt<nztbins ; izt++){
 		if(zt>ztbins[izt] and  zt<ztbins[izt+1]){
 		  if (first_cluster)
 		    h_track_phi_eta[izt+ipt*nztbins]->Fill(track_phi[itrack],track_eta[itrack]);	  
 		  //2 DNN Regions
 		  if (isolation<iso_max){
-		    //if (cluster_s_nphoton[n][1] > DNN_min && cluster_s_nphoton[n][1] < DNN_max)
-		    //if ((cluster_lambda_square[n][0] < Lambda0_cut))   
+
 		    if (Signal)
 		      IsoCorr[izt+ipt*nztbins]->Fill(DeltaPhi,DeltaEta);
 
-		    //if (cluster_s_nphoton[n][1] > 0.0 && cluster_s_nphoton[n][1] < 0.3) //sel deep photons       
-		    //if ((cluster_lambda_square[n][0] > Lambda0_cut))                       
 		    if (Background)
 		      BKGD_IsoCorr[izt+ipt*nztbins]->Fill(DeltaPhi,DeltaEta);
 		  }		  
 		  //No Iso, no DNN
 		  Corr[izt+ipt*nztbins]->Fill(DeltaPhi,DeltaEta);
 
-		}//if in zt bin                                                                                               
-	      } // end loop over zt bins                                                                         
-	    }//end if in pt bin                                                                                                  
-	  }//end pt loop bin   
-	}//end loop over tracks
-	//fprintf(stderr,"\n"); 
+		}//if in zt bin 
+	      } // for zt bins
+	    }//if in pt bin
+	  }//for pt bins
+	}//for itracks
 	first_cluster = false;
-      }//end loop on clusters.
-    } //end loop over events  
+      }//for nclusters
+    } //for nevents  
     //}//end loop over samples
 
   // Write to fout
