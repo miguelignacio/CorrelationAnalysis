@@ -24,6 +24,12 @@ def getWeights(filename, dataframe):
             dataframe.eval('weights=1.01e-10', inplace=True)
         elif 'pthat5' in filename:
             dataframe.eval('weights=6.93e-11', inplace=True)
+        elif 'pthat6' in filename:
+            dataframe.eval('weights=5.13e-11', inplace=True)
+        elif 'pthat7' in filename:
+            dataframe.eval('weights=3.03e-11', inplace=True)
+        elif 'pthat8' in filename:
+            dataframe.eval('weights=1.89e-11', inplace=True)
     elif '17g6a1' in filename:
         if('pthat1' in filename):
             dataframe.eval('weights=1.60e-11', inplace=True)
@@ -51,6 +57,7 @@ def getData(inputFiles, basedir='ntuples', maxEvents=None):
     arrayColumns = []
     arrayColumns.append('cluster_pt')
     arrayColumns.append('cluster_eta')
+    arrayColumns.append('cluster_phi')
     arrayColumns.append('cluster_ncell')
     arrayColumns.append('cluster_e_cross')
     arrayColumns.append('cluster_e')
@@ -60,9 +67,10 @@ def getData(inputFiles, basedir='ntuples', maxEvents=None):
     arrayColumns.append('cluster_distance_to_bad_channel')
     arrayColumns.append('cluster_iso_its_04')
     arrayColumns.append('cluster_iso_its_04_ue')
+    arrayColumns.append('cluster_iso_04_truth')
+    arrayColumns.append('cluster_iso_tpc_04')
     arrayColumns.append('cluster_NN1')
     arrayColumns.append('cluster_Lambda')
-    arrayColumns.append('cluster_iso_04_truth')
 
     columns = scalarColumns + arrayColumns
 
@@ -86,7 +94,7 @@ def applyCut(inputDataframe, cut, text=None):
     return cutDataframe
 
 
-def applyCuts(fullDataframe, ptRange=(15.0, 20.0)):
+def applyCuts(fullDataframe, ptRange=(12.0, 30.0)):
     fullDataframe.eval('cluster_ecross_over_e = cluster_e_cross/cluster_e', inplace=True)
     fullDataframe.eval('cluster_emax_over_e = cluster_e_max/cluster_e', inplace=True)
     # fullDataframe.eval('cluster_iso_its_04_raw = cluster_iso_its_04 + cluster_iso_its_04_ue', inplace=True)
@@ -100,6 +108,26 @@ def applyCuts(fullDataframe, ptRange=(15.0, 20.0)):
     dataframe = applyCut(dataframe, 'cluster_ecross_over_e>0.05', 'ecross/e > 0.05')
     dataframe = applyCut(dataframe, 'abs(cluster_tof)<20', '|tof| < 20')
     dataframe = applyCut(dataframe, 'cluster_nlocal_maxima<3', 'N local maxima < 3')
+    dataframe = applyCut(dataframe, 'cluster_distance_to_bad_channel>=2.0', 'distance to bad channel >= 2.0')
+    dataframe = applyCut(dataframe, 'cluster_NN1 == cluster_NN1', 'cluster_NN1 is not NaN')
+
+    return dataframe
+
+
+def applyPbPbCuts(fullDataframe, ptRange=(12.0, 30.0)):
+    fullDataframe.eval('cluster_ecross_over_e = cluster_e_cross/cluster_e', inplace=True)
+    fullDataframe.eval('cluster_emax_over_e = cluster_e_max/cluster_e', inplace=True)
+    # fullDataframe.eval('cluster_iso_its_04_raw = cluster_iso_its_04 + cluster_iso_its_04_ue', inplace=True)
+    fullDataframe.eval('cluster_iso_its_04_sub = cluster_iso_its_04 + cluster_iso_its_04_ue - ue_estimate_its_const*0.4*0.4*3.1416', inplace=True)
+    fullDataframe.eval('cluster_iso_04_truth_sub = cluster_iso_04_truth - cluster_pt', inplace=True)
+
+    dataframe = fullDataframe
+    dataframe = applyCut(dataframe, 'cluster_pt>{0} and cluster_pt<{1}'.format(*ptRange), '{0} < pt < {1}'.format(*ptRange))
+    dataframe = applyCut(dataframe, 'abs(cluster_eta)<0.67', '|eta| < 0.67')
+    dataframe = applyCut(dataframe, 'cluster_ncell>2', 'ncell > 2')
+    dataframe = applyCut(dataframe, 'cluster_ecross_over_e>0.05', 'ecross/e > 0.05')
+    dataframe = applyCut(dataframe, 'abs(cluster_tof)<20', '|tof| < 20')
+#     dataframe = applyCut(dataframe, 'cluster_nlocal_maxima<3', 'N local maxima < 3')
     dataframe = applyCut(dataframe, 'cluster_distance_to_bad_channel>=2.0', 'distance to bad channel >= 2.0')
     dataframe = applyCut(dataframe, 'cluster_NN1 == cluster_NN1', 'cluster_NN1 is not NaN')
 
