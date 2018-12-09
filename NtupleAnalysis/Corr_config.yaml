@@ -21,6 +21,6 @@ Track_Cut_Bit:                16
 Zt_bins:               [0.05, 0.07670637, 0.11767734, 0.18053204, 0.27695915, 0.42489062, 0.65183634, 1]
 Pt_bins:               [12.0, 15.0]
 Cluster_isolation_determinant: cluster_iso_its_04
-#Shower_Shape:                 Lambda
-Shower_Shape:                  EMax
+Shower_Shape:                 Lambda
+#Shower_Shape:                  EMax
 #Shower_Shape:                 DNN
