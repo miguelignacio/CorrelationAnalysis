@@ -35,6 +35,7 @@ int main(int argc, char *argv[])
   FILE* config = fopen("Corr_config.yaml", "r");
   double DNN_min = 0;
   double DNN_max = 0;
+  double DNN_Bkgd = 0;
   double Lambda0_cut = 0; 
   double Emax_min = 0;
   double Emax_max = 0;
@@ -90,6 +91,10 @@ int main(int argc, char *argv[])
       else if (strcmp(key, "DNN_max") == 0) {
           DNN_max = atof(value);
           std::cout << "DNN_max: " << DNN_max << std::endl; }
+
+      else if (strcmp(key, "DNN_BKGD") == 0) {
+	DNN_Bkgd = atof(value);
+	std::cout << "DNN_BKGD: " << DNN_Bkgd << std::endl; }
 
       else if (strcmp(key, "Lambda0_cut") == 0){
 	Lambda0_cut = atof(value);
@@ -255,18 +260,19 @@ int main(int argc, char *argv[])
   h_cluster_eta->Sumw2();
 
   //Following purities for pT range: 12.5,13.2,14.4,15.8
-  float pT_Ranges[4] = {12,13.2,14.4,16.1};//under/overshoot extremes for inclusivity
+  //float pT_Ranges[4] = {12,13.2,14.4,16.1};//under/overshoot extremes for inclusivity
+  float pT_Ranges[4] = {14,16,18,20};
   float purities[3];
   if (strcmp(shower_shape.data(), "DNN") == 0){
-    //    purities[0]=0.33;purities[1]=0.37;purities[2]=0.46;}
-    purities[0]=0.016;purities[1]=0.016;purities[2]=0.03;}
+    purities[0]=0.41;purities[1]=0.46;purities[2]=0.50;}
+    //purities[0]=0.016;purities[1]=0.016;purities[2]=0.03;}
   else if (strcmp(shower_shape.data(), "Lambda") == 0){
     purities[0]=0.24;purities[1]=0.29;purities[2]=0.36;}
   else {
     purities[0]=0.27;purities[1]=0.32;purities[2]=0.37;}//Emax/Ecluster
 
-  TH2D* Signal_pT_Dist = new TH2D("Signal_pT_Dist","Cluster Pt Spectrum For Isolation (its_04) bins 0.55 < DNN < 0.85",24,10,16,5,-0.5,2);
-  TH2D* BKGD_pT_Dist = new TH2D("BKGD_pT_Dist","Cluster Pt Spectrum For Isolation (its_04) bins 0.0 < DNN < 0.3",24,10,16,5,-0.5,2);
+  TH2D* Signal_pT_Dist = new TH2D("Signal_pT_Dist","Cluster Pt Spectrum For Isolation (its_04) bins 0.55 < DNN < 0.85",100,pT_min,pT_max,5,-0.5,2);
+  TH2D* BKGD_pT_Dist = new TH2D("BKGD_pT_Dist","Cluster Pt Spectrum For Isolation (its_04) bins 0.0 < DNN < 0.3",100,pT_min,pT_max,5,-0.5,2);
 
   TH2D* Corr[nztbins*nptbins];
   TH2D* IsoCorr[nztbins*nptbins];
@@ -492,9 +498,9 @@ int main(int argc, char *argv[])
 	}
 	
 	else if (strcmp(shower_shape.data(),"DNN")==0){
-	  if ( (cluster_s_nphoton[n][1] > DNN_min) && (cluster_s_nphoton[n][1]<DNN_max) && (cluster_lambda_square[n][0] < Lambda0_cut) )
+	  if ( (cluster_s_nphoton[n][1] > DNN_min) && (cluster_s_nphoton[n][1]<DNN_max))
 	    Signal = true;
-	  if (cluster_lambda_square[n][0] > Lambda0_cut)
+	  if (cluster_s_nphoton[n][1] > 0.0 && cluster_s_nphoton[n][1] < DNN_Bkgd)
 	    Background = true;
 	}
 
