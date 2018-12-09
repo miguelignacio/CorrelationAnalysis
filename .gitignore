@@ -10,3 +10,5 @@
 *.png
 *.pdf
 *.hdf5
+*.out
+*.txt
