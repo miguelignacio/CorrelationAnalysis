@@ -560,7 +560,7 @@ int main(int argc, char *argv[])
         else if (strcmp(shower_shape.data(),"DNN")==0){
           if ((cluster_s_nphoton[n][1] > DNN_min) && (cluster_s_nphoton[n][1]<DNN_max))
             Signal = true;
-          if (cluster_lambda_square[n][0] > Lambda0_cut)
+          if (cluster_s_nphoton[n][1] > 0.0 && cluster_s_nphoton[n][1] < 0.3)
             Background = true;
         }
 

@@ -8,7 +8,7 @@ fi
 date
 
 #for p in {0,4,6}
-for p in 0
+for p in 4
 do
     for i in {0..280..20} #Mix 300 events
     do

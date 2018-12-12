@@ -16,12 +16,8 @@ CXXFLAGS +=	$(shell root-config --cflags)
 LDFLAGS =	$(shell root-config --ldflags)
 LDLIBS =	$(shell root-config --libs)
 
-#Local
 #HDF5_ROOT =	/opt/local/
-#PDSF
 HDF5_ROOT = 	/usr/common/usg/software/hdf5/1.8.13/
-#CORI
-#HDF5_ROOT = 	/opt/cray/pe/hdf5/1.10.0.3/INTEL/16.0/
 CXXFLAGS +=	-I$(HDF5_ROOT)/include
 LDLIBS +=	 -L$(HDF5_ROOT)/lib -lhdf5_cpp -lhdf5
 CXXFLAGS +=	-I$(BOOST_ROOT)/include

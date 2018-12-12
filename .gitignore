@@ -1,3 +1,13 @@
+
+# Ignore all
+*
+
+# Unignore all with extensions
+!*.*
+
+# Unignore all dirs
+!*/
+
 *.d
 *.so
 *~
@@ -10,3 +20,5 @@
 *.png
 *.pdf
 *.hdf5
+*.out
+*.txt

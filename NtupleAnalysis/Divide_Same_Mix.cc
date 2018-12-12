@@ -34,9 +34,9 @@ int main(int argc, char *argv[])
   int nTrackSkims = 1;
   float* trackPtSkims;
   trackPtSkims = new float[nTrackSkims+1];
-  trackPtSkims[0] = 0.0; trackPtSkims[1] = 30.0;
-  // trackPtSkims[1] = 4.0; trackPtSkims[2] = 6.0;
-  //trackPtSkims[2] = 30.0;
+  trackPtSkims[0] = 0.0; trackPtSkims[1] = 40.0;
+  // trackPtSkims[1] = 4.0; //trackPtSkims[2] = 6.0;
+  // trackPtSkims[2] = 40.0;
 
   TFile* MixFile[nTrackSkims];
   for (int iSkim = 0; iSkim < nTrackSkims; iSkim ++){
@@ -44,10 +44,10 @@ int main(int argc, char *argv[])
     //MixFile[iSkim] = TFile::Open(Form("Mix_Correlation_%1.0fGeVTracks_13defv1_ALL.root",trackPtSkims[iSkim]));
     //MixFile[iSkim] = TFile::Open(Form("13d_4L_GMB_Correlation_%1.0fGeVTracks.root",trackPtSkims[iSkim]));
     //MixFile[iSkim] = TFile::Open(Form("%s_%1.0fGeVTracks.root",basic_name.c_str(),trackPtSkims[iSkim]));
-
+    //MixFile[iSkim] = TFile::Open(Form("InputData/17q_MB_%1.0fGeV_15_20.root",trackPtSkims[iSkim]));
     MixFile[iSkim] = TFile::Open((TString)argv[2]);
-
-    //std::cout<<Form("%s_%1.0fGeVTracks.root",basic_name.c_str(),trackPtSkims[iSkim])<<std::endl;
+    //MixFile[iSkim] = TFile::Open("InputData/17q_MB_4GeVTrack_Correlation_12_15.root");
+    std::cout<<Form("%s_%1.0fGeVTracks.root",basic_name.c_str(),trackPtSkims[iSkim])<<std::endl;
     if (MixFile[iSkim] == NULL) {
       std::cout<<MixFile[iSkim]<<std::endl;
       std::cout << " Mixed file "<<iSkim<<" failed" << std::endl;
@@ -55,7 +55,7 @@ int main(int argc, char *argv[])
   }
 
 
-  FILE* config = fopen("Corr_config2.yaml", "r");
+  FILE* config = fopen("Corr_config.yaml", "r");
 
   int n_eta_bins = 0;
   int n_phi_bins = 0;
@@ -245,6 +245,8 @@ int main(int argc, char *argv[])
 	    std::cout << " mix TH2D DNN2 read fail "<<"Mix file "<<iSkim<<std::endl;
 	    exit(EXIT_FAILURE);}     
 	}
+	else
+	  fprintf(stderr,"%s: %d: Could not place Track pT bin in mixed File",__FILE__,__LINE__);
 
       }
     //Normalize MixOAing to 1 at ∆eta∆phi = 0,0
@@ -283,11 +285,11 @@ int main(int argc, char *argv[])
     //DIVIDE MIXING
     Same_Inclusive_Corr[izt+ipt*nztbins]->Divide(Mix_Inclusive_Corr[izt+ipt*nztbins]);
 
-    Same_DNN1_Corr[izt+ipt*nztbins]->Divide(Mix_DNN1_Corr[izt+ipt*nztbins]);
-    Same_DNN2_Corr[izt+ipt*nztbins]->Divide(Mix_DNN2_Corr[izt+ipt*nztbins]);
+    //Same_DNN1_Corr[izt+ipt*nztbins]->Divide(Mix_DNN1_Corr[izt+ipt*nztbins]);
+    //Same_DNN2_Corr[izt+ipt*nztbins]->Divide(Mix_DNN2_Corr[izt+ipt*nztbins]);
 
-    // Same_DNN1_Corr[izt+ipt*nztbins]->Divide(Mix_Inclusive_Corr[izt+ipt*nztbins]);
-    // Same_DNN2_Corr[izt+ipt*nztbins]->Divide(Mix_Inclusive_Corr[izt+ipt*nztbins]);
+    Same_DNN1_Corr[izt+ipt*nztbins]->Divide(Mix_Inclusive_Corr[izt+ipt*nztbins]);
+    Same_DNN2_Corr[izt+ipt*nztbins]->Divide(Mix_Inclusive_Corr[izt+ipt*nztbins]);
 
     fprintf(stderr, "%s: %d: Division OK\n",__FILE__,__LINE__);
 

@@ -10,7 +10,7 @@ date
 module add ROOT/6.08.00
 
 #for p in {0,4,6}
-for p in 0
+for p in 4
 do
     echo $1
     name=${1%.*}
