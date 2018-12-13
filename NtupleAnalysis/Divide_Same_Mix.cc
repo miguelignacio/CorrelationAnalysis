@@ -31,12 +31,12 @@ int main(int argc, char *argv[])
     exit(EXIT_FAILURE);
   }
   
-  int nTrackSkims = 1;
+  int nTrackSkims = 2;
   float* trackPtSkims;
   trackPtSkims = new float[nTrackSkims+1];
-  trackPtSkims[0] = 0.0; trackPtSkims[1] = 40.0;
-  // trackPtSkims[1] = 4.0; //trackPtSkims[2] = 6.0;
-  // trackPtSkims[2] = 40.0;
+  trackPtSkims[0] = 0.0; //trackPtSkims[1] = 40.0;
+  trackPtSkims[1] = 4.0; //trackPtSkims[2] = 6.0;
+  trackPtSkims[2] = 40.0;
 
   TFile* MixFile[nTrackSkims];
   for (int iSkim = 0; iSkim < nTrackSkims; iSkim ++){
@@ -44,8 +44,8 @@ int main(int argc, char *argv[])
     //MixFile[iSkim] = TFile::Open(Form("Mix_Correlation_%1.0fGeVTracks_13defv1_ALL.root",trackPtSkims[iSkim]));
     //MixFile[iSkim] = TFile::Open(Form("13d_4L_GMB_Correlation_%1.0fGeVTracks.root",trackPtSkims[iSkim]));
     //MixFile[iSkim] = TFile::Open(Form("%s_%1.0fGeVTracks.root",basic_name.c_str(),trackPtSkims[iSkim]));
-    //MixFile[iSkim] = TFile::Open(Form("InputData/17q_MB_%1.0fGeV_15_20.root",trackPtSkims[iSkim]));
-    MixFile[iSkim] = TFile::Open((TString)argv[2]);
+    MixFile[iSkim] = TFile::Open(Form("InputData/13d_MB_%1.0fGeV_NN_15_20.root",trackPtSkims[iSkim]));
+    //MixFile[iSkim] = TFile::Open((TString)argv[2]);
     //MixFile[iSkim] = TFile::Open("InputData/17q_MB_4GeVTrack_Correlation_12_15.root");
     std::cout<<Form("%s_%1.0fGeVTracks.root",basic_name.c_str(),trackPtSkims[iSkim])<<std::endl;
     if (MixFile[iSkim] == NULL) {
@@ -203,9 +203,12 @@ int main(int argc, char *argv[])
 
       //Implement due to Track pT Skimming min bias
       for (int iSkim = 0; iSkim < nTrackSkims; iSkim ++){
-	fprintf(stderr,"%s%d: %i \n",__FILE__,__LINE__,iSkim);
+	fprintf(stderr,"%s%d: iSkim = %i \n",__FILE__,__LINE__,iSkim);
 
-	if ((ptbins[ipt]*ztbins[izt] >= trackPtSkims[iSkim]) && ((ptbins[ipt]*ztbins[izt]) <= trackPtSkims[iSkim+1]-0.5)){
+
+	//SELECT WHICH MB CORRELATION TO USE
+
+	if ((ptbins[ipt]*ztbins[izt] >= trackPtSkims[iSkim]) && ((ptbins[ipt]*ztbins[izt]) < trackPtSkims[iSkim+1]+0.5)){
 	  //a bit hacky, since ptbin*ztbin do not always correspond to integers...
 
 	  fprintf(stderr,"pt min max: %1.2f %1.2f, zt min max %1.2f %1.2f\n",ptbins[ipt],ptbins[ipt+1],ztbins[izt],ztbins[izt+1]);
@@ -248,7 +251,7 @@ int main(int argc, char *argv[])
 	else
 	  fprintf(stderr,"%s: %d: Could not place Track pT bin in mixed File",__FILE__,__LINE__);
 
-      }
+      } //iSkim
     //Normalization from max value!! (STAR/ALICE way)
     TAxis *mix_xaxis = Mix_DNN1_Corr[izt+ipt*nztbins]->GetXaxis();
     TAxis *mix_yaxis = Mix_DNN1_Corr[izt+ipt*nztbins]->GetYaxis();
