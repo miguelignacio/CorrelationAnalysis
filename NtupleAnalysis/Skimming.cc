@@ -360,7 +360,7 @@ int main(int argc, char *argv[])
 	    cluster_minMass[n] = minmass;
             cluster_SuperModule[n] = GetSuperModule(cluster_cell_id_max[n]);
 
-	    if(cluster_pt[n]>ptmin){
+	    if(cluster_pt[n]>ptmin and cluster_pt[n]<50.0){ //setting a hard limit 
               KeepEvent = true;
             }
 
