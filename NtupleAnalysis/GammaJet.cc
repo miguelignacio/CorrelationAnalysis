@@ -38,6 +38,7 @@ const int MAX_INPUT_LENGTH = 200;
 const double EPb = 1560;
 
 enum isolationDet {CLUSTER_ISO_TPC, CLUSTER_ISO_ITS};
+enum ShowerShapeDet  {SSHAPE_DNN, SSHAPE_Lambda};
 
 int main(int argc, char *argv[])
 {
@@ -83,12 +84,12 @@ int main(int argc, char *argv[])
   int xjbins = 20;
   int phibins = 20;
   int etabins = 20;
-  int ptbins = 15;
+  int ptbins = 6;
   int clusterptbins = 30;
     
   // Which branch should be used to determine whether a cluster should fall into iso, noniso, or neither
   isolationDet determiner = CLUSTER_ISO_ITS;
-  
+  ShowerShapeDet SS_determiner = SSHAPE_DNN; 
   // Truth cuts
   int rightpdgcode = 22;
   int rightparentpdgcode = 22;
@@ -122,6 +123,20 @@ int main(int argc, char *argv[])
       // Assign primary_vertex_max to the double-converted version of value
       primary_vertex_max = atof(value);
       std::cout << "primary_vertex_max is " << primary_vertex_max << std::endl;
+    }
+    else if (strcmp(key, "ShowerShape") == 0) {
+      if (strcmp(value, "DNN") == 0){
+        SS_determiner = SSHAPE_DNN;
+	std::cout << "DNN WILL BE THE SHOWER SHAPE USED" << std::endl;
+      }
+      else if (strcmp(value, "Lambda") == 0){
+        SS_determiner = SSHAPE_Lambda;
+	std::cout << "LAMBDA WILL BE THE SHOWER SHAPE USED" << std::endl;
+      }
+      else {
+	std::cout << "ERROR: ShowerShape configuration file must be \"DNN\", \"Lambda\", " << std::endl << "Aborting the program" << std::endl;
+        exit(EXIT_FAILURE);
+      }
     }
     else if (strcmp(key, "SIG_DNN_min") == 0) {
       // Assign SIG_DNN_min to the double-converted version of value
@@ -277,7 +292,7 @@ int main(int argc, char *argv[])
   char **dummyv = new char *[1];
 
 
-  std::cout << " Number of events requested " << nevents << std::endl;
+  //  std::cout << " Number of events requested " << _tree_event->GetEntries() << std::endl;
   std::cout << " ptmin " << clus_pT_min << " ptmax = " << clus_pT_max << std::endl;
   std::cout << "minimum pt jet " << jet_pT_min<< std::endl;
 
@@ -304,13 +319,14 @@ int main(int argc, char *argv[])
 
   TH1D hSR_njet("hSR_njet", "Number of associated jets, signal region" , 5, -0.5, 4.5);
   TH1D hBR_njet("hBR_njet", "Number of associated jets, bkg region" , 5, -0.5, 4.5);
-  
+  TH1D hNonIso_njet("hNonIso_njet", "Number of associated jets, bkg region no iso cut" , 5, -0.5, 4.5);
 
 
-  TH1D hBR_clusterpt("hBR_clusterpt", "Isolated cluster pt [GeV], bkg region", clusterptbins, 0.0, clusterptbins);
-  TH1D hBR_clusterpt_unweighted("hBR_clusterpt_unweighted", "Isolated cluster pt [GeV], bkg region, before weighting", clusterptbins, 0.0, clusterptbins);
+  TH1D hBR_clusterpt("hBR_clusterpt", "Isolated cluster pt [GeV/c], bkg region", clusterptbins, 0.0, clusterptbins);
+  TH1D hBR_clusterpt_unweighted("hBR_clusterpt_unweighted", "Isolated cluster pt [GeV/c], bkg region, before weighting", clusterptbins, 0.0, clusterptbins);
+  TH1D hNonIso_clusterpt("hNonIso_clusterpt", "Cluster pt [GeV/c], bkg region no iso cut applied", clusterptbins, 0.0, clusterptbins);
 
-  TH1D hSR_clusterpt("hSR_clusterpt", "Isolated cluster pt [GeV], signal region", clusterptbins, 0.0, clusterptbins);
+  TH1D hSR_clusterpt("hSR_clusterpt", "Isolated cluster pt [GeV/c], signal region", clusterptbins, 0.0, clusterptbins);
 
   TH1D hBR_clustereta("hBR_clustereta", "Isolated cluster eta, bkg region", 40, -1.0, 1.0);
   TH1D hSR_clustereta("hSR_clustereta", "Isolated cluster eta, signal region", 40, -1.0, 1.0);
@@ -330,8 +346,10 @@ int main(int argc, char *argv[])
   //jet reco 3-momentum
   TH1D hBR_jetpt("hBR_jetpt",   "Associated jet pt spectrum (reco), bkg region", ptbins, 0, 30);
   TH1D hSR_jetpt("hSR_jetpt",   "Associated jet pt spectrum (reco), signal region", ptbins, 0, 30);
-  TH1D hSR_jetpt_all("hSR_jetpt_all",   "Associated jet pt spectrum (reco), signal region, down to zero pt", 50, -10.0, 40.0);
-
+  TH1D hNonIso_jetpt("hNonIso_jetpt",   "Associated jet pt spectrum (reco), bkg region NONISO", ptbins, 0, 30);
+ 
+  TH1D hSR_jetpt_all("hSR_jetpt_all",   "Associated jet pt spectrum (reco), signal region, down to zero pt", 60, -20.0, 40.0);
+  TH1D hBR_jetpt_all("hBR_jetpt_all",   "Associated jet pt spectrum (reco), bkg region, down to zero pt", 60, -20.0, 40.0);
 
 
 
@@ -357,6 +375,7 @@ int main(int argc, char *argv[])
 
   TH1D hSR_Xj("hSR_Xj", "Xj distribution, Signal region", xjbins, 0.0,2.0);
   TH1D hBR_Xj("hBR_Xj", "Xj distribution, BKG region", xjbins, 0.0,2.0);
+  TH1D hNonIso_Xj("hNonIso_Xj", "Xj distribution, BKG region, no iso cut", xjbins, 0.0,2.0);
 
   const int nbins_pTD = 10;
   TH1D hSR_pTD("hSR_pTD", "pTD distribution, Signal region", nbins_pTD, 0.0,1.0);
@@ -388,6 +407,8 @@ int main(int argc, char *argv[])
 
   TH1D hSR_dPhi("hSR_dPhi", "delta phi gamma-jet signal region", phibins, 0, TMath::Pi());
   TH1D hBR_dPhi("hBR_dPhi", "delta phi gamma-jet background region", phibins, 0, TMath::Pi());
+  TH1D hNonIso_dPhi("hNonIso_dPhi", "delta phi gamma-jet background region NONISO", phibins, 0, TMath::Pi());
+
   TH1D hSR_dPhi_truth("hSR_dPhi_truth", "delta phi gamma-jet signal region, truth", phibins, 0, TMath::Pi());
   TH1D hBR_dPhi_truth("hBR_dPhi_truth", "delta phi gamma-jet background region, truth", phibins, 0, TMath::Pi());
 
@@ -412,15 +433,19 @@ int main(int argc, char *argv[])
 
 
   TH1D h_dPhi_truth("h_dPhi_truth", "delta phi gamma-jet truth MC", phibins, 0, TMath::Pi());
-  TH1D h_weights("h_weights", "weights; bin1 is for SR and bin2 is for BR", 2, -0.5, 1.5);
+  TH1D h_weights("h_weights", "weights; bin1 is for SR and bin2 is for BR; bin3 is for BR no iso cut", 3, -0.5, 2.5);
 
   //Response matrices
   TH2D h_XobsPb_Matrix("h_XobsPb_Matrix", "Truth/Reco matrix", Xobsnbins, 0.0, XobsMax, Xobsnbins, 0.0, XobsMax);
   TH2D h_Xj_Matrix("h_Xj_Matrix", "Truth/Reco matrix", xjbins, 0.0,2.0, xjbins, 0.0,2.0);
   TH2D hSR_jetpt_Matrix("hSR_jetpt_Matrix","Truth/Reco matrix", ptbins,0.0,30.0, ptbins, 0.0,30.0);
+  TH2D hSR_jetpt_Matrix_JESUP("hSR_jetpt_Matrix_JESUP","Truth/Reco matrix JES UP", ptbins,0.0,30.0, ptbins, 0.0,30.0);
+  TH2D hSR_jetpt_Matrix_JESDO("hSR_jetpt_Matrix_JESDO","Truth/Reco matrix JES DO", ptbins,0.0,30.0, ptbins, 0.0,30.0);
+
   TH2D hSR_jetpt_Matrix_gluon("hSR_jetpt_Matrix_gluon","Truth/Reco matrix for gluon jets", ptbins,0.0,30.0, ptbins, 0.0,30.0);
   TH2D hSR_jetpt_Matrix_quark("hSR_jetpt_Matrix_quark","Truth/Reco matrix for gluon jets", ptbins,0.0,30.0, ptbins, 0.0,30.0);
-
+  
+  
 
   TH2D h_Multiplicity_Matrix("h_Multiplicity_Matrix","Truth/Reco matrix", nbins_Multiplicity, 0, 20, nbins_Multiplicity, 0, 20);
   TH2D h_pTD_Matrix("h_pTD_Matrix","Truth/Reco matrix", nbins_pTD, 0, 1.0, nbins_pTD, 0, 1.0);
@@ -428,9 +453,16 @@ int main(int argc, char *argv[])
   
 
   TH2D hBR_jetpt_Matrix("hBR_jetpt_Matrix","Truth/Reco matrix", ptbins,0.0,30.0, ptbins, 0.0,30.0);
+  TH2D hNonIso_jetpt_Matrix("hNonIso_jetpt_Matrix", "Truth/Reco matrix, bkg region no iso cut", ptbins, 0.0, 30.0, ptbins, 0.0,30.0);
+  TH2D hNonIso_Xj_Matrix("hNonIso_Xj_Matrix", "Truth/Reco matrix, bkg region no iso cut", xjbins, 0.0, 2.0, xjbins, 0.0, 2.0);
 
 
+  TH1F h_clusterIsolation("h_clusterIsolation","Isolation distribution", 2, -0.5, 1.5);
+  TH1F h_clusterLambda("h_clusterLambda", "Lambda distribution", 200, 0, 2.0);
     
+
+  h_clusterIsolation.Sumw2();
+  h_clusterLambda.Sumw2();
 
   h_clusterphi.Sumw2();
   h_clusterphi_iso.Sumw2();
@@ -471,12 +503,15 @@ int main(int argc, char *argv[])
   h_evt_rho.Sumw2();
   hSR_Xj.Sumw2();
   hBR_Xj.Sumw2();
+  hNonIso_Xj.Sumw2();
+
   hSR_Xj_truth.Sumw2();
   hBR_Xj_truth.Sumw2();
   h_Xj_truth.Sumw2();     
 
   hSR_njet.Sumw2();
   hBR_njet.Sumw2();
+  hNonIso_njet.Sumw2();
 
   hSR_dPhi.Sumw2();
   hBR_dPhi.Sumw2();
@@ -503,7 +538,8 @@ int main(int argc, char *argv[])
   hSR_clusterpt.Sumw2();
   hBR_clusterpt.Sumw2();
   hBR_clusterpt_unweighted.Sumw2();
-
+  hNonIso_clusterpt.Sumw2(); 
+ 
   hSR_clustereta.Sumw2();
   hBR_clustereta.Sumw2();
   hSR_clusterphi.Sumw2();
@@ -511,7 +547,11 @@ int main(int argc, char *argv[])
 
   hBR_jetpt.Sumw2();
   hSR_jetpt.Sumw2();
+  hNonIso_jetpt.Sumw2();
+  hNonIso_dPhi.Sumw2();
+
   hSR_jetpt_all.Sumw2();
+  hBR_jetpt_all.Sumw2();
 
   hBR_jeteta.Sumw2();
   hSR_jeteta.Sumw2();
@@ -535,10 +575,15 @@ int main(int argc, char *argv[])
 
   h_Xj_Matrix.Sumw2();
   hSR_jetpt_Matrix.Sumw2();
+  hSR_jetpt_Matrix_JESUP.Sumw2();
+  hSR_jetpt_Matrix_JESDO.Sumw2();
+
   hSR_jetpt_Matrix_gluon.Sumw2();
   hSR_jetpt_Matrix_quark.Sumw2();
 
   hBR_jetpt_Matrix.Sumw2();
+  hNonIso_jetpt_Matrix.Sumw2();
+  hNonIso_Xj_Matrix.Sumw2();
 
   h_XobsPb_Matrix.Sumw2();
   h_jetwidth_Matrix.Sumw2();
@@ -547,12 +592,21 @@ int main(int argc, char *argv[])
 
   hSR_Xj.SetTitle("; X_{j} ; 1/N_{#gamma} dN_{J#gamma}/dX_{j}");
   hBR_Xj.SetTitle("; X_{j} ; 1/N_{#gamma} dN_{J#gamma}/dX_{j}");   
+  hNonIso_Xj.SetTitle("; X_{j} ; 1/N_{#gamma} dN_{J#gamma}/dX_{j}");
   h_Xj_truth.SetTitle("; X_{j}^{true} ; counts");
 
     
   TCanvas* canvas = new TCanvas();
   Float_t N_SR = 0; //float because it might be weighted in MC
   Float_t N_BR = 0;
+  Float_t N_NonIso = 0;
+
+  Float_t njets_SR_total = 0;
+  Float_t njets_BR_total = 0;
+  Float_t njets_NonIso_total = 0;
+
+  
+
   Float_t N_eventpassed = 0;
   Float_t N_truth = 0;
     
@@ -612,7 +666,8 @@ int main(int argc, char *argv[])
     Float_t cluster_pt[NTRACK_MAX];
     Float_t cluster_eta[NTRACK_MAX];
     Float_t cluster_phi[NTRACK_MAX];
-    
+    Float_t cluster_tof[NTRACK_MAX];
+
     Float_t cluster_iso_tpc[NTRACK_MAX];
     Float_t cluster_frixione_tpc_02[NTRACK_MAX];
     
@@ -670,9 +725,6 @@ int main(int argc, char *argv[])
     Float_t jet_akits_truth_z_reco[NTRACK_MAX][2];
     Float_t jet_akits_truth_z_truth[NTRACK_MAX][2];
  
-
-    //Int_t eg_ntrial;
-
     Float_t eg_cross_section;
     Int_t   eg_ntrial;
     
@@ -711,6 +763,7 @@ int main(int argc, char *argv[])
         
     _tree_event->SetBranchAddress("ncluster", &ncluster);
     _tree_event->SetBranchAddress("cluster_e", cluster_e);
+    _tree_event->SetBranchAddress("cluster_tof", cluster_tof);
     _tree_event->SetBranchAddress("cluster_e_cross", cluster_e_cross);
     _tree_event->SetBranchAddress("cluster_pt", cluster_pt); // here
     _tree_event->SetBranchAddress("cluster_eta", cluster_eta);
@@ -790,17 +843,20 @@ int main(int argc, char *argv[])
  
     std::cout<<" About to start looping over events to get weights" << std::endl;
 
-    if( not(nevents>0)){
-      nevents = _tree_event->GetEntries();
-    }
-
+    
    
+    Float_t average_ntrial = 0;
+    Float_t average_cross_section = 0;
     ///LOOPS FOR WEIGHTS!
-    if(isRealData){
-      for(Long64_t ievent = 0; ievent < nevents ; ievent++){
-	if (ievent % 100000 == 0) std::cout << " event " << ievent << std::endl;
+
+    if(filestring.find("17g6a1")==std::string::npos){
+    for(Long64_t ievent = 0; ievent < _tree_event->GetEntries() ; ievent++){
+      if (ievent % 10000 == 0) std::cout << " event " << ievent << " Number of clusters in SR: " << N_SR << " Number of clusters in BR: " << N_BR << std::endl;
       
 	_tree_event->GetEntry(ievent);
+        average_ntrial += eg_ntrial;
+        average_cross_section += eg_cross_section;
+ 
 	if(not( TMath::Abs(primary_vertex[2])<primary_vertex_max)) continue; //vertex z position
 	if(not (primary_vertex[2]!=0.00 )) continue; //removes default of vertex z = 0
 	//if(is_pileup_from_spd_5_08) continue; //removes pileup
@@ -832,12 +888,18 @@ int main(int argc, char *argv[])
 	  if( not(cluster_e_cross[n]/cluster_e[n]>EcrossoverE_min)) continue; //removes "spiky" clusters
 	  if( not(cluster_nlocal_maxima[n]<= Cluster_locmaxima_max)) continue; //require to have at most 2 local maxima.
 	  //if( not(cluster_distance_to_bad_channel[n]>=Cluster_distobadchannel)) continue;
-	  if( not(isolation < iso_max)) continue;
-
-	  //Bool_t inSignalRegion = cluster_s_nphoton[n][1] > 0.55 and cluster_s_nphoton[n][1]<0.85;
-	  //Bool_t inBkgRegion    = cluster_s_nphoton[n][1]<0.30;
-	  Bool_t inSignalRegion = cluster_lambda_square[n][0]<SIG_lambda_max;
-	  Bool_t inBkgRegion    = (cluster_lambda_square[n][0]>BKG_lambda_min) and (cluster_lambda_square[n][0]<BKG_lambda_max);
+	  if( not(isolation < iso_max)) continue;        
+          Bool_t inSignalRegion = false; 
+	  Bool_t inBkgRegion    = false; 
+	  
+          if( SS_determiner == SSHAPE_Lambda){ 
+              inSignalRegion = cluster_lambda_square[n][0]<SIG_lambda_max;
+	      inBkgRegion    = (cluster_lambda_square[n][0]>BKG_lambda_min) and (cluster_lambda_square[n][0]<BKG_lambda_max);
+          }
+          else if(SS_determiner == SSHAPE_DNN){
+	      inSignalRegion = cluster_s_nphoton[n][1] > SIG_DNN_min and cluster_s_nphoton[n][1]<SIG_DNN_max;
+	      inBkgRegion    = cluster_s_nphoton[n][1] > BKG_DNN_min and cluster_s_nphoton[n][1]<BKG_DNN_max;
+	  }
 	  if(inSignalRegion){
 	    hweight.Fill(cluster_pt[n]);
 	  }
@@ -847,20 +909,26 @@ int main(int argc, char *argv[])
 	} //cluster
       }//events
       hweight.Divide(&hBR);
-      std::cout << " Weights " << std::endl;
-      for(int i=0 ; i< hweight.GetNbinsX() ; i++) std::cout <<" i" << i << " weight= " << hweight.GetBinContent(i) << std::endl;
-    }//end loop over events to get weights for background region
-    
+    }
+      //std::cout << " Weights " << std::endl;
+      //for(int i=0 ; i< hweight.GetNbinsX() ; i++) std::cout <<" i" << i << " weight= " << hweight.GetBinContent(i) << std::endl;
+    //end loop over events to get weights for background region
+      average_ntrial = average_ntrial/(1.0*_tree_event->GetEntries());    
+      average_cross_section = average_cross_section/(1.0*_tree_event->GetEntries());
+
     std::cout<<" About to start looping over events" << std::endl;
-    h_cutflow.GetXaxis()->SetBinLabel(1, Form("pt>%2.2f GeV", clus_pT_min));
-    h_cutflow.GetXaxis()->SetBinLabel(2, Form("pt<%2.2f GeV", clus_pT_max));
+    std::cout<<" Average ntrial: " << average_ntrial << " nevents: " << _tree_event->GetEntries() << std::endl;                                                                std::cout<<" average cross-section: " << average_cross_section << std::endl;
+    std::cout <<" Weight for this pthat: " << average_cross_section/average_ntrial << std::endl; 
+
+    h_cutflow.GetXaxis()->SetBinLabel(1, Form("pt>%2.2f GeV/c", clus_pT_min));
+    h_cutflow.GetXaxis()->SetBinLabel(2, Form("pt<%2.2f GeV/c", clus_pT_max));
     h_cutflow.GetXaxis()->SetBinLabel(3, Form("E_{cross}/E_{cell} > %2.3f", EcrossoverE_min));
     h_cutflow.GetXaxis()->SetBinLabel(4, Form("N_{cell} > %2.0f", Cluster_ncell_min));
 
     h_cutflow.GetXaxis()->SetBinLabel(5, Form("NLM <%2.0f", Cluster_locmaxima_max));
-    h_cutflow.GetXaxis()->SetBinLabel(6, Form("Distance-to-bad chanel>=%2.0f",Cluster_distobadchannel));
-    h_cutflow.GetXaxis()->SetBinLabel(7, "Isolation < 2 GeV");
-    h_cutflow.GetXaxis()->SetBinLabel(8, Form("Isolation <%2.2f GeV", iso_max));
+    h_cutflow.GetXaxis()->SetBinLabel(6, "time < 20 ns");
+    h_cutflow.GetXaxis()->SetBinLabel(7, "Isolation < 2 GeV/c");
+    h_cutflow.GetXaxis()->SetBinLabel(8, Form("Isolation <%2.2f GeV/c", iso_max));
     h_cutflow.GetXaxis()->SetBinLabel(9, Form("Lambda< %2.2f", SIG_lambda_max)); 
  
     h_evtcutflow.GetXaxis()->SetBinLabel(1, "All");
@@ -872,8 +940,8 @@ int main(int argc, char *argv[])
 
 
     //MAIN LOOP
-    for(Long64_t ievent = 0; ievent < nevents ; ievent++){
-      if (ievent % 100000 == 0) std::cout << " event " << ievent << std::endl;
+    for(Long64_t ievent = 0; ievent < _tree_event->GetEntries() ; ievent++){
+      if (ievent % 10000 == 0) std::cout << " event " << ievent << " Number of clusters in SR: " << N_SR << " Number of clusters in BR: " << N_BR << std::endl;
       if(keep_even_events and ievent%2==1) continue;
       if(keep_odd_events and ievent%2==0) continue;
       
@@ -884,49 +952,57 @@ int main(int argc, char *argv[])
       if(not( TMath::Abs(primary_vertex[2])<primary_vertex_max)) continue; //vertex z position
       h_evtcutflow.Fill(1);
       if(not (primary_vertex[2]!=0.00 )) continue; //removes default of vertex z = 0
+      
+
+      double weight = 1.0;
+      if(not isRealData){
+	if(average_ntrial>0 and filestring.find("18g7a")!=std::string::npos){
+          weight = average_cross_section/average_ntrial; //average cross-section for dijet mc
+          if(ievent == 0) std::cout << " Using average weight, average cross-section, 18g7a series" << std::endl;
+        }
+	else if(eg_cross_section>0 and eg_ntrial>0){
+          weight = eg_cross_section/(double)eg_ntrial;
+          if(ievent == 0) std::cout <<" Using event-by-event weights" << std::endl;
+        }
+	//17g6a1 weights
+	else if( filestring.find("17g6a1_pt2")!=std::string::npos){
+          if(ievent == 0)
+	    std::cout << "PtHat 2 of 17g6a1 series opened" << std::endl;
+          weight = 2.72e-12;
+        }
+        else if( filestring.find("17g6a1_pt3")!=std::string::npos){
+          if(ievent == 0)
+	    std::cout << "PtHat 3 of 17g6a1 series opened" << std::endl;
+          weight = 3.69e-13;
+        }
+        else if(filestring.find("17g6a1_pt4")!=std::string::npos){
+          if(ievent == 0)
+	    std::cout << "PtHat 4 of 17g6a1 series opened" << std::endl;
+          weight = 6.14e-14;
+        }
+        else if(filestring.find("17g6a1_pt5")!=std::string::npos){
+          if(ievent == 0)
+	    std::cout << "PtHat 5 of 17g6a1 series opened" << std::endl;
+          weight = 1.27e-14;
+        }
+      }
+      //std::cout << " weight " << weight << std::endl;        
       h_evtcutflow.Fill(2);
 
-      h_zvertex.Fill(primary_vertex[2]);
+      h_zvertex.Fill(primary_vertex[2],weight);
       //fill UE:
-      h_evt_rhoITS.Fill(ue_estimate_its_const);
-      h_evt_rhoTPC.Fill(ue_estimate_tpc_const);
+      h_evt_rhoITS.Fill(ue_estimate_its_const,weight);
+      h_evt_rhoTPC.Fill(ue_estimate_tpc_const,weight);
 
       //if(is_pileup_from_spd_5_08) continue; //removes pileup
-      h_evtcutflow.Fill(3);     
+      h_evtcutflow.Fill(3);
       ULong64_t one1 = 1;
       ULong64_t triggerMask_13data = (one1 << 17) | (one1 << 18) | (one1 << 19) | (one1 << 20); //EG1 or EG2 or EJ1 or EJ2
       //if(isRealData and (triggerMask_13data & trigger_mask[0]) == 0) continue; //trigger selection
       h_evtcutflow.Fill(4);
       N_eventpassed +=1;
 
-      double weight = 1.0;
-      if(not isRealData){
-	if(eg_cross_section>0 and eg_ntrial>0){
-          weight = eg_cross_section/(double)eg_ntrial;
-        }
-	//17g6a1 weights
-	if(filestring == "/project/projectdirs/alice/NTuples/MC/17g6a1/Skimmed_17g6a1_pthat2_4L_allruns_ptmin15.0.root"){
-	  if(ievent == 0)
-	    std::cout << "PtHat 2 of 17g6a1 series opened" << std::endl;
-	  weight = 2.72e-12;
-	}
-	if(filestring == "/project/projectdirs/alice/NTuples/MC/17g6a1/Skimmed_17g6a1_pthat3_4L_allruns_ptmin15.0.root"){
-	  if(ievent == 0)
-	    std::cout << "PtHat 3 of 17g6a1 series opened" << std::endl;
-	  weight = 3.69e-13;
-	}
-	if(filestring == "/project/projectdirs/alice/NTuples/MC/17g6a1/Skimmed_17g6a1_pthat4_4L_allruns_ptmin15.0.root"){
-	  if(ievent == 0)
-	    std::cout << "PtHat 4 of 17g6a1 series opened" << std::endl;
-	  weight = 6.14e-14;
-	}
-	if(filestring == "/project/projectdirs/alice/NTuples/MC/17g6a1/Skimmed_17g6a1_pthat5_4L_allruns_ptmin15.0.root"){
-	  if(ievent == 0)
-	    std::cout << "PtHat 5 of 17g6a1 series opened" << std::endl;
-	  weight = 1.27e-14;
-	}
-      }
-      //std::cout << " weight " << weight << std::endl;        
+
       h_evt_rho.Fill(ue_estimate_its_const, weight);
 
       //loop over tracks
@@ -966,22 +1042,24 @@ int main(int argc, char *argv[])
         h_cutflow.Fill(3);
         if( not(cluster_nlocal_maxima[n]< Cluster_locmaxima_max)) continue; //require to have at most 2 local maxima.
         h_cutflow.Fill(4);
+        if(TMath::Abs(cluster_tof[n])>40) continue; 
         h_cutflow.Fill(5);
 	h_clusterphi.Fill(cluster_phi[n], weight);
         h_clustereta.Fill(cluster_eta[n], weight);
         if( isolation < 2.0){
 	    h_cutflow.Fill(6);
 	}
- 	if( not(isolation < iso_max))continue;
-        h_clusterphi_iso.Fill(cluster_phi[n], weight);
-        h_clustereta_iso.Fill(cluster_eta[n], weight);
-        h_cutflow.Fill(7);
-        if (cluster_lambda_square[n][0]<SIG_lambda_max){
-            h_cutflow.Fill(8);
-        }
-        if ((cluster_lambda_square[n][0]>BKG_lambda_min) and (cluster_lambda_square[n][0]<BKG_lambda_max)){
-	  h_cutflow.Fill(9);
-        }
+ 	if( isolation < iso_max){
+            h_clusterphi_iso.Fill(cluster_phi[n], weight);
+            h_clustereta_iso.Fill(cluster_eta[n], weight);
+            h_cutflow.Fill(7);
+            if (cluster_lambda_square[n][0]<SIG_lambda_max){
+                h_cutflow.Fill(8);
+            }
+            if ((cluster_lambda_square[n][0]>BKG_lambda_min) and (cluster_lambda_square[n][0]<BKG_lambda_max)){
+	      h_cutflow.Fill(9);
+            }
+	}
       
 
 	Bool_t isTruePhoton = false;
@@ -1012,50 +1090,75 @@ int main(int argc, char *argv[])
 	}
 	
 	//start jet loop 
-	//Bool_t inSignalRegion = cluster_s_nphoton[n][1] > SIG_DNN_min and cluster_s_nphoton[n][1]<SIG_DNN_max;
-	//Bool_t inBkgRegion    = cluster_s_nphoton[n][1]<BKG_DNN_max;
-	Bool_t inSignalRegion = cluster_lambda_square[n][0]<SIG_lambda_max;
-	Bool_t inBkgRegion    = (cluster_lambda_square[n][0]>BKG_lambda_min) and (cluster_lambda_square[n][0]<BKG_lambda_max);
+	Bool_t inSignalRegion = false;
+	Bool_t inBkgRegion    = false; 
+        Bool_t isIsolated  = isolation < iso_max;
+	
+	if( SS_determiner == SSHAPE_Lambda){
+	  inSignalRegion = cluster_lambda_square[n][0]<SIG_lambda_max and isIsolated;
+	  inBkgRegion    = (cluster_lambda_square[n][0]>BKG_lambda_min) and (cluster_lambda_square[n][0]<BKG_lambda_max);
+	}
+	else if(SS_determiner == SSHAPE_DNN){
+	  inSignalRegion = cluster_s_nphoton[n][1] > SIG_DNN_min and cluster_s_nphoton[n][1]<SIG_DNN_max and isIsolated;
+	  inBkgRegion    = cluster_s_nphoton[n][1] > BKG_DNN_min and cluster_s_nphoton[n][1]<BKG_DNN_max;
+	}
 
+        h_clusterIsolation.Fill(isIsolated);
+        h_clusterLambda.Fill(cluster_lambda_square[n][0]);
 
         if(inSignalRegion){
 	  N_SR +=weight;
 	}
-        else if(inBkgRegion){
+        else if(inBkgRegion and isIsolated){
 	  double bkg_weight = hweight.GetBinContent(hweight.FindBin(cluster_pt[n]));
-	  if( isRealData and iso_max<10) weight = weight*bkg_weight; //pt-dependent weight for background;      
+	  if( isRealData ) weight = weight*bkg_weight; //pt-dependent weight for background;      
 	  N_BR +=weight;
 	}
+        else if(inBkgRegion){
+	  N_NonIso +=weight;
+	}
 
-        Int_t njets_SR = 0; 
-        Int_t njets_BR = 0;
+        
+        Float_t njets_SR = 0; 
+        Float_t njets_BR = 0;
+        Float_t njets_NonIso = 0;
+
 	for (ULong64_t ijet = 0; ijet < njet_akits; ijet++) { //start loop over jets
           Float_t jetpt =  jet_akits_pt_raw[ijet]; //+  jet_akits_pt_raw_ue[ijet];
           if(not (TMath::Abs(jet_akits_eta_raw[ijet]) <Eta_max)) continue;
+          if(std::isnan(jet_akits_phi[ijet])) continue;
+
 	  Float_t dphi = TMath::Abs(TVector2::Phi_mpi_pi(jet_akits_phi[ijet] - cluster_phi[n]));
 	  if( inSignalRegion and dphi>TMath::Pi()/2.0){
-	    hSR_jetpt_all.Fill(jetpt, weight); //histogram with all recoiling jets, all the way to zero pt
+	      hSR_jetpt_all.Fill(jetpt, weight); //histogram with all recoiling jets, all the way to zero pt
 	  }
-
+          else if(inBkgRegion and isIsolated and dphi>TMath::Pi()/2.0){
+	      hBR_jetpt_all.Fill(jetpt, weight);
+	  }
+         
+  
 	  if(not ( jetpt> jet_pT_min)) continue;
 
 	  Float_t deta = jet_akits_eta_raw[ijet] - cluster_eta[n];
 	  Float_t dphi_truth = 0;
           Float_t deta_truth = 0;
 
-          if(eg_ntrial>0){
+          if(average_ntrial>0){
+            if(std::isnan(jet_akits_phi_truth[ijet])) continue;
 	    dphi_truth = TMath::Abs(TVector2::Phi_mpi_pi(jet_akits_phi_truth[ijet] - cluster_phi[n]));
 	    deta_truth = jet_akits_eta_truth[ijet] -  cluster_eta[n];
 	  }
 
           if(inSignalRegion){
-	    hSR_dPhi.Fill(dphi,weight);
-            hSR_dPhi_truth.Fill(dphi_truth,weight);
-	     
+	      hSR_dPhi.Fill(dphi,weight);
+              hSR_dPhi_truth.Fill(dphi_truth,weight);
 	  }
-	  else if(inBkgRegion){
-	    hBR_dPhi.Fill(dphi,weight);
-            hBR_dPhi_truth.Fill(dphi_truth,weight);         
+	  else if(inBkgRegion and isIsolated){
+	      hBR_dPhi.Fill(dphi,weight);
+              hBR_dPhi_truth.Fill(dphi_truth,weight);         
+	  }
+          else if(inBkgRegion){
+	    hNonIso_dPhi.Fill(dphi, weight);
 	  }
 	  //if(not (dphi>0.4)) continue; 
           if( not (dphi>TMath::Pi()/2.0)) continue;
@@ -1063,10 +1166,16 @@ int main(int argc, char *argv[])
           //counts jets associated with clusters   
           if(inSignalRegion){
 	    njets_SR =+1 ;
+            njets_SR_total =+1;
 	  }
-          else if(inBkgRegion){
+          else if(inBkgRegion and isIsolated){
             njets_BR =+1; 
+            njets_BR_total =+1;
 	  }
+	  else if(inBkgRegion){
+            njets_NonIso =+1;
+            njets_NonIso_total =+1;
+          }
           
 
 	  Float_t xj = jetpt/cluster_pt[n];
@@ -1120,6 +1229,9 @@ int main(int argc, char *argv[])
             //Filling response matrices
             h_Xj_Matrix.Fill(xj, xj_truth, weight);
             hSR_jetpt_Matrix.Fill(jetpt, jet_akits_pt_truth[ijet], weight);
+            hSR_jetpt_Matrix_JESUP.Fill(jetpt, jet_akits_pt_truth[ijet]*1.1, weight);
+	    hSR_jetpt_Matrix_JESDO.Fill(jetpt, jet_akits_pt_truth[ijet]*0.9, weight);
+
             if(TMath::Abs(jet_akits_pdg_code_algorithmic[ijet][0])==21){
 	      hSR_jetpt_Matrix_gluon.Fill(jetpt, jet_akits_pt_truth[ijet], weight);
 	    }
@@ -1134,7 +1246,7 @@ int main(int argc, char *argv[])
 	   
 
 	  }
-          else if(inBkgRegion){
+          else if(inBkgRegion and isIsolated){
 	    hBR_Xj.Fill(xj,weight);
 	    hBR_dEta.Fill(deta,weight);
 	    hBR_AvgEta.Fill(0.5*(jet_akits_eta_raw[ijet] + cluster_eta[n]), weight);
@@ -1160,7 +1272,14 @@ int main(int argc, char *argv[])
 	    hBR_XobsPb_truth.Fill(Xobs_truth, weight);
 	    hBR_jetpt_Matrix.Fill(jetpt, jet_akits_pt_truth[ijet], weight);
 	  }
-     
+          else if(inBkgRegion){
+            hNonIso_jetpt.Fill(jetpt,weight);
+            hNonIso_jetpt_Matrix.Fill(jetpt, jet_akits_pt_truth[ijet], weight);
+	    hNonIso_Xj.Fill(xj,weight);
+            hNonIso_Xj_Matrix.Fill(xj, xj_truth, weight);
+	  }
+
+      
 
 
 
@@ -1172,7 +1291,7 @@ int main(int argc, char *argv[])
 	  hSR_clusterphi.Fill(cluster_phi[n], weight);
           hSR_njet.Fill(njets_SR, weight); 
 	}
-        else if(inBkgRegion){
+        else if(inBkgRegion and isIsolated){
 	  hBR_clusterpt.Fill(cluster_pt[n], weight);
           hBR_clusterpt_unweighted.Fill(cluster_pt[n],1);
 
@@ -1180,6 +1299,11 @@ int main(int argc, char *argv[])
           hBR_clusterphi.Fill(cluster_phi[n], weight);
 	  hBR_njet.Fill(njets_BR, weight);
 	}
+        else if(inBkgRegion){
+          hNonIso_clusterpt.Fill(cluster_pt[n], weight);
+          hNonIso_njet.Fill(njets_NonIso,weight);
+	}
+
 	//fill in this histogram only photons that can be traced to a generated non-decay photon.
         h_reco_truthpt.Fill(truth_pt,weight);
         h_reco.Fill(cluster_pt[n],weight); 
@@ -1225,9 +1349,10 @@ int main(int argc, char *argv[])
 	  for (ULong64_t ijet = 0; ijet < njet_truth_ak; ijet++) {
             if(not(jet_truth_ak_pt[ijet]>jet_pT_min)) continue;
 	    if(not(TMath::Abs(jet_truth_ak_eta[ijet])<Eta_max)) continue;
+            if(std::isnan(jet_truth_ak_phi[ijet])) continue;
+
 	    Float_t dphi_truth = TMath::Abs(TVector2::Phi_mpi_pi(jet_truth_ak_phi[ijet] - mc_truth_phi[nmc]));
-	    //std::cout<< dphi_truth << std::endl;
-            
+	    //std::cout<< dphi_truth << std::endl;          
 	    h_dPhi_truth.Fill(dphi_truth,weight);
             //if( not(dphi_truth>0.4)) continue;
             if( not(dphi_truth>TMath::Pi()/2.0)) continue;
@@ -1256,8 +1381,12 @@ int main(int argc, char *argv[])
   } // end over files
   std::cout << " Numbers of events passing selection " << N_eventpassed << std::endl;
   std::cout << " Number of clusters in signal region " << N_SR << std::endl;
-  std::cout << " Number of clusters in background region " << N_BR << std::endl;
+  std::cout << " Number of clusters in background region (isolated) " << N_BR << std::endl;
+  std::cout << " Number of clusters in background region (no iso cut applied) " << N_NonIso << std::endl;
   std::cout << " Number of truth photons " << N_truth << std::endl;
+  std::cout << " Number of jets associated with photons in SR region" << njets_SR_total << std::endl;
+  std::cout << " Number of jets associated with photons in BR region" << njets_BR_total << std::endl;
+  std::cout << " Number of jets associated with photons in BR region without iso cut" << njets_NonIso_total << std::endl;
 
   std::string opened_files = "";
   for (int iarg = 1; iarg < argc; iarg++) {
@@ -1265,26 +1394,36 @@ int main(int argc, char *argv[])
     opened_files += "_" + filepath.substr(filepath.find_last_of("/")+1, filepath.find_last_of(".")-filepath.find_last_of("/")-1);
   }
     
-  TFile* fout = new TFile(Form("Out%s_clus%2.1f_max%2.1f_JET_R%2.1f_PT_%2.1f_Iso%2.1f.root", opened_files.c_str(), clus_pT_min, clus_pT_max, jet_R, jet_pT_min,iso_max),"RECREATE");
+
+  std::string ShowerShapeName = "X";
+  if(SS_determiner ==SSHAPE_DNN) ShowerShapeName ="DNN";
+  else if(SS_determiner ==SSHAPE_Lambda) ShowerShapeName = "Lambda";
+
+  TFile* fout = new TFile(Form("Out%s_%s_clus%2.1f_max%2.1f_JET_R%2.1f_PT_%2.1f_Iso%2.1f.root", opened_files.c_str(), ShowerShapeName.c_str(), clus_pT_min, clus_pT_max, jet_R, jet_pT_min,iso_max),"RECREATE");
   fout->Print();
 
   //Save the sum of weights 
   h_weights.SetBinContent(1, N_SR);
   h_weights.SetBinContent(2, N_BR);
+  h_weights.SetBinContent(2, N_NonIso);
     
   h_zvertex.Write("zvertex");
   h_evt_rhoITS.Write("h_evt_rhoITS");
   h_evt_rhoTPC.Write("h_evt_rhoTPC");
 
   h_weights.Write("h_Ntriggers");
-
+  h_clusterIsolation.Write("h_clusterIsolation");
+  h_clusterLambda.Write("h_clusterLambda");
 
   ///weighting
   hSR_njet.Scale(1.0/N_SR);
   hBR_njet.Scale(1.0/N_BR);
+  hNonIso_njet.Scale(1.0/N_NonIso);
 
   hSR_Xj.Scale(1.0/N_SR);
   hBR_Xj.Scale(1.0/N_BR);
+  hNonIso_Xj.Scale(1.0/N_NonIso);
+
   hSR_dPhi.Scale(1.0/N_SR);
   hBR_dPhi.Scale(1.0/N_BR);
   hSR_dEta.Scale(1.0/N_SR);
@@ -1297,6 +1436,11 @@ int main(int argc, char *argv[])
   hSR_jetpt_all.Scale(1.0/N_SR);
 
   hBR_jetpt.Scale(1.0/N_BR);
+  hBR_jetpt_all.Scale(1.0/N_BR);
+  
+  hNonIso_jetpt.Scale(1.0/N_NonIso);
+  hNonIso_dPhi.Scale(1.0/N_NonIso);
+
   hSR_jeteta.Scale(1.0/N_SR);
   hBR_jeteta.Scale(1.0/N_BR);
   hSR_jetphi.Scale(1.0/N_SR);
@@ -1357,10 +1501,17 @@ int main(int argc, char *argv[])
   hSR_jetz_truth.Scale(1.0/N_SR);
 
   hSR_jetpt_Matrix.Scale(1.0/N_SR);
+  hSR_jetpt_Matrix_JESUP.Scale(1.0/N_SR);
+  hSR_jetpt_Matrix_JESDO.Scale(1.0/N_SR);
+
   hSR_jetpt_Matrix_quark.Scale(1.0/N_SR);
   hSR_jetpt_Matrix_gluon.Scale(1.0/N_SR);
 
   hBR_jetpt_Matrix.Scale(1.0/N_BR);
+  hNonIso_jetpt_Matrix.Scale(1.0/N_NonIso);
+
+  h_Xj_Matrix.Scale(1.0/N_SR);  
+  hNonIso_Xj_Matrix.Scale(1.0/N_NonIso);
 
   //SetTitles
   hSR_dPhi.SetTitle("; #Delta#phi^{#gamma-jet} [rad]; 1/N_{trigger} dN_{pairs}");
@@ -1385,14 +1536,19 @@ int main(int argc, char *argv[])
   //number of jets
   hSR_njet.Write("hSR_njet");
   hBR_njet.Write("hBR_njet");
+  hNonIso_njet.Write("hNonIso_njet");
   //Xj
   hSR_Xj.Write("hSR_Xj");
   hBR_Xj.Write("hBR_Xj");
+  hNonIso_Xj.Write("hNonIso_Xj");
+
   hSR_Xj_truth.Write("hSR_Xj_truth");
   hBR_Xj_truth.Write("hBR_Xj_truth");
   //dPhi
   hSR_dPhi.Write("hSR_dPhi");
   hBR_dPhi.Write("hBR_dPhi");
+  hNonIso_dPhi.Write("hNonIso_dPhi");
+
   hSR_dPhi_truth.Write("hSR_dPhi_truth");
   hBR_dPhi_truth.Write("hBR_dPhi_truth");
   //dEta
@@ -1429,10 +1585,15 @@ int main(int argc, char *argv[])
   //Associated jet histograms    
   hSR_jetpt.Write("hSR_jetpt");
   hSR_jetpt_all.Write("hSR_jetpt_all");
+  
 
   hBR_jetpt.Write("hBR_jetpt");
+  hBR_jetpt_all.Write("hBR_jetpt_all");
   hSR_jetpt_truth.Write("hSR_jetpt_truth");
   hBR_jetpt_truth.Write("hBR_jetpt_truth");
+
+  hNonIso_jetpt.Write("hNonIso_jetpt");
+  
 
   hSR_jeteta.Write("hSR_jeteta");
   hBR_jeteta.Write("hBR_jeteta");
@@ -1456,7 +1617,8 @@ int main(int argc, char *argv[])
   hSR_clusterpt.Write("hSR_clusterpt");
   hBR_clusterpt.Write("hBR_clusterpt");
   hBR_clusterpt_unweighted.Write("hBR_clusterpt_unweighted");
-
+  hNonIso_clusterpt.Write("hNonIso_clusterpt");
+  
   hSR_clustereta.Write("hSR_clustereta");
   hBR_clustereta.Write("hBR_clustereta");
   hSR_clusterphi.Write("hSR_clusterphi");
@@ -1491,10 +1653,16 @@ int main(int argc, char *argv[])
   jet_eff->Write("jetefficiency");
 
   hSR_jetpt_Matrix.Write("h_jetpt_Matrix");
+  hSR_jetpt_Matrix_JESUP.Write("h_jetpt_Matrix_JESUP");
+  hSR_jetpt_Matrix_JESDO.Write("h_jetpt_Matrix_JESDO");
+
   hSR_jetpt_Matrix_gluon.Write("h_jetpt_Matrix_gluon");
   hSR_jetpt_Matrix_quark.Write("h_jetpt_Matrix_quark");
 
   hBR_jetpt_Matrix.Write("hBR_jetpt_Matrix");
+  hNonIso_jetpt_Matrix.Write("hNonIso_jetpt_Matrix");
+  hNonIso_Xj_Matrix.Write("hNonIso_Xj_Matrix");
+
   h_XobsPb_Matrix.Write("h_XobsPb_Matrix");
   h_Xj_Matrix.Write("h_Xj_Matrix");
   h_Multiplicity_Matrix.Write("h_Multiplicity_Matrix");
