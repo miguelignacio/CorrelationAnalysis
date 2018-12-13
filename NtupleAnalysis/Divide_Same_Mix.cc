@@ -34,33 +34,21 @@ int main(int argc, char *argv[])
   int nTrackSkims = 2;
   float* trackPtSkims;
   trackPtSkims = new float[nTrackSkims+1];
-<<<<<<< HEAD
+
   trackPtSkims[0] = 0.0; //trackPtSkims[1] = 40.0;
   trackPtSkims[1] = 4.0; //trackPtSkims[2] = 6.0;
   trackPtSkims[2] = 40.0;
-=======
-  trackPtSkims[0] = 0.0; trackPtSkims[1] = 30.0;
-  // trackPtSkims[1] = 4.0; trackPtSkims[2] = 6.0;
-  //trackPtSkims[2] = 30.0;
->>>>>>> 4b1b933f27a7fba4401f3dc8e74211d782d141c9
 
   TFile* MixFile[nTrackSkims];
   for (int iSkim = 0; iSkim < nTrackSkims; iSkim ++){
     std::string basic_name = argv[2];
-    //MixFile[iSkim] = TFile::Open(Form("Mix_Correlation_%1.0fGeVTracks_13defv1_ALL.root",trackPtSkims[iSkim]));
-    //MixFile[iSkim] = TFile::Open(Form("13d_4L_GMB_Correlation_%1.0fGeVTracks.root",trackPtSkims[iSkim]));
-    //MixFile[iSkim] = TFile::Open(Form("%s_%1.0fGeVTracks.root",basic_name.c_str(),trackPtSkims[iSkim]));
-<<<<<<< HEAD
     MixFile[iSkim] = TFile::Open(Form("InputData/13d_MB_%1.0fGeV_NN_15_20.root",trackPtSkims[iSkim]));
     //MixFile[iSkim] = TFile::Open((TString)argv[2]);
     //MixFile[iSkim] = TFile::Open("InputData/17q_MB_4GeVTrack_Correlation_12_15.root");
     std::cout<<Form("%s_%1.0fGeVTracks.root",basic_name.c_str(),trackPtSkims[iSkim])<<std::endl;
-=======
 
     MixFile[iSkim] = TFile::Open((TString)argv[2]);
 
-    //std::cout<<Form("%s_%1.0fGeVTracks.root",basic_name.c_str(),trackPtSkims[iSkim])<<std::endl;
->>>>>>> 4b1b933f27a7fba4401f3dc8e74211d782d141c9
     if (MixFile[iSkim] == NULL) {
       std::cout<<MixFile[iSkim]<<std::endl;
       std::cout << " Mixed file "<<iSkim<<" failed" << std::endl;
@@ -288,14 +276,8 @@ int main(int argc, char *argv[])
     std::cout<<izt<<" "<<1.0/mix_DNN1_intgrl<<std::endl;
 
     Mix_Inclusive_Corr[izt+ipt*nztbins]->Scale(1.0/mix_Inclusive_intgrl);
-<<<<<<< HEAD
     // Mix_DNN1_Corr[izt+ipt*nztbins]->Scale(1.0/mix_DNN1_intgrl);
     // Mix_DNN2_Corr[izt+ipt*nztbins]->Scale(1.0/mix_DNN2_intgrl);
-=======
-    //Mix_Inclusive_Corr[izt+ipt*nztbins]->Scale(1.0/300);
-//     Mix_DNN1_Corr[izt+ipt*nztbins]->Scale(1.0/mix_DNN1_intgrl);
-//     Mix_DNN2_Corr[izt+ipt*nztbins]->Scale(1.0/mix_DNN2_intgrl);
->>>>>>> 4b1b933f27a7fba4401f3dc8e74211d782d141c9
 
     Mix_DNN1_Corr[izt+ipt*nztbins]->Scale(1.0/mix_Inclusive_intgrl);
     Mix_DNN2_Corr[izt+ipt*nztbins]->Scale(1.0/mix_Inclusive_intgrl);
