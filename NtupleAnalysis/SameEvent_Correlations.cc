@@ -250,7 +250,6 @@ int main(int argc, char *argv[])
   //HISTOGRAMS
   TCanvas canvas("canvas", "");
 
-  TH1D h_ntrig("h_ntrig", "", 2, -0.5,1.0);
   TH1D h_purity("h_purity","purity distribution",100,0,1);
 
   TH1D *h_cluster_phi = new TH1D("cluster_phi","#phi distribution of paired clusters",32,1,M_PI);  
@@ -271,9 +270,6 @@ int main(int argc, char *argv[])
   else {
     purities[0]=0.27;purities[1]=0.32;purities[2]=0.37;}//Emax/Ecluster
 
-  TH2D* Signal_pT_Dist = new TH2D("Signal_pT_Dist","Cluster Pt Spectrum For Isolation (its_04) bins 0.55 < DNN < 0.85",100,pT_min,pT_max,5,-0.5,2);
-  TH2D* BKGD_pT_Dist = new TH2D("BKGD_pT_Dist","Cluster Pt Spectrum For Isolation (its_04) bins 0.0 < DNN < 0.3",100,pT_min,pT_max,5,-0.5,2);
-
   TH2D* Corr[nztbins*nptbins];
   TH2D* IsoCorr[nztbins*nptbins];
   TH2D* BKGD_IsoCorr[nztbins*nptbins];
@@ -289,7 +285,12 @@ int main(int argc, char *argv[])
   float N_Signal_Triggers = 0;
   float N_BKGD_Triggers = 0;
   
-  //FIXME: Add to config file
+  TH1D* Signal_pT_Dist = new TH1D("Signal_pT_Dist","Cluster Pt Spectrum For Isolation (its_04) bins 0.55 < DNN < 0.85",100,pT_min,pT_max);
+  TH1D* BKGD_pT_Dist = new TH1D("BKGD_pT_Dist","Cluster Pt Spectrum For Isolation (its_04) bins 0.0 < DNN < 0.3",100,pT_min,pT_max);
+  TH1D* BKGD_pT_Dist_Weighted = new TH1D("BKGD_pT_Dist_Weighted","Weighted Cluster Pt Spectrum For Isolation (its_04) bins 0.0 < DNN < 0.3",100,pT_min,pT_max);
+
+  TH1D hBR("hBR", "Isolated cluster, bkg region", 80, 10.0, 50.0);
+  TH1D hweight("hweight", "Isolated cluster, signal region", 80, 10.0, 50.0);
 
     for (int ipt = 0; ipt <nptbins; ipt++) {
       H_Signal_Triggers[ipt] = new TH1D(
@@ -456,9 +457,105 @@ int main(int argc, char *argv[])
     //_tree_event->SetBranchAddress("eg_cross_section",&eg_cross_section);
     //_tree_event->SetBranchAddress("eg_ntrial",&eg_ntrial);
 
+    Bool_t Signal = false;
+    Bool_t Background = false;
+
     Long64_t nentries = _tree_event->GetEntries();         
     std::cout << " Total Number of entries in TTree: " << nentries << std::endl;
 
+    //WEIGHTING and CLUSTER SPECTRA LOOP
+
+    fprintf(stderr,"Looping to determine weights and pT spectra \n");
+    for(Long64_t ievent = 0; ievent < nentries ; ievent++){     
+      //for(Long64_t ievent = 0; ievent < 1000 ; ievent++){
+      _tree_event->GetEntry(ievent);
+      fprintf(stderr, "\r%s:%d: %llu / %llu", __FILE__, __LINE__, ievent, nentries);
+
+      bool first_cluster = true;
+      for (ULong64_t n = 0; n < ncluster; n++) {
+	if( not(cluster_pt[n]>pT_min and cluster_pt[n]<pT_max)) continue;   //select pt of photons
+	if( not(TMath::Abs(cluster_eta[n])<Eta_max)) continue;              //cut edges of detector
+	if( not(cluster_ncell[n]>Cluster_min)) continue;                    //removes clusters with 1 or 2 cells
+	if( not(cluster_e_cross[n]/cluster_e[n]>EcrossoverE_min)) continue; //removes "spiky" clusters
+	if( not(cluster_distance_to_bad_channel[n]>=Cluster_DtoBad)) continue; //removes clusters near bad channels
+	//	if( not(cluster_nlocal_maxima[n] < Cluster_NLocal_Max)) continue; //require to have at most 2 local maxima.
+	if( not(cluster_nlocal_maxima[n] < 3)) continue; //require to have at most 2 local maxima.
+
+	float isolation;
+	if (determiner == CLUSTER_ISO_TPC_04) isolation = cluster_iso_tpc_04[n];
+	else if (determiner == CLUSTER_ISO_ITS_04) isolation = cluster_iso_its_04[n];
+	else if (determiner == CLUSTER_FRIXIONE_TPC_04_02) isolation = cluster_frixione_tpc_04_02[n];
+	else isolation = cluster_frixione_its_04_02[n];
+	
+	h_cluster_phi->Fill(cluster_phi[n]);
+	h_cluster_eta->Fill(cluster_eta[n]);
+	
+	if (strcmp(shower_shape.data(),"Lambda")== 0) {
+	  if ((cluster_lambda_square[n][0] < Lambda0_cut))
+	    Signal = true;
+	  
+	  if ((cluster_lambda_square[n][0] > Lambda0_cut))
+	    Background = true;
+	}
+	
+	else if (strcmp(shower_shape.data(),"DNN")==0){
+	  if ( (cluster_s_nphoton[n][1] > DNN_min) && (cluster_s_nphoton[n][1]<DNN_max))
+	    Signal = true;
+	  if (cluster_s_nphoton[n][1] > 0.0 && cluster_s_nphoton[n][1] < DNN_Bkgd)
+	    Background = true;
+	}
+
+	else if (strcmp(shower_shape.data(),"EMax")==0){
+          if (cluster_e_max[n]/cluster_e[n] > Emax_max)
+            Signal = true;
+          if (cluster_e_max[n]/cluster_e[n] < Emax_min)
+            Background = true;
+        }
+
+
+	if (isolation<iso_max){	
+
+	  //High DNN Trigger SGNL
+	  if (Signal){  	    
+	    for (int ipt = 0; ipt < nptbins; ipt++){
+	      if ((cluster_pt[n] >= pT_Ranges[ipt]) && (cluster_pt[n] < pT_Ranges[ipt+1]))
+		h_purity.Fill(purities[ipt]); }
+	    
+	    N_Signal_Triggers += 1;
+	    Signal_pT_Dist->Fill(cluster_pt[n],isolation);
+
+	    for (int ipt = 0; ipt < nptbins; ipt++)
+	      if (cluster_pt[n] >ptbins[ipt] && cluster_pt[n] <ptbins[ipt+1])
+		H_Signal_Triggers[ipt]->Fill(1);
+
+	  hweight.Fill(cluster_pt[n]);
+
+	  }//Signal
+
+	  //Low DNN Trigger BKGD
+	  if (Background){
+	    N_BKGD_Triggers += 1;
+	    BKGD_pT_Dist->Fill(cluster_pt[n]);
+	    for (int ipt = 0; ipt < nptbins; ipt++)
+	      if (cluster_pt[n] >= ptbins[ipt] && cluster_pt[n] <ptbins[ipt+1]) 
+		H_BKGD_Triggers[ipt]->Fill(1); 
+
+	    hBR.Fill(cluster_pt[n]);
+
+	  } //Background
+	
+	  //no dnn
+	  for (int ipt = 0; ipt < nptbins; ipt++)
+	    Triggers[ipt]->Fill(1);
+	}
+      }
+    }
+    hweight.Divide(&hBR);
+
+    //MAIN CORRELATION LOOP
+
+
+    fprintf(stderr,"\n Looping for main correlation functions \n");
     for(Long64_t ievent = 0; ievent < nentries ; ievent++){     
       //for(Long64_t ievent = 0; ievent < 1000 ; ievent++){
       _tree_event->GetEntry(ievent);
@@ -482,13 +579,6 @@ int main(int argc, char *argv[])
 	else if (determiner == CLUSTER_FRIXIONE_TPC_04_02) isolation = cluster_frixione_tpc_04_02[n];
 	else isolation = cluster_frixione_its_04_02[n];
 	
-	h_cluster_phi->Fill(cluster_phi[n]);
-	h_cluster_eta->Fill(cluster_eta[n]);
-	
-
-	Bool_t Signal = false;
-	Bool_t Background = false;
-
 	if (strcmp(shower_shape.data(),"Lambda")== 0) {
 	  if ((cluster_lambda_square[n][0] < Lambda0_cut))
 	    Signal = true;
@@ -511,39 +601,13 @@ int main(int argc, char *argv[])
             Background = true;
         }
 
-	//count triggers	
-	if (isolation<iso_max){	
 
-	  //High DNN Trigger SGNL
-	  if (Signal){  
-	    
-	    for (int ipt = 0; ipt < nptbins; ipt++){
-	      if ((cluster_pt[n] >= pT_Ranges[ipt]) && (cluster_pt[n] < pT_Ranges[ipt+1]))
-		h_purity.Fill(purities[ipt]);
-	    }
-	    
-	    N_Signal_Triggers += 1;
-	    for (double Iso_bin = -0.5; Iso_bin < iso_max; Iso_bin += 0.5)
-	      if (isolation > Iso_bin && isolation < Iso_bin+0.5) Signal_pT_Dist->Fill(cluster_pt[n],isolation);
-	    for (int ipt = 0; ipt < nptbins; ipt++)
-	      if (cluster_pt[n] >ptbins[ipt] && cluster_pt[n] <ptbins[ipt+1])
-		H_Signal_Triggers[ipt]->Fill(1);
+	double bkg_weight = 1.0;
+
+	if(Background){
+	  double bkg_weight = hweight.GetBinContent(hweight.FindBin(cluster_pt[n]));
+	  BKGD_pT_Dist_Weighted->Fill(cluster_pt[n],bkg_weight);
 	  }
-	  //Low DNN Trigger BKGD
-	  if (Background){
-	    h_ntrig.Fill(0.5);
-	    N_BKGD_Triggers += 1;
-	    for (double Iso_bin = -0.5; Iso_bin < iso_max; Iso_bin += 0.5)
-	      if (isolation > Iso_bin && isolation < Iso_bin+0.5) 
-		BKGD_pT_Dist->Fill(cluster_pt[n],isolation);
-	    for (int ipt = 0; ipt < nptbins; ipt++)
-	      if (cluster_pt[n] >= ptbins[ipt] && cluster_pt[n] <ptbins[ipt+1]) 
-		H_BKGD_Triggers[ipt]->Fill(1); 
-	  }
-	}
-	//no iso, no dnn
-	for (int ipt = 0; ipt < nptbins; ipt++)
-	  Triggers[ipt]->Fill(1);
 
 	//Track Loop
 	for (ULong64_t itrack = 0; itrack < ntrack; itrack++) {            
@@ -588,7 +652,8 @@ int main(int argc, char *argv[])
 		      IsoCorr[izt+ipt*nztbins]->Fill(DeltaPhi,DeltaEta);
 
 		    if (Background)
-		      BKGD_IsoCorr[izt+ipt*nztbins]->Fill(DeltaPhi,DeltaEta);
+		      BKGD_IsoCorr[izt+ipt*nztbins]->Fill(DeltaPhi,DeltaEta,bkg_weight);
+
 		  }		  
 		  //No Iso, no DNN
 		  Corr[izt+ipt*nztbins]->Fill(DeltaPhi,DeltaEta);
@@ -623,7 +688,6 @@ int main(int argc, char *argv[])
     fout = new TFile(Form("%s_SE_Correlation.root",rawname.data()),"RECREATE");
 
   // TFile* fout = new TFile("Same_Event_Correlation_13defv1.root","RECREATE");
-  h_ntrig.Write("ntriggers");
   std::cout<<"Clusters Passed Iosalation: "<<N_Signal_Triggers<<std::endl;
 			  
   h_purity.Write("purities");
@@ -631,8 +695,11 @@ int main(int argc, char *argv[])
   h_cluster_phi->Write();
   h_cluster_eta->Write();
 
+  hweight.Write();
+
   Signal_pT_Dist->Write();
   BKGD_pT_Dist->Write();
+  BKGD_pT_Dist_Weighted->Write();
 
   for (int ipt = 0; ipt<nptbins; ipt++)
     H_Signal_Triggers[ipt]->Write();

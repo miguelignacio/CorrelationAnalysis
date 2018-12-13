@@ -42,7 +42,7 @@ int main(int argc, char *argv[])
   TFile* MixFile[nTrackSkims];
   for (int iSkim = 0; iSkim < nTrackSkims; iSkim ++){
     std::string basic_name = argv[2];
-    MixFile[iSkim] = TFile::Open(Form("InputData/13e_MB_%1.0fGeV_NN_15_20.root",trackPtSkims[iSkim]));
+    MixFile[iSkim] = TFile::Open(Form("InputData/13f_MB_%1.0fGeV_NN_15_20.root",trackPtSkims[iSkim]));
     //MixFile[iSkim] = TFile::Open((TString)argv[2]);
     //MixFile[iSkim] = TFile::Open("InputData/17q_MB_4GeVTrack_Correlation_12_15.root");
     //std::cout<<Form("%s_%1.0fGeVTracks.root",basic_name.c_str(),trackPtSkims[iSkim])<<std::endl;
