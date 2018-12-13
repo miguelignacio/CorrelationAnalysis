@@ -249,7 +249,7 @@ int main(int argc, char *argv[])
 	  fprintf(stderr,"%s: %d: Could not place Track pT bin in mixed File",__FILE__,__LINE__);
 
       }
-    //Normalize MixOAing to 1 at ∆eta∆phi = 0,0
+    //Normalization from max value!! (STAR/ALICE way)
     TAxis *mix_xaxis = Mix_DNN1_Corr[izt+ipt*nztbins]->GetXaxis();
     TAxis *mix_yaxis = Mix_DNN1_Corr[izt+ipt*nztbins]->GetYaxis();
 
@@ -274,9 +274,11 @@ int main(int argc, char *argv[])
     std::cout<<izt<<" "<<1.0/mix_DNN1_intgrl<<std::endl;
 
     Mix_Inclusive_Corr[izt+ipt*nztbins]->Scale(1.0/mix_Inclusive_intgrl);
-    //Mix_Inclusive_Corr[izt+ipt*nztbins]->Scale(1.0/300);
-    Mix_DNN1_Corr[izt+ipt*nztbins]->Scale(1.0/mix_DNN1_intgrl);
-    Mix_DNN2_Corr[izt+ipt*nztbins]->Scale(1.0/mix_DNN2_intgrl);
+    // Mix_DNN1_Corr[izt+ipt*nztbins]->Scale(1.0/mix_DNN1_intgrl);
+    // Mix_DNN2_Corr[izt+ipt*nztbins]->Scale(1.0/mix_DNN2_intgrl);
+
+    Mix_DNN1_Corr[izt+ipt*nztbins]->Scale(1.0/mix_Inclusive_intgrl);
+    Mix_DNN2_Corr[izt+ipt*nztbins]->Scale(1.0/mix_Inclusive_intgrl);
 
     std::cout<<mix_DNN1_intgrl<<std::endl;
 
