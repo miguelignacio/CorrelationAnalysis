@@ -20,7 +20,7 @@ const int MAX_INPUT_LENGTH = 200;
 int main(int argc, char *argv[])
 //int main()
 {
-  if (argc < 3){
+  if (argc < 2){
     std::cout<<"Syntax is [Command] [Same_Event_root_file] [Mixed_Event_root_file]"<<std::endl;
     exit(EXIT_FAILURE);
   }
@@ -42,12 +42,12 @@ int main(int argc, char *argv[])
   TFile* MixFile[nTrackSkims];
   for (int iSkim = 0; iSkim < nTrackSkims; iSkim ++){
     std::string basic_name = argv[2];
-    MixFile[iSkim] = TFile::Open(Form("InputData/13d_MB_%1.0fGeV_NN_15_20.root",trackPtSkims[iSkim]));
+    MixFile[iSkim] = TFile::Open(Form("InputData/13f_MB_%1.0fGeV_NN_15_20.root",trackPtSkims[iSkim]));
     //MixFile[iSkim] = TFile::Open((TString)argv[2]);
     //MixFile[iSkim] = TFile::Open("InputData/17q_MB_4GeVTrack_Correlation_12_15.root");
-    std::cout<<Form("%s_%1.0fGeVTracks.root",basic_name.c_str(),trackPtSkims[iSkim])<<std::endl;
+    //std::cout<<Form("%s_%1.0fGeVTracks.root",basic_name.c_str(),trackPtSkims[iSkim])<<std::endl;
 
-    MixFile[iSkim] = TFile::Open((TString)argv[2]);
+    //MixFile[iSkim] = TFile::Open((TString)argv[2]);
 
     if (MixFile[iSkim] == NULL) {
       std::cout<<MixFile[iSkim]<<std::endl;
@@ -56,7 +56,7 @@ int main(int argc, char *argv[])
   }
 
 
-  FILE* config = fopen("Corr_config2.yaml", "r");
+  FILE* config = fopen("Corr_config.yaml", "r");
 
   int n_eta_bins = 0;
   int n_phi_bins = 0;
