@@ -11,6 +11,7 @@
 #include <TProfile.h>
 #include <iostream>
 #include <fstream>
+#include <stdio.h>
 
 #define NTRACK_MAX (1U << 14)
 
@@ -177,6 +178,7 @@ int main(int argc, char *argv[])
         Int_t cluster_ncell[NTRACK_MAX];
         UShort_t  cluster_cell_id_max[NTRACK_MAX];
         Float_t cluster_lambda_square[NTRACK_MAX][2];   
+        Float_t cluster_b5x5_lin[NTRACK_MAX];
 
 
         Float_t cell_e[17664];
@@ -214,7 +216,8 @@ int main(int argc, char *argv[])
         _tree_event->SetBranchAddress("cluster_mc_truth_index", cluster_mc_truth_index);
         _tree_event->SetBranchAddress("cluster_lambda_square", cluster_lambda_square);
  	_tree_event->SetBranchAddress("cluster_ncell", cluster_ncell);
-        _tree_event->SetBranchAddress("cluster_cell_id_max", cluster_cell_id_max);
+        _tree_event->SetBranchAddress("cluster_cell_id_max", cluster_cell_id_max); 
+        _tree_event->SetBranchAddress("cluster_b5x5_lin",cluster_b5x5_lin);
         _tree_event->SetBranchAddress("cell_e", cell_e);
 
 	 
@@ -233,35 +236,76 @@ int main(int argc, char *argv[])
  	
  	std::cout << " Total Number of entries in TTree: " << _tree_event->GetEntries() << std::endl;
     
+	int counter =0;
+
+        //define output files:
+        FILE * pFile[10];
+        pFile[0] = fopen ("output_All.txt","w");
+        pFile[1] = fopen ("output_1.txt","w");
+	pFile[2] = fopen ("output_2.txt","w");
+	pFile[3] = fopen ("output_3.txt","w");
+	pFile[4] = fopen ("output_4.txt","w");
+	pFile[5] = fopen ("output_5.txt","w");
+	pFile[6] = fopen ("output_LambdaPeak.txt","w");
+	pFile[7] = fopen ("output_MC.txt","w");
+        pFile[8] = fopen ("output_MC_DNNPeak.txt","w");
+	pFile[9] = fopen ("output_MC_DNNTail.txt","w");
+ 
+   
 
 	//for(Long64_t ievent = 0; ievent < _tree_event->GetEntries() ; ievent++){     
         for(Long64_t ievent = 0; ievent < 1000 ; ievent++){
              _tree_event->GetEntry(ievent);
-
+	     bool stop = false;
 	      for (ULong64_t n = 0; n < ncluster; n++) {
+		  
 	          if(TMath::Abs(primary_vertex[2])>10) continue;
-	          if(!(cluster_pt[n]>10 and cluster_pt[n]<14)) continue;
-                  if(TMath::Abs(cluster_eta[n])>0.6) continue;
-                  if(cluster_ncell[n]<3) continue; 
-                  if(cluster_e_cross[n]/cluster_e[n]<0.03) continue;
+	          if(cluster_pt[n]<11.0) continue;
+                  //if(cluster_pt[n]>16.0) continue;
+                  //if(TMath::Abs(cluster_eta[n])>0.6) continue;
+                  if(cluster_ncell[n]<3) continue;  //ncell
+                  if(cluster_e_cross[n]/cluster_e[n]<0.05) continue; //exotic clusters
+                  //if(cluster_s_nphoton[n][1]>0.86) continue; //eliminate weirdos. 
+
 	          unsigned int cell_id_5_5[25];
 	          cell_5_5(cell_id_5_5, cluster_cell_id_max[n]);
-		  std::cout << Form("%2.1f, %2.2f", cluster_pt[n], cluster_s_nphoton[n][1]);
+
+                  int nbin = 0; //0
+                  //if(cluster_s_nphoton[n][1] > 0.75 and cluster_s_nphoton[n][1] <0.85)      nbin=8;
+		  //if(cluster_s_nphoton[n][1] > 0.55 and cluster_s_nphoton[n][1] <0.70)      nbin=9;
+
+		  //else if(cluster_s_nphoton[n][1] > 0.18 and cluster_s_nphoton[n][1] <0.19)      nbin=2;
+                  //else if(cluster_s_nphoton[n][1] > 0.19 and cluster_s_nphoton[n][1] <0.20) nbin=3;
+                  //else if(cluster_s_nphoton[n][1] > 0.21 and cluster_s_nphoton[n][1] <0.22) nbin=4;
+                  //else if(cluster_s_nphoton[n][1] > 0.22 and cluster_s_nphoton[n][1] <0.23) nbin=5;
+		  //else if(cluster_lambda_square[n][0] > 0.249 and cluster_lambda_square[n][0] <0.251) nbin=6;
+                  //else nbin=0;                  
+
+                  //if(!(cluster_lambda_square[n][0]<0.252 and cluster_lambda_square[n][0]>0.248)) continue;
+		  //if(cluster_s_nphoton[n][1] >0.85) continue; 
+                  //if(cluster_s_nphoton[n][1] <0.75) continue;
+
+                  fprintf (pFile[nbin], "%2.1f, %2.2f, %2.2f", cluster_pt[n], cluster_s_nphoton[n][1], cluster_b5x5_lin[n]);
+		  //std::cout << Form("%2.1f, %2.3f, %2.3f", cluster_pt[n], cluster_s_nphoton[n][1], cluster_lambda_square[n][0]);
 	          
                   for (size_t i = 0; i < 25; i++) {
-		    std::cout <<"," <<Form("%2.2f",100*cell_e[cell_id_5_5[i]]/cluster_e[n]);
+                    auto cellenergy = cell_e[cell_id_5_5[i]];
+                    double weight = TMath::Log(cellenergy/cluster_e[n]);
+		    //std::cout << cellenergy/cell_e[n] << std::endl;
+                    if(cellenergy<0.100) cellenergy = std::numeric_limits<double>::quiet_NaN();
+		     //if(weight <-4.5){
+		    //cellenergy = std::numeric_limits<double>::quiet_NaN();
+		     //}
+                    fprintf (pFile[nbin], ",%2.2f", 100*cellenergy/cluster_e[n]);
 		  }
-		  std::cout<<std::endl;
+                  
+                  fprintf (pFile[nbin],"\n");
+		  ///		  std::cout<<std::endl;
 	    }//end loop on clusters. 
-	   
+	    if(stop) break;
 
 	} //end loop over events
 
-	TFile* fout = new TFile("fout.root","RECREATE");
-	
-
-	fout->Close();     
-	  
     }//end loop over samples
 
     std::cout << " ending " << std::endl;
